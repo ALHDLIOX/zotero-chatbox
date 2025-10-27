@@ -14,6 +14,3 @@ tsconfig.tsbuildinfo
 .scaffold
 build
 logs
-# BMAD (local only)
-.bmad-core/
-.bmad-*/
