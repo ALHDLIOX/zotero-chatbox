@@ -5,6 +5,7 @@ import {
   PromptExampleFactory,
   UIExampleFactory,
 } from "./modules/examples";
+import { registerAIChatReaderPane } from "./modules/aiChat/readerPane";
 import { getString, initLocale } from "./utils/locale";
 import { registerPrefsScripts } from "./modules/preferenceScript";
 import { createZToolkit } from "./utils/ztoolkit";
@@ -33,6 +34,8 @@ async function onStartup() {
   UIExampleFactory.registerItemPaneSection();
 
   UIExampleFactory.registerReaderItemPaneSection();
+
+  await registerAIChatReaderPane();
 
   await Promise.all(
     Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),

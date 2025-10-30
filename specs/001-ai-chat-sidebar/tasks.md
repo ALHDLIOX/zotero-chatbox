@@ -31,14 +31,14 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 **Purpose**: Establish feature module, registration, localization, and default preferences.
 
-- [ ] T001 Create feature module folder and `readerPane.ts` skeleton in `src/modules/aiChat/readerPane.ts`
-- [ ] T002 [P] Create provider client skeleton in `src/modules/aiChat/provider.ts`
-- [ ] T003 [P] Create session state skeleton in `src/modules/aiChat/session.ts`
-- [ ] T004 [P] Create preferences helper skeleton in `src/modules/aiChat/prefs.ts`
-- [ ] T005 Register AI Chat Reader Item Pane in `src/hooks.ts` (import and call register from `src/modules/aiChat/readerPane.ts`)
-- [ ] T006 Add default preference keys for provider settings in `addon/prefs.js` (keys: `provider`, `endpoint`, `model`, `apiKey`)
-- [ ] T007 [P] Add Chinese UI strings for AI Chat (panel title, status labels, buttons) in `addon/locale/zh-CN/addon.ftl`
-- [ ] T008 [P] Add Chinese preference labels (Provider, Endpoint URL, Model, API Key) in `addon/locale/zh-CN/preferences.ftl`
+- [X] T001 Create feature module folder and `readerPane.ts` skeleton in `src/modules/aiChat/readerPane.ts`
+- [X] T002 [P] Create provider client skeleton in `src/modules/aiChat/provider.ts`
+- [X] T003 [P] Create session state skeleton in `src/modules/aiChat/session.ts`
+- [X] T004 [P] Create preferences helper skeleton in `src/modules/aiChat/prefs.ts`
+- [X] T005 Register AI Chat Reader Item Pane in `src/hooks.ts` (import and call register from `src/modules/aiChat/readerPane.ts`)
+- [X] T006 Add default preference keys for provider settings in `addon/prefs.js` (keys: `provider`, `endpoint`, `model`, `apiKey`)
+- [X] T007 [P] Add Chinese UI strings for AI Chat (panel title, status labels, buttons) in `addon/locale/zh-CN/addon.ftl`
+- [X] T008 [P] Add Chinese preference labels (Provider, Endpoint URL, Model, API Key) in `addon/locale/zh-CN/preferences.ftl`
 
 ---
 
