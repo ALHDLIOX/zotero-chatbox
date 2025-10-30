@@ -7,112 +7,146 @@ Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Dri
 ## Goals
 
 - Resolve all NEEDS CLARIFICATION items from plan.md
-- Capture best practices for template-aligned implementation in Zotero 7
-- Lock decisions for design and contracts
+- Align API usage with Zotero 7 for Developers guidance (Firefox ESR 115 platform)
+- Lock decisions for design and contracts with unambiguous behaviors
 
 ---
 
-## 1) Document Context: Full‑text index with page mapping
+## Runtime Alignment (Zotero 7)
 
-Decision: Use Zotero’s full‑text subsystem to determine if a PDF attachment has an indexed full‑text with page mapping; expose a boolean and summary for the Reader Item Pane.
+Decision: Target the Zotero 7 runtime (Firefox ESR 115). Use modern platform features and official plugin APIs:
+
+- Preference pane registration via `Zotero.PreferencePanes.register(...)` (plugin-managed prefs UI)
+- Custom Item Pane sections via `Zotero.ItemPaneManager.registerSection(...)`
+- Optional custom Info rows via `Zotero.ItemPaneManager.registerInfoRow(...)`
+- Reader UI hooks via `Zotero.Reader.registerEventListener(...)` (not required for this feature)
+- Default prefs loaded from `prefs.js` at plugin root; runtime strings managed via Fluent `.ftl`
+- ESM imports via `ChromeUtils.importESModule(...)`; IO via `IOUtils`/`PathUtils` if needed
 
 Rationale:
-- Zotero manages full‑text indexes internally; the canonical check should rely on the Zotero API rather than manual file parsing.
-- The Reader Item Pane can be updated synchronously (status bar) and asynchronously (details) using the template’s `registerSection` lifecycle.
-
-Implementation Pattern (planned):
-- Identify the currently opened reader tab’s parent item and PDF attachment.
-- Query full‑text index state via Zotero’s full‑text API (e.g., `Zotero.Fulltext` module) to determine:
-  - Whether the attachment is indexed
-  - Whether page mapping metadata exists
-- Provide a small summary string (Chinese) via `.ftl` for the section header and body.
+- These are the officially documented APIs for preferences, item pane extension points, and reader integrations in Zotero 7.
+- Aligns with Firefox 115 capabilities (AbortController, Streams) and avoids deprecated XUL overlay patterns.
 
 Alternatives considered:
-- Heuristic detection via annotations or by probing the attachment file directly. Rejected due to fragility and deviation from platform capabilities.
-- Persisting derived context to disk. Rejected; session is per item/tab by requirement.
+- Manual DOM injection into the item pane. Rejected in favor of `ItemPaneManager` official API and lifecycle.
+- Legacy `.properties`/`.dtd` localization. Rejected in favor of Fluent.
 
 ---
 
-## 2) Provider Streaming: OpenAI‑compatible integration
+## API Calls: HTTP, Streaming, Cancellation, Errors
 
-Decision: Support OpenAI‑compatible Chat Completions with optional streaming using `fetch` and `AbortController`. Parse `text/event-stream` for incremental tokens until `[DONE]`.
+Decision: Use built-in `fetch` with `AbortController` and Streams to call OpenAI-compatible Chat Completions endpoints. Parse `text/event-stream` for incremental output when `stream: true` is requested.
 
-Rationale:
-- Matches requirement to allow Stop (abort ongoing request) and show incremental responses.
-- OpenAI‑compatible providers commonly implement the SSE `[DONE]` sentinel and `data: {"choices":[{"delta":{"content":"..."}}]}` payloads.
+Request model (OpenAI‑compatible):
+- URL: `{endpoint}/v1/chat/completions`
+- Method: `POST`
+- Headers: `Authorization: Bearer {apiKey}`, `Content-Type: application/json`
+- Body (streaming): `{ model, messages, stream: true }`
+- Body (non‑streaming fallback): `{ model, messages }`
 
-Implementation Pattern (planned):
-- Request: `POST {endpoint}/v1/chat/completions` with headers `Authorization: Bearer {apiKey}`, `Content-Type: application/json`.
-- Body: `{ model, messages, stream: true }` when streaming; without `stream` for non‑streaming fallback.
-- ReadableStream: decode `text/event-stream` line by line; accumulate content into the UI; stop on `[DONE]` or abort signal.
-- Errors: surface network/auth errors and token limit errors as localized messages; no auto‑truncate per spec.
+Streaming parsing:
+- Read `response.body` via `getReader()` and decode using `TextDecoder`.
+- Split on lines and process lines prefixed with `data:`; ignore other SSE fields.
+- For each `data:` payload, parse JSON and append `choices[].delta.content` to the UI.
+- Stop on a `data: [DONE]` message or when `AbortController` aborts.
+
+Cancellation & timeout:
+- Create an `AbortController` per request. Bind the UI “Stop” to `controller.abort()`.
+- Apply a configurable timeout (default 60s) implemented via `AbortController`.
+- Do not auto‑retry failed generations; user can resend.
+
+Error mapping (user‑visible, Simplified Chinese):
+- Network error/timeout → “模型响应超时或网络异常，请重试”
+- 401/403 (auth) → “API Key 无效或已过期”
+- 413/400 token limit (provider‑specific) → “文档过长，无法作为上下文发送（token 超限）”
+- Unknown server error → “服务异常，请稍后再试”
+
+Security & transport:
+- Enforce HTTPS endpoints; HTTP is not supported.
+- Never log API keys; mask any sensitive values in diagnostics.
+
+Notes on platform behavior:
+- In Zotero 7’s privileged runtime, `fetch` and Streams APIs are available. CORS/credential semantics follow the platform; no special Zotero‑specific HTTP API is required for third‑party calls.
 
 Alternatives considered:
-- WebSocket-based streaming. Rejected to keep provider compatibility and reduce complexity.
-- Non‑streaming only. Rejected because Stop must interrupt mid‑generation.
+- WebSockets for streaming. Rejected to maximize compatibility with OpenAI‑style providers and minimize complexity.
+- Custom XHR/SAX‑style parser. Rejected; Streams + SSE line parsing is simpler and standard.
 
 ---
 
-## 3) Preferences: Keys, validation, and UI
+## Document Context: Full‑text index with page mapping
 
-Decision: Store Provider, Endpoint URL, Model, and API Key under the template’s `config.prefsPrefix` (from `package.json`). Validate required fields before save and on send.
+Decision: Query Zotero’s full‑text subsystem to determine whether the current PDF attachment has an indexed full‑text with page mapping and expose a boolean and summary to the UI.
 
 Rationale:
-- Aligns with template conventions and existing preference panel registration via `Zotero.PreferencePanes.register`.
-- Keeps configuration centralized and testable.
+- Full‑text index/state is managed by Zotero; querying internal APIs is authoritative versus heuristic file checks.
 
-Implementation Pattern (planned):
-- Keys: `${config.prefsPrefix}.provider`, `${config.prefsPrefix}.endpoint`, `${config.prefsPrefix}.model`, `${config.prefsPrefix}.apiKey`.
-- UI: Add fields to the plugin’s preferences `.xhtml`, labels/tooltips from `.ftl` strings (Simplified Chinese).
-- Validation: block save if required fields empty; error messaging localized. Re‑read values dynamically (no Zotero restart required).
+Implementation pattern:
+- Identify the current reader tab’s item and PDF attachment.
+- Query full‑text index availability and page mapping metadata from Zotero’s full‑text API.
+- Reflect state in localized UI strings in the section header/body.
 
 Alternatives considered:
-- Custom JSON config file. Rejected; deviates from Zotero preferences ecosystem.
-- Storing API key in plaintext elsewhere. Rejected; preferences are standard for template and simplify testing.
+- Heuristic detection via local file probing or annotations. Rejected due to fragility.
+- Persisting derived context to disk. Rejected; session state is per item/tab only.
 
 ---
 
-## 4) Reader Item Pane: UI structure and lifecycle
+## Preferences: Keys, validation, and UI
 
-Decision: Implement via `Zotero.ItemPaneManager.registerSection` limited to `tabType === "reader"`. Use `onRender` for initial state and `onAsyncRender` for deferred work.
+Decision: Store provider settings in Zotero preferences under the plugin’s `prefsPrefix` and register a preference pane via `Zotero.PreferencePanes.register(...)`.
 
-Rationale:
-- Directly follows the template’s example for reader item pane sections.
-- Satisfies requirement to show context status at load and to keep UI responsive.
+Keys:
+- `${prefsPrefix}.provider`
+- `${prefsPrefix}.endpoint`
+- `${prefsPrefix}.model`
+- `${prefsPrefix}.apiKey`
 
-Implementation Pattern (planned):
-- Header l10n with dynamic status (`已载入` / `无文档上下文`).
-- Body contains chat area, input, and a Send/Stop toggle button; Clear button resets session messages but retains context flags.
-- Event wiring goes through a dedicated module; hooks dispatch only.
+UI & validation:
+- Preference pane defined in `.xhtml` with strings in `.ftl` (Simplified Chinese).
+- Validate required fields (endpoint, model, apiKey) before save and at send time.
+- Changes take effect immediately; no Zotero restart required.
+
+Security:
+- Store API key in preferences for this feature scope. Do not print in logs; redact in error reports.
 
 Alternatives considered:
-- Injecting custom browser content only. Rejected; sections API provides richer lifecycle hooks and consistency.
+- External JSON config. Rejected; Zotero preferences are the canonical store and simplify testing.
+- OS login manager. Not required for this feature scope.
 
 ---
 
-## 5) Testing: Mocha/Chai in template
+## Reader Item Pane: Structure and lifecycle
 
-Decision: Use existing `zotero-plugin test` harness. Add unit tests for preferences validation and session state transitions; add a smoke integration test for section registration.
+Decision: Register a custom section with `Zotero.ItemPaneManager.registerSection(...)` and render only when `tabType === "reader"`.
 
-Rationale:
-- Keeps parity with current repository’s tooling and constitution’s testing rule.
+Behavior:
+- Header: localized label and icon; dynamic status text (“文档上下文：已载入” / “无文档上下文”).
+- Body: chat transcript, input area, Send/Stop toggle, Clear button; Clear preserves only the document‑level context flags.
+- Lifecycle: use `onRender` for initial layout; defer any long work to async tasks to keep UI responsive.
 
-Implementation Pattern (planned):
-- `test/unit/prefs.validation.test.ts`: required-field enforcement and parsing.
-- `test/unit/session.state.test.ts`: Idle → Sending → Streaming → Stopped; Clear resets messages.
-- `test/integration/reader.pane.smoke.test.ts`: verifies plugin initializes and section can register in a reader context.
+Optional reader hooks:
+- If needed later, use `Zotero.Reader.registerEventListener(...)` to augment reader UI (not required for the sidebar section itself).
 
 Alternatives considered:
-- Introducing a new test runner. Rejected; unnecessary complexity.
+- Manual DOM injection. Rejected; official API provides lifecycle management and automatic cleanup on uninstall/disable.
+
+---
+
+## Testing
+
+Decision: Use the repository’s test harness to cover preferences validation, session state transitions, and section registration.
+
+- Unit: preferences validation; session state transitions (Idle → Sending → Streaming → Stopped; Clear resilience)
+- Integration (smoke): plugin initializes and the custom section registers under a reader context
 
 ---
 
 ## Summary of Resolutions
 
-- Full‑text context detection: Use Zotero full‑text APIs; expose presence + page‑map status to UI.
-- OpenAI‑compatible streaming: `fetch` with SSE parsing and `AbortController` for Stop.
-- Preferences: use `config.prefsPrefix` keys; validate required fields; immediate effect without restart.
-- Reader Item Pane: implemented via `registerSection` with localized strings; responsive and non‑blocking.
+- HTTP/streaming: `fetch` + AbortController + SSE line parsing; HTTPS only; clear error mapping
+- Full‑text detection: query Zotero’s full‑text subsystem; expose presence + page‑map status
+- Preferences: store under `prefsPrefix`; immediate effect; validation and masking rules
+- Item Pane: implement via `Zotero.ItemPaneManager.registerSection`; localized strings; responsive rendering
 
-All previously marked NEEDS CLARIFICATION items are now resolved by the decisions above.
-
+All decisions are aligned with Zotero 7’s documented APIs and Firefox ESR 115 capabilities.
