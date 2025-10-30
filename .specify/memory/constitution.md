@@ -28,6 +28,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 ### Amendment Procedure
 
 Changes to this constitution require a pull request and approval from the project maintainers. Versioning MUST follow Semantic Versioning rules:
+
 - **MAJOR**: Backward-incompatible changes, such as removing or fundamentally redefining a principle.
 - **MINOR**: Adding a new principle or section.
 - **PATCH**: Minor clarifications, typo fixes, or wording improvements.
