@@ -46,11 +46,11 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 **Purpose**: Core building blocks required by all user stories (no user story work before completing this phase).
 
-- [ ] T009 Implement preferences accessors and validation in `src/modules/aiChat/prefs.ts` (read via `config.prefsPrefix`)
-- [ ] T010 [P] Define entities and session operations in `src/modules/aiChat/session.ts` (Message, ChatResult, Session; add get/set/clear APIs)
-- [ ] T011 [P] Implement OpenAI-compatible client with SSE streaming in `src/modules/aiChat/provider.ts` (sendChat, stream parsing, abort support)
-- [ ] T012 Add token-limit preflight check and localized error propagation in `src/modules/aiChat/provider.ts`
-- [ ] T013 [P] Add Chinese error messages (token limit, network, auth) in `addon/locale/zh-CN/addon.ftl`
+- [X] T009 Implement preferences accessors and validation in `src/modules/aiChat/prefs.ts` (read via `config.prefsPrefix`)
+- [X] T010 [P] Define entities and session operations in `src/modules/aiChat/session.ts` (Message, ChatResult, Session; add get/set/clear APIs)
+- [X] T011 [P] Implement OpenAI-compatible client with SSE streaming in `src/modules/aiChat/provider.ts` (sendChat, stream parsing, abort support)
+- [X] T012 Add token-limit preflight check and localized error propagation in `src/modules/aiChat/provider.ts`
+- [X] T013 [P] Add Chinese error messages (token limit, network, auth) in `addon/locale/zh-CN/addon.ftl`
 
 **Checkpoint**: Foundation ready — proceed to user stories.
 
