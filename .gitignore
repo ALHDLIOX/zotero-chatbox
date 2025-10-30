@@ -1,16 +1,37 @@
 # dot files
 .DS_Store
+Thumbs.db
 
 # Node.js
 node_modules
 pnpm-lock.yaml
 yarn.lock
+npm-debug.log*
+*.log
 
-# TSC
+# TypeScript
 tsconfig.tsbuildinfo
+dist
+*.tsbuildinfo
 
 # Scaffold
 .env
+.env.*
 .scaffold
 build
 logs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage
+.nyc_output
+
+# Temporary files
+*.tmp
+*.temp

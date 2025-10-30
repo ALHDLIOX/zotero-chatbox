@@ -9,6 +9,10 @@ declare namespace _ZoteroTypes {
     PluginPrefsMap: {
       "enable": boolean;
       "input": string;
+      "aiChat.provider": string;
+      "aiChat.endpoint": string;
+      "aiChat.model": string;
+      "aiChat.apiKey": string;
     };
   }
 }

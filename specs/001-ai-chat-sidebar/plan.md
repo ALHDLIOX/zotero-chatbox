@@ -22,6 +22,7 @@ Add an AI Chat sidebar as a new Reader Item Pane section in Zotero 7. When a PDF
 **Scale/Scope**: Single‑user desktop plugin; per‑document session sized for typical PDFs (up to model token limits)
 
 NEEDS CLARIFICATION extracted for Phase 0 research:
+
 - Full‑text index detection with page mapping: exact Zotero 7 API surface and best practice (Zotero.Fulltext / ItemPane / Reader APIs)
 - Streaming integration pattern for OpenAI‑compatible providers in Zotero runtime (SSE vs chunked streaming, headers, CORS within Zotero)
 - Preferences storage keys and validation UX specifics under template conventions
@@ -29,6 +30,7 @@ NEEDS CLARIFICATION extracted for Phase 0 research:
 ## Constitution Check
 
 GATE pre‑research assessment (to be re‑checked post‑design):
+
 - **Code Quality**: Will follow template ESLint/Prettier; isolate UI registration in `hooks`/module; all user strings in `.ftl`. STATUS: PASS (by design)
 - **Testing Standards**: Add unit tests for settings validation and session state; integration test for plugin initialization; manual scenario steps in quickstart. STATUS: PASS (planned)
 - **User Experience Consistency**: Implement as `ItemPaneManager.registerSection` in Reader; follow template localization/menus/styles. STATUS: PASS (template‑aligned)
@@ -75,8 +77,8 @@ test/
 ## Complexity Tracking
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| None | N/A | N/A |
+| --------- | ---------- | ------------------------------------ |
+| None      | N/A        | N/A                                  |
 
 ## Constitution Check (Post-Design)
 

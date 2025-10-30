@@ -1,3 +1,4 @@
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" xmlns:html="http://www.w3.org/1999/xhtml">
 <linkset>
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
 </linkset>
@@ -24,10 +25,65 @@
   <hbox class="virtualized-table-container" flex="1" height="300px">
     <html:div id="__addonRef__-table-container" />
   </hbox>
+
+  <!-- AI Chat Settings -->
+  <label><html:h3>AI Chat Settings</html:h3></label>
+  <hbox>
+    <html:label
+      for="zotero-prefpane-__addonRef__-aichat-provider"
+      data-l10n-id="aichat-pref-provider"
+    ></html:label>
+    <html:input
+      type="text"
+      id="zotero-prefpane-__addonRef__-aichat-provider"
+      preference="aiChat.provider"
+      style="flex: 1"
+    ></html:input>
+  </hbox>
+  <hbox>
+    <html:label
+      for="zotero-prefpane-__addonRef__-aichat-endpoint"
+      data-l10n-id="aichat-pref-endpoint"
+    ></html:label>
+    <html:input
+      type="text"
+      id="zotero-prefpane-__addonRef__-aichat-endpoint"
+      preference="aiChat.endpoint"
+      style="flex: 1"
+      required="true"
+    ></html:input>
+  </hbox>
+  <hbox>
+    <html:label
+      for="zotero-prefpane-__addonRef__-aichat-model"
+      data-l10n-id="aichat-pref-model"
+    ></html:label>
+    <html:input
+      type="text"
+      id="zotero-prefpane-__addonRef__-aichat-model"
+      preference="aiChat.model"
+      style="flex: 1"
+      required="true"
+    ></html:input>
+  </hbox>
+  <hbox>
+    <html:label
+      for="zotero-prefpane-__addonRef__-aichat-apikey"
+      data-l10n-id="aichat-pref-apikey"
+    ></html:label>
+    <html:input
+      type="password"
+      id="zotero-prefpane-__addonRef__-aichat-apikey"
+      preference="aiChat.apiKey"
+      style="flex: 1"
+      required="true"
+    ></html:input>
+  </hbox>
 </groupbox>
 <vbox>
   <html:label
     data-l10n-id="pref-help"
     data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
   ></html:label>
+</vbox>
 </vbox>

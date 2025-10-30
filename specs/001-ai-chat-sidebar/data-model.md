@@ -66,4 +66,3 @@ Design Date: 2025-10-29
 
 - Do not send if token limit is exceeded when building the prompt; instead, surface an error (Chinese), no truncation/summarization.
 - Preferences validation prevents saving with missing required fields; errors are localized.
-

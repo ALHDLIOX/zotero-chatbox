@@ -22,14 +22,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatCompletionsRequest'
+              $ref: "#/components/schemas/ChatCompletionsRequest"
       responses:
-        '200':
+        "200":
           description: Successful completion
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChatCompletionsResponse'
+                $ref: "#/components/schemas/ChatCompletionsResponse"
             text/event-stream:
               schema:
                 type: string
@@ -38,17 +38,17 @@ paths:
                   summary: SSE stream example
                   value: |
                     data: {"id":"cmpl-...","choices":[{"delta":{"content":"Hello"}}]}
-                    
+
                     data: {"id":"cmpl-...","choices":[{"delta":{"content":"!"}}]}
-                    
+
                     data: [DONE]
-        '400':
+        "400":
           description: Bad request (e.g., token limit exceeded)
-        '401':
+        "401":
           description: Unauthorized (invalid API key)
-        '429':
+        "429":
           description: Rate limited
-        '500':
+        "500":
           description: Provider error
 components:
   schemas:
@@ -70,7 +70,7 @@ components:
         messages:
           type: array
           items:
-            $ref: '#/components/schemas/Message'
+            $ref: "#/components/schemas/Message"
         stream:
           type: boolean
           default: true
@@ -88,7 +88,7 @@ components:
         index:
           type: integer
         message:
-          $ref: '#/components/schemas/Message'
+          $ref: "#/components/schemas/Message"
         finish_reason:
           type: string
           nullable: true
@@ -102,7 +102,7 @@ components:
         choices:
           type: array
           items:
-            $ref: '#/components/schemas/ChatChoice'
+            $ref: "#/components/schemas/ChatChoice"
         usage:
           type: object
           properties:
@@ -112,4 +112,3 @@ components:
               type: integer
             total_tokens:
               type: integer
-

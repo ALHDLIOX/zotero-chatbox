@@ -5,3 +5,9 @@ node_modules
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+coverage
+dist
+.scaffold
+.idea
+*.min.js
+*.log

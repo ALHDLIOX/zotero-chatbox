@@ -8,6 +8,7 @@ import {
 import { getString, initLocale } from "./utils/locale";
 import { registerPrefsScripts } from "./modules/preferenceScript";
 import { createZToolkit } from "./utils/ztoolkit";
+import { registerReaderItemPane } from "./modules/aiChat/readerPane";
 
 async function onStartup() {
   await Promise.all([
@@ -33,6 +34,9 @@ async function onStartup() {
   UIExampleFactory.registerItemPaneSection();
 
   UIExampleFactory.registerReaderItemPaneSection();
+
+  // Register AI Chat Reader Item Pane
+  registerReaderItemPane();
 
   await Promise.all(
     Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),

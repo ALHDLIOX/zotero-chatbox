@@ -1,5 +1,4 @@
 ---
-
 description: "Task list for 001-ai-chat-sidebar feature implementation"
 ---
 
@@ -189,16 +188,16 @@ Then:
 
 ### MVP First (User Story 1 Only)
 
-1) Complete Phase 1: Setup  
-2) Complete Phase 2: Foundational (blocks all stories)  
-3) Complete Phase 3: User Story 1  
-4) STOP and validate against Independent Test criteria  
-5) Demo/release if ready
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (blocks all stories)
+3. Complete Phase 3: User Story 1
+4. STOP and validate against Independent Test criteria
+5. Demo/release if ready
 
 ### Incremental Delivery
 
-1) Setup + Foundational → base ready  
-2) Add US1 → validate independently → demo  
-3) Add US2 → validate independently → demo  
-4) Add US3 → validate independently → demo  
-5) Polish
+1. Setup + Foundational → base ready
+2. Add US1 → validate independently → demo
+3. Add US2 → validate independently → demo
+4. Add US3 → validate independently → demo
+5. Polish

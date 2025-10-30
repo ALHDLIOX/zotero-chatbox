@@ -3,6 +3,23 @@
 /* eslint-disable */
 // @ts-nocheck
 export type FluentMessageId =
+  | 'aichat-button-clear'
+  | 'aichat-button-send'
+  | 'aichat-button-stop'
+  | 'aichat-error-auth'
+  | 'aichat-error-network'
+  | 'aichat-error-server'
+  | 'aichat-error-settings'
+  | 'aichat-error-timeout'
+  | 'aichat-error-token-limit'
+  | 'aichat-input-placeholder'
+  | 'aichat-panel-title'
+  | 'aichat-pref-apikey'
+  | 'aichat-pref-endpoint'
+  | 'aichat-pref-model'
+  | 'aichat-pref-provider'
+  | 'aichat-status-context-loaded'
+  | 'aichat-status-no-context'
   | 'item-info-row-example-label'
   | 'item-section-example1-head-text'
   | 'item-section-example1-sidenav-tooltip'
