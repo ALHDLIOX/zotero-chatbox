@@ -86,11 +86,13 @@ export function validateProviderSettings(
     apiKey: settings.apiKey.trim(),
   };
 
-  const missingKeys = (["endpoint", "model", "apiKey"] as ProviderSettingKey[])
-    .filter((key) => !normalized[key]);
+  const missingKeys = (
+    ["endpoint", "model", "apiKey"] as ProviderSettingKey[]
+  ).filter((key) => !normalized[key]);
 
   const invalidEndpoint =
-    normalized.endpoint.length > 0 && !isValidHttpsEndpoint(normalized.endpoint);
+    normalized.endpoint.length > 0 &&
+    !isValidHttpsEndpoint(normalized.endpoint);
 
   return {
     isValid: missingKeys.length === 0 && !invalidEndpoint,

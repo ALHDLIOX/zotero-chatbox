@@ -23,6 +23,7 @@ export type FluentMessageId =
   | 'ai-chat-status-loading'
   | 'ai-chat-status-missing'
   | 'ai-chat-status-sending'
+  | 'ai-chat-status-stopped'
   | 'ai-chat-status-streaming'
   | 'ai-chat-stop-button'
   | 'item-info-row-example-label'

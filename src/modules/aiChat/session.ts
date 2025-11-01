@@ -44,6 +44,7 @@ export interface SessionState {
 }
 
 const sessions = new Map<string, SessionState>();
+const sessionScopes = new Map<string, string>();
 
 const defaultContext: SessionContextState = {
   hasFulltext: false,
@@ -70,6 +71,7 @@ export function setSession(sessionId: string, state: SessionState): void {
 
 export function clearSession(sessionId: string): void {
   sessions.delete(sessionId);
+  sessionScopes.delete(sessionId);
 }
 
 export function ensureSession(sessionId: string): SessionState {
@@ -79,6 +81,26 @@ export function ensureSession(sessionId: string): SessionState {
     sessions.set(sessionId, session);
   }
   return session;
+}
+
+export function ensureSessionScope(
+  sessionId: string,
+  scopeKey: string,
+): SessionState {
+  const existingScope = sessionScopes.get(sessionId);
+  if (!existingScope) {
+    sessionScopes.set(sessionId, scopeKey);
+    return ensureSession(sessionId);
+  }
+
+  if (existingScope !== scopeKey) {
+    const fresh = createEmptySession();
+    sessions.set(sessionId, fresh);
+    sessionScopes.set(sessionId, scopeKey);
+    return fresh;
+  }
+
+  return ensureSession(sessionId);
 }
 
 export function updateSession(

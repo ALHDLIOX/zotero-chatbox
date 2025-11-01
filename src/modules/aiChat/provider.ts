@@ -149,11 +149,9 @@ function createAbortController(parent?: AbortSignal): AbortControllerLike {
     if (parent.aborted) {
       controller.abort(parent.reason);
     } else {
-      parent.addEventListener(
-        "abort",
-        () => controller.abort(parent.reason),
-        { once: true },
-      );
+      parent.addEventListener("abort", () => controller.abort(parent.reason), {
+        once: true,
+      });
     }
   }
 
@@ -206,11 +204,31 @@ function isAbortLikeError(error: unknown): boolean {
   }
 
   if (supportsAbortController && typeof DOMException === "function") {
-    return error instanceof DOMException &&
-      (error.name === "AbortError" || error.name === "TimeoutError");
+    return (
+      error instanceof DOMException &&
+      (error.name === "AbortError" || error.name === "TimeoutError")
+    );
   }
 
   return false;
+}
+
+async function readErrorBody(response: Response): Promise<string | undefined> {
+  try {
+    const clone = response.clone();
+    const text = await clone.text();
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    if (trimmed.length > 1024) {
+      return `${trimmed.slice(0, 1024)}…`;
+    }
+    return trimmed;
+  } catch (error) {
+    void error;
+    return undefined;
+  }
 }
 
 interface ParsedSSEChunk {
@@ -266,33 +284,56 @@ export async function sendChat(
     return await performStreamingRequest(options, settings);
   } catch (error) {
     if (error instanceof ProviderError) {
+      ztoolkit.log("[ai-chat] sendChat 捕获 ProviderError", {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+        messageKey: error.messageKey,
+        cause: error.cause,
+      });
       throw error;
     }
 
     if (isAbortLikeError(error)) {
-      throw new ProviderError(
+      const wrapped = new ProviderError(
         "ABORTED",
         "ai-chat-error-network",
         getString("ai-chat-error-network"),
         { cause: error },
       );
+      ztoolkit.log("[ai-chat] sendChat 请求被外部中止", {
+        cause: {
+          name: (error as { name?: unknown }).name,
+          message: (error as { message?: unknown }).message,
+        },
+      });
+      throw wrapped;
     }
 
     if (error instanceof TypeError) {
-      throw new ProviderError(
+      const wrapped = new ProviderError(
         "NETWORK",
         "ai-chat-error-network",
         getString("ai-chat-error-network"),
         { cause: error },
       );
+      ztoolkit.log("[ai-chat] sendChat 捕获网络层错误", {
+        message: error.message,
+        stack: error.stack,
+      });
+      throw wrapped;
     }
 
-    throw new ProviderError(
+    const wrapped = new ProviderError(
       "UNKNOWN",
       "ai-chat-error-server",
       getString("ai-chat-error-server"),
       { cause: error },
     );
+    ztoolkit.log("[ai-chat] sendChat 捕获未知错误", {
+      error,
+    });
+    throw wrapped;
   }
 }
 
@@ -330,6 +371,12 @@ async function performStreamingRequest(
   const response = await fetch(url.toString(), requestInit);
 
   if (!response.ok) {
+    const bodyPreview = await readErrorBody(response);
+    ztoolkit.log("[ai-chat] Provider 请求返回错误状态", {
+      status: response.status,
+      statusText: response.statusText,
+      bodyPreview,
+    });
     throw httpErrorToProviderError(response.status);
   }
 
@@ -337,6 +384,11 @@ async function performStreamingRequest(
 
   if (!contentType.includes("text/event-stream")) {
     const json = (await response.json()) as any;
+    ztoolkit.log("[ai-chat] Provider 返回非流式响应", {
+      contentType,
+      hasChoices: Boolean(json?.choices?.length),
+      usage: json?.usage,
+    });
     const text = json?.choices?.[0]?.message?.content ?? "";
     return {
       completion: text,
@@ -346,6 +398,9 @@ async function performStreamingRequest(
   }
 
   if (!response.body) {
+    ztoolkit.log("[ai-chat] Provider 响应缺少可读流", {
+      status: response.status,
+    });
     throw new ProviderError(
       "NETWORK",
       "ai-chat-error-network",
@@ -355,6 +410,30 @@ async function performStreamingRequest(
 
   const decoder = new TextDecoder("utf-8");
   const reader = response.body.getReader();
+  if (abortSignal) {
+    abortSignal.addEventListener(
+      "abort",
+      () => {
+        const cancel = (
+          reader as {
+            cancel?: (reason?: unknown) => Promise<void>;
+          }
+        ).cancel;
+        const abortReason =
+          typeof (abortSignal as { reason?: unknown }).reason !== "undefined"
+            ? (abortSignal as { reason?: unknown }).reason
+            : "aborted";
+        if (typeof cancel === "function") {
+          void cancel.call(reader, abortReason).catch(() => undefined);
+        }
+        ztoolkit.log("[ai-chat] 已中断流式读取", {
+          status: "signal-abort",
+          reason: abortReason,
+        });
+      },
+      { once: true },
+    );
+  }
   let buffer = "";
   let completion = "";
   let usage: ChatResponse["usage"];

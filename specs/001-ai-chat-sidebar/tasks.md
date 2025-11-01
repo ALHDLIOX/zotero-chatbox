@@ -83,10 +83,10 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Implement Stop toggle UI and wiring with AbortController in `src/modules/aiChat/readerPane.ts`
-- [ ] T021 [P] [US2] Handle `AbortController` correctly in streaming client in `src/modules/aiChat/provider.ts` (stop within ≤1s)
-- [ ] T022 [US2] Implement Clear action to reset messages but retain context in `src/modules/aiChat/readerPane.ts` and `src/modules/aiChat/session.ts`
-- [ ] T023 [US2] Ensure session isolation across items/windows in `src/modules/aiChat/session.ts` (no cross-item/window persistence)
+- [X] T020 [US2] Implement Stop toggle UI and wiring with AbortController in `src/modules/aiChat/readerPane.ts`
+- [X] T021 [P] [US2] Handle `AbortController` correctly in streaming client in `src/modules/aiChat/provider.ts` (stop within ≤1s)
+- [X] T022 [US2] Implement Clear action to reset messages but retain context in `src/modules/aiChat/readerPane.ts` and `src/modules/aiChat/session.ts`
+- [X] T023 [US2] Ensure session isolation across items/windows in `src/modules/aiChat/session.ts` (no cross-item/window persistence)
 
 **Checkpoint**: User Stories 1 and 2 both independently functional.
 

@@ -1,9 +1,9 @@
-.vscode
-build
+node_modules/
 dist/
+build/
 coverage/
-logs
-node_modules
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+specs/
+.vscode/

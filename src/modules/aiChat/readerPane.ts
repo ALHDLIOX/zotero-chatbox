@@ -3,7 +3,9 @@ import type { FluentMessageId } from "../../../typings/i10n";
 import { getLocaleID, getString } from "../../utils/locale";
 import {
   appendMessage,
+  clearMessages,
   ensureSession,
+  ensureSessionScope,
   getSession,
   removeMessage,
   setLastResult,
@@ -84,11 +86,14 @@ class AIChatPaneController {
   private readonly errorEl: HTMLDivElement;
   private readonly inputEl: HTMLTextAreaElement;
   private readonly sendButton: HTMLButtonElement;
+  private readonly clearButton: HTMLButtonElement;
   private readonly messageNodes = new Map<string, MessageDom>();
 
   private sessionId?: string;
   private isContextLoading = false;
   private isSending = false;
+  private currentAbortController?: AbortController;
+  private currentScopeKey?: string;
   private contextAttachmentKey?: string;
   private contextLoadPromise?: Promise<void>;
 
@@ -152,12 +157,26 @@ class AIChatPaneController {
 
     this.sendButton = doc.createElement("button");
     this.sendButton.classList.add("ai-chat-send-button");
-    this.sendButton.textContent = getString("ai-chat-send-button");
-    this.sendButton.style.alignSelf = "flex-end";
     this.sendButton.style.padding = "6px 14px";
 
+    this.clearButton = doc.createElement("button");
+    this.clearButton.classList.add("ai-chat-clear-button");
+    this.clearButton.textContent = getString("ai-chat-clear-button");
+    this.clearButton.style.padding = "6px 14px";
+    this.clearButton.style.marginRight = "auto";
+
+    const buttonRow = doc.createElement("div");
+    buttonRow.classList.add("ai-chat-button-row");
+    buttonRow.style.display = "flex";
+    buttonRow.style.alignItems = "center";
+    buttonRow.style.gap = "8px";
+    buttonRow.style.justifyContent = "flex-end";
+
+    buttonRow.appendChild(this.clearButton);
+    buttonRow.appendChild(this.sendButton);
+
     inputWrapper.appendChild(this.inputEl);
-    inputWrapper.appendChild(this.sendButton);
+    inputWrapper.appendChild(buttonRow);
 
     container.appendChild(this.statusEl);
     container.appendChild(this.errorEl);
@@ -168,15 +187,26 @@ class AIChatPaneController {
 
     this.sendButton.addEventListener("click", (event: MouseEvent) => {
       event.preventDefault();
-      void this.handleSubmit();
+      if (this.isSending) {
+        this.handleAbort();
+      } else {
+        void this.handleSubmit();
+      }
+    });
+
+    this.clearButton.addEventListener("click", (event: MouseEvent) => {
+      event.preventDefault();
+      this.handleClear();
     });
 
     this.inputEl.addEventListener("keydown", (event: KeyboardEvent) => {
-      if (event.key === "Enter" && event.shiftKey) {
+      if (event.key === "Enter" && event.shiftKey && !this.isSending) {
         event.preventDefault();
         void this.handleSubmit();
       }
     });
+
+    this.setSendingState(false);
   }
 
   onInit(props: SectionInitHookArgs): void {
@@ -213,14 +243,27 @@ class AIChatPaneController {
     }
   }
 
-  onDestroy(
-    _props: _ZoteroTypes.ItemPaneManagerSection.BasicHookArgs,
-  ): void {
+  onDestroy(_props: _ZoteroTypes.ItemPaneManagerSection.BasicHookArgs): void {
+    if (this.currentAbortController) {
+      try {
+        this.currentAbortController.abort(
+          typeof DOMException === "function"
+            ? new DOMException("Pane destroyed", "AbortError")
+            : undefined,
+        );
+      } catch (error) {
+        ztoolkit.log("[ai-chat] 销毁面板时停止请求出错", error);
+      }
+    }
+    this.currentAbortController = undefined;
     this.messageNodes.clear();
     this.sessionId = undefined;
+    this.currentScopeKey = undefined;
     this.contextAttachmentKey = undefined;
     this.isContextLoading = false;
     this.isSending = false;
+    this.updateActionButtonLabel();
+    this.clearButton.disabled = true;
   }
 
   private assignSession(props: SectionHookArgs): void {
@@ -229,12 +272,30 @@ class AIChatPaneController {
       return;
     }
 
-    if (this.sessionId !== sessionId) {
+    const scopeKey = this.computeScopeKey(props) ?? sessionId;
+    const isNewSessionId = this.sessionId !== sessionId;
+    const isScopeChanged = this.currentScopeKey !== scopeKey;
+
+    if (isNewSessionId) {
       this.sessionId = sessionId;
+    }
+
+    if (isNewSessionId || isScopeChanged) {
+      this.currentScopeKey = scopeKey;
       this.contextAttachmentKey = undefined;
       this.messageNodes.clear();
       this.messagesEl.replaceChildren(this.placeholderEl);
-      ensureSession(sessionId);
+      this.clearError();
+      this.isSending = false;
+      this.currentAbortController = undefined;
+      this.updateActionButtonLabel();
+      this.clearButton.disabled = true;
+    }
+
+    const session = ensureSessionScope(sessionId, scopeKey);
+    if (isNewSessionId || isScopeChanged) {
+      this.updateClearButtonState(session);
+      this.placeholderEl.hidden = session.messages.length > 0;
     }
   }
 
@@ -262,6 +323,30 @@ class AIChatPaneController {
     return this.sessionId;
   }
 
+  private computeScopeKey(props: SectionHookArgs): string | undefined {
+    const win = this.getDocument().defaultView as
+      | (Window & { ZoteroPane?: any })
+      | undefined;
+    const windowId = win?.ZoteroPane?.id ?? "main-window";
+
+    if (props.tabType === "reader") {
+      const reader = this.getActiveReader();
+      if (reader) {
+        return `reader:${reader.itemID}:${windowId}`;
+      }
+    }
+
+    if (props.item?.isAttachment?.()) {
+      return `attachment:${props.item.id}:${windowId}`;
+    }
+
+    if (props.item?.isRegularItem?.()) {
+      return `item:${props.item.id}:${windowId}`;
+    }
+
+    return undefined;
+  }
+
   private refreshMessages(): void {
     if (!this.sessionId) {
       return;
@@ -286,6 +371,7 @@ class AIChatPaneController {
     }
 
     this.placeholderEl.hidden = session.messages.length > 0;
+    this.updateClearButtonState(session);
   }
 
   private ensureMessageDom(message: SessionMessage): MessageDom {
@@ -304,7 +390,9 @@ class AIChatPaneController {
     container.style.padding = "8px";
     container.style.borderRadius = "6px";
     container.style.backgroundColor =
-      message.role === "user" ? "rgba(0, 122, 204, 0.12)" : "rgba(0, 0, 0, 0.05)";
+      message.role === "user"
+        ? "rgba(0, 122, 204, 0.12)"
+        : "rgba(0, 0, 0, 0.05)";
 
     const roleLabel = doc.createElement("span");
     roleLabel.classList.add("ai-chat-message-role");
@@ -337,6 +425,96 @@ class AIChatPaneController {
           : "rgba(0, 0, 0, 0.05)";
   }
 
+  private updateActionButtonLabel(): void {
+    const labelKey = this.isSending
+      ? "ai-chat-stop-button"
+      : "ai-chat-send-button";
+    this.sendButton.textContent = getString(labelKey);
+    this.sendButton.dataset.mode = this.isSending ? "stop" : "send";
+    this.sendButton.classList.toggle(
+      "ai-chat-send-button--stop",
+      this.isSending,
+    );
+  }
+
+  private setSendingState(sending: boolean): void {
+    this.isSending = sending;
+    this.updateActionButtonLabel();
+    if (this.sessionId) {
+      this.updateClearButtonState(ensureSession(this.sessionId));
+    } else {
+      this.clearButton.disabled = true;
+    }
+  }
+
+  private updateClearButtonState(session: SessionState): void {
+    this.clearButton.disabled = this.isSending || session.messages.length === 0;
+  }
+
+  private handleAbort(): void {
+    if (!this.isSending) {
+      return;
+    }
+
+    const controller = this.currentAbortController;
+    if (controller) {
+      try {
+        controller.abort(
+          typeof DOMException === "function"
+            ? new DOMException("Stopped by user", "AbortError")
+            : undefined,
+        );
+      } catch (error) {
+        ztoolkit.log("[ai-chat] 停止请求时出错", error);
+      }
+    } else {
+      ztoolkit.log("[ai-chat] 当前环境不支持 AbortController，无法停止请求");
+    }
+
+    if (this.sessionId) {
+      const state = setSessionStatus(this.sessionId, "stopped");
+      this.updateStatusDisplay(state);
+      ztoolkit.log("[ai-chat] 已请求停止当前流", {
+        sessionId: this.sessionId,
+        hasController: Boolean(controller),
+      });
+    }
+  }
+
+  private handleClear(): void {
+    if (!this.sessionId) {
+      return;
+    }
+
+    const state = clearMessages(this.sessionId);
+    this.refreshMessages();
+    this.updateStatusDisplay(state);
+    this.clearError();
+    ztoolkit.log("[ai-chat] 已清除会话消息", { sessionId: this.sessionId });
+  }
+
+  private createAbortController(): AbortController | undefined {
+    if (typeof AbortController === "function") {
+      return new AbortController();
+    }
+
+    const win = this.getDocument().defaultView as
+      | (Window & { AbortController?: typeof AbortController })
+      | undefined;
+    if (win && typeof win.AbortController === "function") {
+      return new win.AbortController();
+    }
+
+    const globalAbort = (
+      globalThis as { AbortController?: typeof AbortController }
+    )?.AbortController;
+    if (typeof globalAbort === "function") {
+      return new globalAbort();
+    }
+
+    return undefined;
+  }
+
   private async handleSubmit(): Promise<void> {
     if (!this.sessionId) {
       this.showError(getString("ai-chat-error-server"));
@@ -356,7 +534,7 @@ class AIChatPaneController {
     const userMessage = createSessionMessage("user", text);
     this.inputEl.value = "";
     this.clearError();
-    this.isSending = true;
+    this.setSendingState(true);
 
     appendMessage(this.sessionId, userMessage);
     this.refreshMessages();
@@ -376,10 +554,13 @@ class AIChatPaneController {
 
     let aggregatedText = "";
     let streamingStarted = false;
+    const abortController = this.createAbortController();
+    this.currentAbortController = abortController;
 
     try {
       const response = await sendChat({
         messages: providerMessages,
+        signal: abortController?.signal,
         onToken: (token) => {
           aggregatedText += token;
           updateMessage(this.sessionId!, assistantMessage.id, (message) => ({
@@ -424,32 +605,57 @@ class AIChatPaneController {
       });
       state = setSessionStatus(this.sessionId, "idle");
     } catch (error) {
-      this.handleSendError(error, assistantMessage.id);
-      state = setSessionStatus(this.sessionId, "idle");
+      state = this.handleSendError(error, assistantMessage.id, aggregatedText);
     } finally {
+      this.currentAbortController = undefined;
       this.updateStatusDisplay(state);
-      this.isSending = false;
+      this.setSendingState(false);
     }
   }
 
-  private handleSendError(error: unknown, assistantMessageId: string): void {
-    let messageKey: FluentMessageId = "ai-chat-error-server";
+  private handleSendError(
+    error: unknown,
+    assistantMessageId: string,
+    aggregatedText: string,
+  ): SessionState {
+    const sessionId = this.sessionId!;
+    setLastResult(sessionId, undefined);
+
     if (error instanceof ProviderError) {
-      messageKey = (error.messageKey ?? "ai-chat-error-server") as FluentMessageId;
       ztoolkit.log("[ai-chat] ProviderError", {
         code: error.code,
         status: error.status,
         message: error.message,
         cause: error.cause,
+        sessionId,
       });
-    } else {
-      ztoolkit.log("[ai-chat] 未知发送错误", error);
+
+      if (error.code === "ABORTED") {
+        if (!aggregatedText.trim()) {
+          removeMessage(sessionId, assistantMessageId);
+          this.refreshMessages();
+        }
+        this.clearError();
+        return setSessionStatus(sessionId, "stopped");
+      }
+
+      const messageKey = (error.messageKey ??
+        "ai-chat-error-server") as FluentMessageId;
+      this.showError(getString(messageKey));
+      removeMessage(sessionId, assistantMessageId);
+      this.refreshMessages();
+      return setSessionStatus(sessionId, "idle");
     }
 
-    this.showError(getString(messageKey));
-
-    removeMessage(this.sessionId!, assistantMessageId);
+    ztoolkit.log("[ai-chat] 未知发送错误", {
+      error,
+      sessionId,
+      assistantMessageId,
+    });
+    this.showError(getString("ai-chat-error-server"));
+    removeMessage(sessionId, assistantMessageId);
     this.refreshMessages();
+    return setSessionStatus(sessionId, "idle");
   }
 
   private buildContextMessage(): SessionMessage | undefined {
@@ -483,7 +689,9 @@ class AIChatPaneController {
 
     try {
       const attachments = await this.collectRelevantAttachments(props);
-      const attachmentIds = attachments.map((item) => item.id).sort((a, b) => a - b);
+      const attachmentIds = attachments
+        .map((item) => item.id)
+        .sort((a, b) => a - b);
       const key = attachmentIds.join(",");
 
       const session = ensureSession(this.sessionId);
@@ -581,7 +789,9 @@ class AIChatPaneController {
       if (props.tabType === "reader") {
         const reader = this.getActiveReader();
         if (reader) {
-          const item = (await Zotero.Items.getAsync(reader.itemID)) as Zotero.Item;
+          const item = (await Zotero.Items.getAsync(
+            reader.itemID,
+          )) as Zotero.Item;
           if (item?.isAttachment?.()) {
             if (this.isPdfAttachment(item)) {
               attachments.push(item);
@@ -636,7 +846,10 @@ class AIChatPaneController {
           const attachment = (await Zotero.Items.getAsync(
             attachmentId,
           )) as Zotero.Item;
-          if (attachment?.isAttachment?.() && this.isPdfAttachment(attachment)) {
+          if (
+            attachment?.isAttachment?.() &&
+            this.isPdfAttachment(attachment)
+          ) {
             results.push(attachment);
             seen.add(attachment.id);
           }
@@ -686,6 +899,11 @@ class AIChatPaneController {
       return;
     }
 
+    if (session.status === "stopped") {
+      this.statusEl.textContent = getString("ai-chat-status-stopped");
+      return;
+    }
+
     if (this.isContextLoading) {
       this.statusEl.textContent = getString("ai-chat-status-loading");
       return;
@@ -730,7 +948,10 @@ function createSessionMessage(
 }
 
 function createMessageId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
