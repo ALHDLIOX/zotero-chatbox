@@ -4,6 +4,7 @@
 // @ts-nocheck
 export type FluentMessageId =
   | 'ai-chat-clear-button'
+  | 'ai-chat-copy-button'
   | 'ai-chat-empty-placeholder'
   | 'ai-chat-error-auth'
   | 'ai-chat-error-endpoint-invalid'
@@ -11,7 +12,9 @@ export type FluentMessageId =
   | 'ai-chat-error-server'
   | 'ai-chat-error-settings-missing'
   | 'ai-chat-error-token-limit'
+  | 'ai-chat-input-label'
   | 'ai-chat-input-placeholder'
+  | 'ai-chat-math-render-error'
   | 'ai-chat-pane-header'
   | 'ai-chat-pane-sidenav'
   | 'ai-chat-pref-api-key'

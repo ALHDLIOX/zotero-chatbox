@@ -6,8 +6,9 @@
 >
   <label><html:h2 data-l10n-id="pref-title"></html:h2></label>
   <vbox id="ai-chat-provider-settings" flex="1" class="provider-settings">
-    <hbox align="center">
+    <hbox align="center" pack="start">
       <html:label
+        id="ai-chat-pref-provider-label"
         for="zotero-prefpane-__addonRef__-provider"
         data-l10n-id="ai-chat-pref-provider"
       ></html:label>
@@ -15,10 +16,12 @@
         id="zotero-prefpane-__addonRef__-provider"
         preference="provider"
         type="text"
+        aria-labelledby="ai-chat-pref-provider-label"
       ></html:input>
     </hbox>
-    <hbox align="center">
+    <hbox align="center" pack="start">
       <html:label
+        id="ai-chat-pref-endpoint-label"
         for="zotero-prefpane-__addonRef__-endpoint"
         data-l10n-id="ai-chat-pref-endpoint"
       ></html:label>
@@ -26,10 +29,12 @@
         id="zotero-prefpane-__addonRef__-endpoint"
         preference="endpoint"
         type="text"
+        aria-labelledby="ai-chat-pref-endpoint-label"
       ></html:input>
     </hbox>
-    <hbox align="center">
+    <hbox align="center" pack="start">
       <html:label
+        id="ai-chat-pref-model-label"
         for="zotero-prefpane-__addonRef__-model"
         data-l10n-id="ai-chat-pref-model"
       ></html:label>
@@ -37,10 +42,12 @@
         id="zotero-prefpane-__addonRef__-model"
         preference="model"
         type="text"
+        aria-labelledby="ai-chat-pref-model-label"
       ></html:input>
     </hbox>
-    <hbox align="center">
+    <hbox align="center" pack="start">
       <html:label
+        id="ai-chat-pref-api-key-label"
         for="zotero-prefpane-__addonRef__-apiKey"
         data-l10n-id="ai-chat-pref-api-key"
       ></html:label>
@@ -48,6 +55,7 @@
         id="zotero-prefpane-__addonRef__-apiKey"
         preference="apiKey"
         type="password"
+        aria-labelledby="ai-chat-pref-api-key-label"
       ></html:input>
     </hbox>
   </vbox>
@@ -57,9 +65,3 @@
     hidden="true"
   ></html:div>
 </groupbox>
-<vbox>
-  <html:label
-    data-l10n-id="pref-help"
-    data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
-  ></html:label>
-</vbox>

@@ -16,6 +16,7 @@ import {
   updateMessage,
 } from "./session";
 import { ProviderError, sendChat } from "./provider";
+import { renderMessage } from "./render";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =
@@ -27,6 +28,11 @@ const PaneIcons = {
   sidenav: `chrome://${config.addonRef}/content/icons/favicon@0.5x.png`,
 } as const;
 
+const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/ai-chat.css`;
+const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
+const KATEX_CDN_CSS =
+  "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
+
 const ROLE_LABELS: Record<SessionMessage["role"], string> = {
   user: "我",
   assistant: "AI",
@@ -37,6 +43,16 @@ interface MessageDom {
   container: HTMLDivElement;
   content: HTMLDivElement;
   roleLabel: HTMLSpanElement;
+  mathError: HTMLDivElement;
+  actions?: HTMLDivElement;
+  copyButton?: HTMLButtonElement;
+  latestContent?: string;
+}
+
+interface PendingRender {
+  entry: MessageDom;
+  content: string;
+  options?: { suppressMathError?: boolean };
 }
 
 const paneControllers = new WeakMap<HTMLDivElement, AIChatPaneController>();
@@ -88,6 +104,7 @@ class AIChatPaneController {
   private readonly sendButton: HTMLButtonElement;
   private readonly clearButton: HTMLButtonElement;
   private readonly messageNodes = new Map<string, MessageDom>();
+  private readonly renderQueue = new Map<string, PendingRender>();
 
   private sessionId?: string;
   private isContextLoading = false;
@@ -96,10 +113,13 @@ class AIChatPaneController {
   private currentScopeKey?: string;
   private contextAttachmentKey?: string;
   private contextLoadPromise?: Promise<void>;
+  private pendingRenderHandle?: number;
+  private loggedNoHeadOnce = false;
 
   constructor(body: HTMLDivElement) {
     this.body = body;
     const doc = this.getDocument();
+    this.ensureStyles(doc);
     const container = doc.createElement("div");
     container.classList.add("ai-chat-pane");
     container.style.display = "flex";
@@ -145,9 +165,19 @@ class AIChatPaneController {
     inputWrapper.style.flexDirection = "column";
     inputWrapper.style.gap = "6px";
 
+    const inputId = `ai-chat-input-${Math.random().toString(36).slice(2, 10)}`;
+    const inputLabel = doc.createElement("label");
+    inputLabel.classList.add("ai-chat-input-label");
+    inputLabel.id = `${inputId}-label`;
+    inputLabel.htmlFor = inputId;
+    inputLabel.textContent = getString("ai-chat-input-label");
+
     this.inputEl = doc.createElement("textarea");
     this.inputEl.classList.add("ai-chat-input");
     this.inputEl.placeholder = getString("ai-chat-input-placeholder");
+    this.inputEl.id = inputId;
+    this.inputEl.setAttribute("aria-labelledby", inputLabel.id);
+    this.inputEl.setAttribute("aria-label", getString("ai-chat-input-label"));
     this.inputEl.rows = 3;
     this.inputEl.style.resize = "vertical";
     this.inputEl.style.width = "100%";
@@ -175,6 +205,7 @@ class AIChatPaneController {
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
 
+    inputWrapper.appendChild(inputLabel);
     inputWrapper.appendChild(this.inputEl);
     inputWrapper.appendChild(buttonRow);
 
@@ -208,6 +239,49 @@ class AIChatPaneController {
 
     this.setSendingState(false);
   }
+
+  private ensureStyles(doc: Document): void {
+    const head =
+      doc.head ?? (doc.getElementsByTagName("head")[0] as HTMLHeadElement);
+    const root = (doc.documentElement || (doc as any).documentElement) as
+      | HTMLElement
+      | null;
+    const container = (head || root) as HTMLElement | null;
+    if (!container) {
+      try {
+        ztoolkit.log("[ai-chat] no head/root for css injection");
+      } catch (e) {
+        void e;
+      }
+      return;
+    }
+
+    if (!doc.querySelector('link[data-ai-chat-style="chat"]')) {
+      const link = doc.createElement("link");
+      link.rel = "stylesheet";
+      link.href = CHAT_STYLESHEET_HREF;
+      link.setAttribute("data-ai-chat-style", "chat");
+      container.appendChild(link);
+    }
+
+    if (!doc.querySelector('link[data-ai-chat-style="katex"]')) {
+      const link = doc.createElement("link");
+      link.rel = "stylesheet";
+      link.href = KATEX_STYLESHEET_HREF;
+      link.setAttribute("data-ai-chat-style", "katex");
+      link.addEventListener("error", () => {
+        // fallback to CDN stylesheet if local asset is missing
+        try {
+          link.href = KATEX_CDN_CSS;
+        } catch (e) {
+          void e;
+        }
+      });
+      container.appendChild(link);
+    }
+  }
+
+  // Note: KaTeX JS is bundled; we only ensure CSS is available (with CDN fallback).
 
   onInit(props: SectionInitHookArgs): void {
     this.assignSession(props);
@@ -264,6 +338,7 @@ class AIChatPaneController {
     this.isSending = false;
     this.updateActionButtonLabel();
     this.clearButton.disabled = true;
+    this.clearPendingRenders();
   }
 
   private assignSession(props: SectionHookArgs): void {
@@ -283,6 +358,7 @@ class AIChatPaneController {
     if (isNewSessionId || isScopeChanged) {
       this.currentScopeKey = scopeKey;
       this.contextAttachmentKey = undefined;
+      this.clearPendingRenders();
       this.messageNodes.clear();
       this.messagesEl.replaceChildren(this.placeholderEl);
       this.clearError();
@@ -402,20 +478,49 @@ class AIChatPaneController {
 
     const content = doc.createElement("div");
     content.classList.add("ai-chat-message-content");
-    content.style.whiteSpace = "pre-wrap";
+    content.style.whiteSpace = "normal";
     content.style.lineHeight = "1.5";
+
+    const mathError = doc.createElement("div");
+    mathError.classList.add("ai-chat-message-math-error");
+    mathError.hidden = true;
+    // Ensure hidden state regardless of UA stylesheet precedence
+    mathError.style.display = "none";
+
+    const actions = doc.createElement("div");
+    actions.classList.add("ai-chat-message-actions");
+    actions.hidden = true;
+
+    const copyButton = doc.createElement("button");
+    copyButton.type = "button";
+    copyButton.classList.add("ai-chat-copy-button");
+    copyButton.textContent = getString("ai-chat-copy-button");
+    copyButton.addEventListener("click", () => {
+      this.copyAssistantMessage(message.id);
+    });
+    actions.appendChild(copyButton);
 
     container.appendChild(roleLabel);
     container.appendChild(content);
+    container.appendChild(mathError);
+    container.appendChild(actions);
 
-    const entry: MessageDom = { container, content, roleLabel };
+    const entry: MessageDom = {
+      container,
+      content,
+      roleLabel,
+      mathError,
+      actions,
+      copyButton,
+    };
     this.messageNodes.set(message.id, entry);
     return entry;
   }
 
   private updateMessageDom(entry: MessageDom, message: SessionMessage): void {
     entry.roleLabel.textContent = ROLE_LABELS[message.role] ?? message.role;
-    entry.content.textContent = message.content;
+    entry.latestContent = message.content;
+    this.renderMessageContent(entry, message.content);
     entry.container.dataset.role = message.role;
     entry.container.style.backgroundColor =
       message.role === "user"
@@ -423,6 +528,162 @@ class AIChatPaneController {
         : message.role === "assistant"
           ? "rgba(92, 184, 92, 0.12)"
           : "rgba(0, 0, 0, 0.05)";
+
+    const isAssistant = message.role === "assistant";
+    if (entry.actions) {
+      entry.actions.hidden = !isAssistant;
+    }
+    if (entry.copyButton) {
+      const hasContent = Boolean(message.content && message.content.trim());
+      entry.copyButton.disabled = !isAssistant || !hasContent;
+    }
+  }
+
+  private renderMessageContent(
+    entry: MessageDom,
+    content: string,
+    options?: { suppressMathError?: boolean },
+  ): void {
+    entry.latestContent = content;
+    const doc = this.getDocument();
+    if (!content) {
+      entry.content.replaceChildren();
+      this.applyMathErrorState(entry, false, options?.suppressMathError);
+      return;
+    }
+
+    const result = renderMessage(content, doc);
+    entry.content.replaceChildren(result.fragment);
+    // Secondary check: only show error if error containers remain
+    const hasErrorNode = Boolean(
+      entry.content.querySelector(".math-error, .katex-error"),
+    );
+    this.applyMathErrorState(
+      entry,
+      result.hasMathError && hasErrorNode,
+      options?.suppressMathError,
+    );
+  }
+
+  private applyMathErrorState(
+    entry: MessageDom,
+    hasError: boolean,
+    suppress?: boolean,
+  ): void {
+    const show = Boolean(hasError && !suppress);
+    entry.mathError.hidden = !show;
+    // Inline style wins over author rules and UA defaults
+    entry.mathError.style.display = show ? "flex" : "none";
+    entry.mathError.textContent = show
+      ? getString("ai-chat-math-render-error")
+      : "";
+  }
+
+  private async copyAssistantMessage(messageId: string): Promise<void> {
+    try {
+      const session = this.sessionId ? getSession(this.sessionId) : undefined;
+      const message = session?.messages.find((item) => item.id === messageId);
+      const entry = this.messageNodes.get(messageId);
+      const content = message?.content ?? entry?.latestContent ?? "";
+      if (!content.trim()) {
+        ztoolkit.log("[ai-chat] 无可复制的文本", { messageId });
+        return;
+      }
+
+      const win = this.getDocument().defaultView as
+        | (Window & { navigator?: any })
+        | null;
+      const clipboardApi = win && (win.navigator as any)?.clipboard;
+      if (clipboardApi && typeof clipboardApi.writeText === "function") {
+        await clipboardApi.writeText(content);
+        return;
+      }
+
+      const copyWithZotero =
+        (Zotero as any)?.Utilities?.Internal?.copyTextToClipboard;
+      if (typeof copyWithZotero === "function") {
+        await copyWithZotero(content);
+        return;
+      }
+
+      this.fallbackCopyText(content);
+    } catch (error) {
+      ztoolkit.log("[ai-chat] 复制消息失败", { messageId, error });
+    }
+  }
+
+  private fallbackCopyText(text: string): void {
+    const doc = this.getDocument();
+    const textarea = doc.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "readonly");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+
+    const body =
+      doc.body ?? (doc.getElementsByTagName("body")[0] as HTMLBodyElement | undefined);
+    if (!body) {
+      try {
+        ztoolkit.log("[ai-chat] 未找到 body，复制降级不可用");
+      } catch (e) {
+        void e;
+      }
+      return;
+    }
+    body.appendChild(textarea);
+    textarea.select();
+    try {
+      const ok =
+        typeof doc.execCommand === "function" ? doc.execCommand("copy") : false;
+      if (!ok) {
+        ztoolkit.log("[ai-chat] execCommand 无法复制文本");
+      }
+    } catch (error) {
+      ztoolkit.log("[ai-chat] 使用 execCommand 复制失败", error);
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  private scheduleMessageRender(
+    messageId: string,
+    entry: MessageDom,
+    content: string,
+    options?: { suppressMathError?: boolean },
+  ): void {
+    this.renderQueue.set(messageId, { entry, content, options });
+    if (this.pendingRenderHandle !== undefined) {
+      return;
+    }
+
+    const win = this.getDocument().defaultView;
+    if (win && typeof win.requestAnimationFrame === "function") {
+      this.pendingRenderHandle = win.requestAnimationFrame(() => {
+        this.pendingRenderHandle = undefined;
+        this.flushRenderQueue();
+      });
+    } else {
+      this.flushRenderQueue();
+    }
+  }
+
+  private flushRenderQueue(): void {
+    const items = Array.from(this.renderQueue.values());
+    this.renderQueue.clear();
+    for (const item of items) {
+      this.renderMessageContent(item.entry, item.content, item.options);
+    }
+  }
+
+  private clearPendingRenders(): void {
+    if (this.pendingRenderHandle !== undefined) {
+      const win = this.getDocument().defaultView;
+      if (win && typeof win.cancelAnimationFrame === "function") {
+        win.cancelAnimationFrame(this.pendingRenderHandle);
+      }
+      this.pendingRenderHandle = undefined;
+    }
+    this.renderQueue.clear();
   }
 
   private updateActionButtonLabel(): void {
@@ -570,7 +831,9 @@ class AIChatPaneController {
 
           const entry = this.messageNodes.get(assistantMessage.id);
           if (entry) {
-            entry.content.textContent = aggregatedText;
+            this.scheduleMessageRender(assistantMessage.id, entry, aggregatedText, {
+              suppressMathError: true,
+            });
           } else {
             this.refreshMessages();
           }
