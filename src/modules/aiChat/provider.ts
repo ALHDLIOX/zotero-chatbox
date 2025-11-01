@@ -267,7 +267,7 @@ function parseSSELine(line: string): ParsedSSEChunk | null {
 export async function sendChat(
   options: SendChatOptions,
 ): Promise<ChatResponse> {
-  const settings = getProviderSettings();
+  const settings = { ...getProviderSettings() };
   ensureValidSettings(settings);
 
   const estimatedTokens = estimatePromptTokens(options.messages);

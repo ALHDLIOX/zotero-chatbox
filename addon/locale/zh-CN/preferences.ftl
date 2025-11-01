@@ -1,7 +1,4 @@
-pref-title = 插件模板设置示例
-pref-enable =
-    .label = 开启
-pref-input = 输入
+pref-title = AI Chat 偏好设置
 pref-help = { $name } Build { $version } { $time }
 ai-chat-pref-provider =
     .label = 服务商
@@ -11,3 +8,6 @@ ai-chat-pref-model =
     .label = 模型
 ai-chat-pref-api-key =
     .label = API 密钥
+ai-chat-pref-error-missing = 以下字段不能为空：{ $fields }
+ai-chat-pref-error-endpoint = 接口地址必须为有效的 HTTPS 链接
+ai-chat-pref-error-generic = 设置未保存，请检查输入

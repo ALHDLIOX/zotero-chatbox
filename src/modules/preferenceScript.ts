@@ -1,131 +1,186 @@
 import { config } from "../../package.json";
-import { getString } from "../utils/locale";
+import {
+  getProviderSettings,
+  setProviderSettings,
+  type ProviderSettings,
+  validateProviderSettings,
+} from "./aiChat/prefs";
 
-export async function registerPrefsScripts(_window: Window) {
-  // This function is called when the prefs window is opened
-  // See addon/content/preferences.xhtml onpaneload
-  if (!addon.data.prefs) {
-    addon.data.prefs = {
-      window: _window,
-      columns: [
-        {
-          dataKey: "title",
-          label: getString("prefs-table-title"),
-          fixedWidth: true,
-          width: 100,
-        },
-        {
-          dataKey: "detail",
-          label: getString("prefs-table-detail"),
-        },
-      ],
-      rows: [
-        {
-          title: "Orange",
-          detail: "It's juicy",
-        },
-        {
-          title: "Banana",
-          detail: "It's sweet",
-        },
-        {
-          title: "Apple",
-          detail: "I mean the fruit APPLE",
-        },
-      ],
-    };
-  } else {
-    addon.data.prefs.window = _window;
+type ProviderFieldKey = keyof ProviderSettings;
+
+interface PrefsState {
+  window: Window;
+  inputs: Record<ProviderFieldKey, HTMLInputElement>;
+  errorBox: HTMLElement;
+  handleAccept: (event: Event) => void;
+  handleUnload: () => void;
+}
+
+const FIELD_IDS: Record<ProviderFieldKey, string> = {
+  provider: `zotero-prefpane-${config.addonRef}-provider`,
+  endpoint: `zotero-prefpane-${config.addonRef}-endpoint`,
+  model: `zotero-prefpane-${config.addonRef}-model`,
+  apiKey: `zotero-prefpane-${config.addonRef}-apiKey`,
+};
+
+const ERROR_BOX_ID = "ai-chat-pref-error-message";
+
+export async function registerPrefsScripts(window: Window) {
+  teardownPrefsState();
+
+  const inputs = mapInputs(window.document);
+  const errorBox = resolveErrorBox(window.document);
+
+  const state: PrefsState = {
+    window,
+    inputs,
+    errorBox,
+    handleAccept: (event) => onDialogAccept(event),
+    handleUnload: () => teardownPrefsState(),
+  };
+
+  addon.data.aiChatPrefs = state;
+
+  populateForm(state);
+  bindInputEvents(state);
+  clearValidationError(state);
+
+  window.addEventListener("dialogaccept", state.handleAccept);
+  window.addEventListener("unload", state.handleUnload, { once: true });
+}
+
+function teardownPrefsState() {
+  const current = addon.data.aiChatPrefs as PrefsState | undefined;
+  if (!current) {
+    return;
   }
-  updatePrefsUI();
-  bindPrefEvents();
+
+  current.window.removeEventListener("dialogaccept", current.handleAccept);
+  current.window.removeEventListener("unload", current.handleUnload);
+  delete addon.data.aiChatPrefs;
 }
 
-async function updatePrefsUI() {
-  // You can initialize some UI elements on prefs window
-  // with addon.data.prefs.window.document
-  // Or bind some events to the elements
-  const renderLock = ztoolkit.getGlobal("Zotero").Promise.defer();
-  if (addon.data.prefs?.window == undefined) return;
-  const tableHelper = new ztoolkit.VirtualizedTable(addon.data.prefs?.window)
-    .setContainerId(`${config.addonRef}-table-container`)
-    .setProp({
-      id: `${config.addonRef}-prefs-table`,
-      // Do not use setLocale, as it modifies the Zotero.Intl.strings
-      // Set locales directly to columns
-      columns: addon.data.prefs?.columns,
-      showHeader: true,
-      multiSelect: true,
-      staticColumns: true,
-      disableFontSizeScaling: true,
-    })
-    .setProp("getRowCount", () => addon.data.prefs?.rows.length || 0)
-    .setProp(
-      "getRowData",
-      (index) =>
-        addon.data.prefs?.rows[index] || {
-          title: "no data",
-          detail: "no data",
-        },
-    )
-    // Show a progress window when selection changes
-    .setProp("onSelectionChange", (selection) => {
-      new ztoolkit.ProgressWindow(config.addonName)
-        .createLine({
-          text: `Selected line: ${addon.data.prefs?.rows
-            .filter((v, i) => selection.isSelected(i))
-            .map((row) => row.title)
-            .join(",")}`,
-          progress: 100,
-        })
-        .show();
-    })
-    // When pressing delete, delete selected line and refresh table.
-    // Returning false to prevent default event.
-    .setProp("onKeyDown", (event: KeyboardEvent) => {
-      if (event.key == "Delete" || (Zotero.isMac && event.key == "Backspace")) {
-        addon.data.prefs!.rows =
-          addon.data.prefs?.rows.filter(
-            (v, i) => !tableHelper.treeInstance.selection.isSelected(i),
-          ) || [];
-        tableHelper.render();
-        return false;
-      }
-      return true;
-    })
-    // For find-as-you-type
-    .setProp(
-      "getRowString",
-      (index) => addon.data.prefs?.rows[index].title || "",
-    )
-    // Render the table.
-    .render(-1, () => {
-      renderLock.resolve();
-    });
-  await renderLock.promise;
-  ztoolkit.log("Preference table rendered!");
+function mapInputs(doc: Document): Record<ProviderFieldKey, HTMLInputElement> {
+  const resolve = (key: ProviderFieldKey) => {
+    const input = doc.getElementById(FIELD_IDS[key]) as HTMLInputElement | null;
+    if (!input) {
+      throw new Error(`Missing preference input for key: ${key}`);
+    }
+    return input;
+  };
+
+  return {
+    provider: resolve("provider"),
+    endpoint: resolve("endpoint"),
+    model: resolve("model"),
+    apiKey: resolve("apiKey"),
+  };
 }
 
-function bindPrefEvents() {
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-enable`,
-    )
-    ?.addEventListener("command", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as XUL.Checkbox).checked}!`,
-      );
-    });
+function resolveErrorBox(doc: Document): HTMLElement {
+  const el = doc.getElementById(ERROR_BOX_ID) as HTMLElement | null;
+  if (!el) {
+    throw new Error("Missing preference error message container");
+  }
+  return el;
+}
 
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-input`,
-    )
-    ?.addEventListener("change", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as HTMLInputElement).value}!`,
-      );
+function populateForm(state: PrefsState) {
+  const settings = getProviderSettings();
+  for (const key of Object.keys(state.inputs) as ProviderFieldKey[]) {
+    state.inputs[key].value = settings[key] ?? "";
+  }
+}
+
+function bindInputEvents(state: PrefsState) {
+  for (const input of Object.values(state.inputs)) {
+    input.addEventListener("input", () => {
+      clearValidationError(state);
     });
+  }
+}
+
+function readFormValues(state: PrefsState): ProviderSettings {
+  return {
+    provider: state.inputs.provider.value.trim(),
+    endpoint: state.inputs.endpoint.value.trim(),
+    model: state.inputs.model.value.trim(),
+    apiKey: state.inputs.apiKey.value.trim(),
+  };
+}
+
+function onDialogAccept(event: Event) {
+  const state = addon.data.aiChatPrefs as PrefsState | undefined;
+  if (!state) {
+    return;
+  }
+
+  const values = readFormValues(state);
+  const validation = validateProviderSettings(values);
+
+  if (!validation.isValid) {
+    event.preventDefault();
+    event.stopPropagation();
+    showValidationError(
+      state,
+      values,
+      validation.missingKeys,
+      validation.invalidEndpoint,
+    );
+    return;
+  }
+
+  setProviderSettings(values);
+  clearValidationError(state);
+}
+
+function showValidationError(
+  state: PrefsState,
+  values: ProviderSettings,
+  missingKeys: Array<ProviderFieldKey>,
+  invalidEndpoint: boolean,
+) {
+  const doc = state.window.document;
+  const l10n = (doc as any).l10n;
+
+  if (invalidEndpoint) {
+    l10n?.setAttributes?.(
+      state.errorBox,
+      `${config.addonRef}-ai-chat-pref-error-endpoint`,
+    );
+  } else if (missingKeys.length > 0) {
+    const labels = missingKeys
+      .map((key) => getLabelForField(doc, key))
+      .filter(Boolean);
+    const fieldsArg = labels.join("、") || missingKeys.join("、");
+    l10n?.setAttributes?.(
+      state.errorBox,
+      `${config.addonRef}-ai-chat-pref-error-missing`,
+      { fields: fieldsArg },
+    );
+  } else {
+    l10n?.setAttributes?.(
+      state.errorBox,
+      `${config.addonRef}-ai-chat-pref-error-generic`,
+    );
+  }
+
+  state.errorBox.hidden = false;
+  ztoolkit.log("[ai-chat] Preference validation failed", {
+    missingKeys,
+    invalidEndpoint,
+    values: { ...values, apiKey: values.apiKey ? "***" : "" },
+  });
+}
+
+function getLabelForField(doc: Document, key: ProviderFieldKey): string {
+  const label = doc.querySelector(`label[for='${FIELD_IDS[key]}']`);
+  return label?.textContent?.trim() ?? key;
+}
+
+function clearValidationError(state: PrefsState) {
+  state.errorBox.removeAttribute("data-l10n-id");
+  state.errorBox.removeAttribute("data-l10n-args");
+  state.errorBox.textContent = "";
+  state.errorBox.hidden = true;
 }

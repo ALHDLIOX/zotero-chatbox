@@ -19,6 +19,7 @@ class Addon {
       columns: Array<ColumnOptions>;
       rows: Array<{ [dataKey: string]: string }>;
     };
+    aiChatPrefs?: unknown;
     dialog?: DialogHelper;
   };
   // Lifecycle hooks

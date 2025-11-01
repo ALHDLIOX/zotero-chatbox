@@ -100,10 +100,10 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Add Provider/Endpoint/Model/API Key fields to prefs UI in `addon/content/preferences.xhtml` (with appropriate `data-l10n-id`)
-- [ ] T025 [P] [US3] Add Chinese l10n entries for new fields and validation messages in `addon/locale/zh-CN/preferences.ftl`
-- [ ] T026 [US3] Bind prefs validation and events in `src/modules/preferenceScript.ts` (block save when required fields missing)
-- [ ] T027 [US3] Ensure `src/modules/aiChat/provider.ts` reads current settings on each request (no restart required)
+- [X] T024 [US3] Add Provider/Endpoint/Model/API Key fields to prefs UI in `addon/content/preferences.xhtml` (with appropriate `data-l10n-id`)
+- [X] T025 [P] [US3] Add Chinese l10n entries for new fields and validation messages in `addon/locale/zh-CN/preferences.ftl`
+- [X] T026 [US3] Bind prefs validation and events in `src/modules/preferenceScript.ts` (block save when required fields missing)
+- [X] T027 [US3] Ensure `src/modules/aiChat/provider.ts` reads current settings on each request (no restart required)
 
 **Checkpoint**: All three user stories independently functional.
 
@@ -113,9 +113,9 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 **Purpose**: Localization completeness, cleanup, and manual quickstart validation.
 
-- [ ] T028 [P] Add English fallback l10n for new keys in `addon/locale/en-US/addon.ftl` and `addon/locale/en-US/preferences.ftl`
-- [ ] T029 Run quickstart validation steps in `/specs/001-ai-chat-sidebar/quickstart.md`
-- [ ] T030 [P] Lint and format the codebase (`eslint`/`prettier`) at repository root
+- [X] T028 [P] Add English fallback l10n for new keys in `addon/locale/en-US/addon.ftl` and `addon/locale/en-US/preferences.ftl`
+- [X] T029 Run quickstart validation steps in `/specs/001-ai-chat-sidebar/quickstart.md`
+- [X] T030 [P] Lint and format the codebase (`eslint`/`prettier`) at repository root
 
 ---
 

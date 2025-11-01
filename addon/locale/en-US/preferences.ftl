@@ -1,5 +1,13 @@
-pref-title = Addon Template Example
-pref-enable =
-    .label = Enable
-pref-input = Input
+pref-title = AI Chat Preferences
 pref-help = { $name } Build { $version } { $time }
+ai-chat-pref-provider =
+    .label = Provider
+ai-chat-pref-endpoint =
+    .label = Endpoint URL
+ai-chat-pref-model =
+    .label = Model
+ai-chat-pref-api-key =
+    .label = API Key
+ai-chat-pref-error-missing = The following fields are required: { $fields }
+ai-chat-pref-error-endpoint = Endpoint URL must be a valid HTTPS link
+ai-chat-pref-error-generic = Settings were not saved. Please check your input.

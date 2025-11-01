@@ -498,18 +498,17 @@ class AIChatPaneController {
       return new AbortController();
     }
 
-    const win = this.getDocument().defaultView as
-      | (Window & { AbortController?: typeof AbortController })
-      | undefined;
-    if (win && typeof win.AbortController === "function") {
-      return new win.AbortController();
+    const win = this.getDocument().defaultView as {
+      AbortController?: new () => AbortController;
+    };
+    const windowCtor = win?.AbortController;
+    if (typeof windowCtor === "function") {
+      return new windowCtor();
     }
 
-    const globalAbort = (
-      globalThis as { AbortController?: typeof AbortController }
-    )?.AbortController;
-    if (typeof globalAbort === "function") {
-      return new globalAbort();
+    const globalCtor = (globalThis as any)?.AbortController;
+    if (typeof globalCtor === "function") {
+      return new globalCtor();
     }
 
     return undefined;
