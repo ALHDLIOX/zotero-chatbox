@@ -64,12 +64,12 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Register Reader Item Pane section (header/sidenav with l10n) in `src/modules/aiChat/readerPane.ts`
-- [ ] T015 [US1] Render chat UI (status, messages area, input, Send button) in `src/modules/aiChat/readerPane.ts`
-- [ ] T016 [US1] Detect PDF full-text index + page map via Zotero API and update status in `src/modules/aiChat/readerPane.ts`
-- [ ] T017 [US1] Implement Shift+Enter send handler to call `sendChat` and stream to UI in `src/modules/aiChat/readerPane.ts`
-- [ ] T018 [US1] Read and validate settings via `src/modules/aiChat/prefs.ts`; show localized errors when missing in `src/modules/aiChat/readerPane.ts`
-- [ ] T019 [US1] Scope per-reader-tab in-memory session and lifecycle in `src/modules/aiChat/session.ts` (no persistence across items/windows)
+- [X] T014 [US1] Register Reader Item Pane section (header/sidenav with l10n) in `src/modules/aiChat/readerPane.ts`
+- [X] T015 [US1] Render chat UI (status, messages area, input, Send button) in `src/modules/aiChat/readerPane.ts`
+- [X] T016 [US1] Detect PDF full-text index + page map via Zotero API and update status in `src/modules/aiChat/readerPane.ts`
+- [X] T017 [US1] Implement Shift+Enter send handler to call `sendChat` and stream to UI in `src/modules/aiChat/readerPane.ts`
+- [X] T018 [US1] Read and validate settings via `src/modules/aiChat/prefs.ts`; show localized errors when missing in `src/modules/aiChat/readerPane.ts`
+- [X] T019 [US1] Scope per-reader-tab in-memory session and lifecycle in `src/modules/aiChat/session.ts` (no persistence across items/windows)
 
 **Checkpoint**: User Story 1 independently testable and demoable (MVP).
 

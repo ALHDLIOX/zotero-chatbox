@@ -6,6 +6,55 @@ import {
   validateProviderSettings,
 } from "./prefs";
 
+interface AbortControllerLike {
+  signal?: AbortSignal;
+  abort(reason?: unknown): void;
+}
+
+type AbortControllerCtor = new () => AbortController;
+
+function resolveAbortControllerCtor(): AbortControllerCtor | undefined {
+  if (typeof AbortController === "function") {
+    return AbortController as AbortControllerCtor;
+  }
+
+  try {
+    if (
+      typeof Zotero !== "undefined" &&
+      typeof Zotero.getMainWindow === "function"
+    ) {
+      const win = Zotero.getMainWindow();
+      if (win && typeof win.AbortController === "function") {
+        return win.AbortController as AbortControllerCtor;
+      }
+    }
+  } catch (error) {
+    void error;
+  }
+
+  try {
+    const globalWin =
+      typeof globalThis !== "undefined" ? (globalThis as any) : undefined;
+    if (globalWin && typeof globalWin.AbortController === "function") {
+      return globalWin.AbortController as AbortControllerCtor;
+    }
+  } catch (error) {
+    void error;
+  }
+
+  return undefined;
+}
+
+const AbortControllerCtor = resolveAbortControllerCtor();
+const supportsAbortController = typeof AbortControllerCtor === "function";
+
+class NoopAbortController implements AbortControllerLike {
+  signal = undefined;
+  abort(): void {
+    // AbortController 兼容缺失时的降级；无法真正中断请求
+  }
+}
+
 export interface SendChatOptions {
   messages: SessionMessage[];
   signal?: AbortSignal;
@@ -31,7 +80,7 @@ export type ProviderErrorCode =
   | "ABORTED"
   | "UNKNOWN";
 
-const TOKEN_LIMIT = 6000;
+const TOKEN_LIMIT = 60000;
 const REQUEST_TIMEOUT_MS = 60000;
 
 export class ProviderError extends Error {
@@ -90,8 +139,12 @@ function ensureValidSettings(settings: ProviderSettings) {
   }
 }
 
-function createAbortController(parent?: AbortSignal): AbortController {
-  const controller = new AbortController();
+function createAbortController(parent?: AbortSignal): AbortControllerLike {
+  if (!AbortControllerCtor) {
+    return new NoopAbortController();
+  }
+
+  const controller = new AbortControllerCtor();
   if (parent) {
     if (parent.aborted) {
       controller.abort(parent.reason);
@@ -107,15 +160,57 @@ function createAbortController(parent?: AbortSignal): AbortController {
   return controller;
 }
 
-function startTimeout(controller: AbortController, ms: number) {
+function getAbortSignal(
+  controller: AbortControllerLike,
+): AbortSignal | undefined {
+  const signal = controller.signal;
+  if (signal && typeof signal === "object" && "aborted" in signal) {
+    return signal;
+  }
+  return undefined;
+}
+
+function startTimeout(controller: AbortControllerLike, ms: number) {
+  if (!supportsAbortController) {
+    return;
+  }
+
   if (ms <= 0) {
     return;
   }
   setTimeout(() => {
-    if (!controller.signal.aborted) {
-      controller.abort(new DOMException("Request timed out", "TimeoutError"));
+    const signal = getAbortSignal(controller);
+    if (!signal?.aborted) {
+      controller.abort(createTimeoutError());
     }
   }, ms);
+}
+
+function createTimeoutError(): Error {
+  if (typeof DOMException === "function") {
+    return new DOMException("Request timed out", "TimeoutError");
+  }
+  const error = new Error("Request timed out");
+  error.name = "TimeoutError";
+  return error;
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const name = (error as { name?: unknown }).name;
+  if (name === "AbortError" || name === "TimeoutError") {
+    return true;
+  }
+
+  if (supportsAbortController && typeof DOMException === "function") {
+    return error instanceof DOMException &&
+      (error.name === "AbortError" || error.name === "TimeoutError");
+  }
+
+  return false;
 }
 
 interface ParsedSSEChunk {
@@ -174,10 +269,7 @@ export async function sendChat(
       throw error;
     }
 
-    if (
-      error instanceof DOMException &&
-      (error.name === "AbortError" || error.name === "TimeoutError")
-    ) {
+    if (isAbortLikeError(error)) {
       throw new ProviderError(
         "ABORTED",
         "ai-chat-error-network",
@@ -221,15 +313,21 @@ async function performStreamingRequest(
     stream: true,
   });
 
-  const response = await fetch(url.toString(), {
+  const requestInit: RequestInit = {
     method: "POST",
     headers: {
       Authorization: `Bearer ${settings.apiKey}`,
       "Content-Type": "application/json",
     },
     body,
-    signal: controller.signal,
-  });
+  };
+
+  const abortSignal = getAbortSignal(controller);
+  if (abortSignal) {
+    requestInit.signal = abortSignal;
+  }
+
+  const response = await fetch(url.toString(), requestInit);
 
   if (!response.ok) {
     throw httpErrorToProviderError(response.status);
@@ -263,7 +361,7 @@ async function performStreamingRequest(
   let finalRaw: unknown;
 
   while (true) {
-    const { value, done } = await reader.read();
+    const { value, done } = await (reader as any).read();
     if (done) {
       break;
     }

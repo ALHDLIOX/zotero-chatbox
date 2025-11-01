@@ -24,6 +24,16 @@ export type SessionStatus = "idle" | "sending" | "streaming" | "stopped";
 export interface SessionContextState {
   hasFulltext: boolean;
   hasPageMap: boolean;
+  /**
+   * Raw document text combined from relevant attachments.
+   * Undefined when no context is available.
+   */
+  documentText?: string;
+  /**
+   * Attachment IDs that contributed to the current context.
+   * Used to skip redundant re-hydration.
+   */
+  attachmentIDs: number[];
 }
 
 export interface SessionState {
@@ -38,6 +48,8 @@ const sessions = new Map<string, SessionState>();
 const defaultContext: SessionContextState = {
   hasFulltext: false,
   hasPageMap: false,
+  documentText: undefined,
+  attachmentIDs: [],
 };
 
 export function createEmptySession(): SessionState {
@@ -141,5 +153,40 @@ export function clearMessages(sessionId: string): SessionState {
     messages: [],
     lastResult: undefined,
     status: "idle",
+  }));
+}
+
+export function updateMessage(
+  sessionId: string,
+  messageId: string,
+  updater: (message: SessionMessage) => SessionMessage,
+): SessionState {
+  return updateSession(sessionId, (state) => {
+    let updated = false;
+    const messages = state.messages.map((message) => {
+      if (message.id === messageId) {
+        updated = true;
+        return updater(message);
+      }
+      return message;
+    });
+    if (!updated) {
+      return state;
+    }
+
+    return {
+      ...state,
+      messages,
+    };
+  });
+}
+
+export function removeMessage(
+  sessionId: string,
+  messageId: string,
+): SessionState {
+  return updateSession(sessionId, (state) => ({
+    ...state,
+    messages: state.messages.filter((message) => message.id !== messageId),
   }));
 }
