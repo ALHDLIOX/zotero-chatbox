@@ -32,4 +32,7 @@ ai-chat-error-server = Service error. Please try again later.
 ai-chat-error-settings-missing = Please complete the endpoint, model, and API key in preferences first
 ai-chat-error-endpoint-invalid = Endpoint URL must be a valid HTTPS link
 ai-chat-math-render-error = Could not typeset math. Showing original text.
+
+# Citation controls
+ai-chat-citation-aria = Go to page { $page }
 ai-chat-copy-button = Copy

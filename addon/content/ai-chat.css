@@ -58,6 +58,10 @@
   font-family: var(--zotero-code-font, "SFMono-Regular", "Consolas", monospace);
 }
 
+.ai-chat-message-content pre code[data-language="zotero-citations"] {
+  display: none !important;
+}
+
 .ai-chat-message-content pre {
   padding: 8px;
   background-color: rgba(0, 0, 0, 0.08);
@@ -151,4 +155,39 @@
 .ai-chat-copy-button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Citation buttons */
+.ai-chat-citations {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: super;
+  font-size: 0.85em;
+}
+
+.ai-chat-cite-ref {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--zotero-text-color, #1b1b1b);
+  background-color: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ai-chat-cite-ref:focus-visible {
+  outline: 2px solid var(--zotero-accent-color, #3a84ff);
+  outline-offset: 1px;
+}
+
+.ai-chat-cite-ref:hover {
+  background-color: rgba(0, 0, 0, 0.12);
 }

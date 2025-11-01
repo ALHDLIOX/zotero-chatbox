@@ -105,6 +105,7 @@ class AIChatPaneController {
   private readonly clearButton: HTMLButtonElement;
   private readonly messageNodes = new Map<string, MessageDom>();
   private readonly renderQueue = new Map<string, PendingRender>();
+  private readonly citationTargets = new WeakMap<HTMLElement, CitationTarget>();
 
   private sessionId?: string;
   private isContextLoading = false;
@@ -223,6 +224,26 @@ class AIChatPaneController {
       } else {
         void this.handleSubmit();
       }
+    });
+
+    // Delegated handlers for citation buttons
+    this.messagesEl.addEventListener("click", (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const el = target.closest(".ai-chat-cite-ref") as HTMLElement | null;
+      if (!el) return;
+      event.preventDefault();
+      void this.handleCitationActivate(el);
+    });
+
+    this.messagesEl.addEventListener("keydown", (event: KeyboardEvent) => {
+      if (event.key !== "Enter") return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const el = target.closest(".ai-chat-cite-ref") as HTMLElement | null;
+      if (!el) return;
+      event.preventDefault();
+      void this.handleCitationActivate(el);
     });
 
     this.clearButton.addEventListener("click", (event: MouseEvent) => {
@@ -537,6 +558,15 @@ class AIChatPaneController {
       const hasContent = Boolean(message.content && message.content.trim());
       entry.copyButton.disabled = !isAssistant || !hasContent;
     }
+
+    // Try append citation controls (idempotent; no-op until metadata is complete)
+    if (isAssistant && message.content) {
+      try {
+        this.applyCitations(entry, message.content);
+      } catch (e) {
+        void e;
+      }
+    }
   }
 
   private renderMessageContent(
@@ -577,6 +607,218 @@ class AIChatPaneController {
     entry.mathError.textContent = show
       ? getString("ai-chat-math-render-error")
       : "";
+  }
+
+  // Parse inline citation markers and render small numeric buttons in-place
+  private applyCitations(entry: MessageDom, content: string): void {
+    // Remove existing to keep idempotent on re-render
+    const existing = entry.content.querySelectorAll(
+      ".ai-chat-citations",
+    );
+    for (let i = 0; i < existing.length; i++) {
+      const el = existing[i] as HTMLElement;
+      el.remove();
+    }
+
+    const doc = this.getDocument();
+    let serial = 1; // restart numbering per assistant message
+
+    const SHOW_TEXT = (doc.defaultView as any)?.NodeFilter?.SHOW_TEXT ?? 4;
+    const walker = doc.createTreeWalker(entry.content, SHOW_TEXT);
+    const toReplace: Array<{ node: Text; frag: DocumentFragment }> = [];
+
+    while (true) {
+      const node = walker.nextNode() as Text | null;
+      if (!node) break;
+      if (shouldSkipForCitations(node)) {
+        continue;
+      }
+      const text = node.nodeValue || "";
+      // Flexible regex: supports ASCII or full-width parentheses and colon
+      const re = /(?:\(\(|（（)cite[:：]\s*([\s\S]*?)(?:\)\)|））)/g;
+      let last = 0;
+      let matched = false;
+      const frag = doc.createDocumentFragment();
+      for (const m of text.matchAll(re)) {
+        matched = true;
+        const start = m.index ?? 0;
+        const before = text.slice(last, start);
+        if (before) frag.appendChild(doc.createTextNode(before));
+        const payload = m[1] || "";
+        const cites = parseInlineCitationsArray(payload);
+        if (!cites || cites.length === 0) {
+          // keep original when parse failed
+          frag.appendChild(doc.createTextNode(text.slice(start, start + (m[0]?.length || 0))));
+        } else {
+          const group = doc.createElement("span");
+          group.classList.add("ai-chat-citations");
+          group.setAttribute("role", "group");
+          for (const c of cites) {
+            const ref = doc.createElement("span");
+            ref.classList.add("ai-chat-cite-ref");
+            ref.setAttribute("role", "button");
+            ref.setAttribute("tabindex", "0");
+            ref.setAttribute(
+              "aria-label",
+              getString("ai-chat-citation-aria", {
+                args: { page: Number(c.page) || 1 },
+              } as any),
+            );
+            ref.textContent = String(serial++);
+            this.citationTargets.set(ref, {
+              attachmentID: Number(c.attachmentID),
+              page: Number(c.page),
+              quote: typeof c.quote === "string" ? c.quote : undefined,
+            });
+            group.appendChild(ref);
+          }
+          frag.appendChild(group);
+        }
+        last = start + (m[0]?.length || 0);
+      }
+      if (!matched) {
+        continue;
+      }
+      const tail = text.slice(last);
+      if (tail) frag.appendChild(doc.createTextNode(tail));
+      toReplace.push({ node, frag });
+    }
+
+    for (const { node, frag } of toReplace) {
+      node.parentNode?.replaceChild(frag, node);
+    }
+
+    // Hide any code blocks that contain the citations JSON (regardless of info string)
+    try {
+      const codes = entry.content.querySelectorAll("pre > code");
+      for (let i = 0; i < codes.length; i++) {
+        const code = codes[i] as HTMLElement;
+        const lang = code.getAttribute("data-language")?.toLowerCase();
+        const text = (code.textContent || "").trim();
+        if (lang === "zotero-citations" || looksLikeCitationsJson(text)) {
+          const pre = code.parentElement as HTMLElement | null;
+          if (pre) {
+            pre.style.display = "none";
+          } else {
+            code.style.display = "none";
+          }
+        }
+      }
+    } catch (e) {
+      void e;
+    }
+  }
+
+  private async handleCitationActivate(refEl: HTMLElement): Promise<void> {
+    const target = this.citationTargets.get(refEl);
+    if (!target || !Number.isFinite(target.attachmentID) || !Number.isFinite(target.page)) {
+      return;
+    }
+    try {
+      await this.openReaderAndNavigate(target.attachmentID!, target.page!, target.quote);
+    } catch (error) {
+      ztoolkit.log("[ai-chat] 引用跳转失败", { error, target });
+    }
+  }
+
+  private async openReaderAndNavigate(
+    attachmentID: number,
+    page: number,
+    quote?: string,
+  ): Promise<void> {
+    try {
+      const openResult = (Zotero as any)?.Reader?.open?.(attachmentID);
+      if (openResult && typeof openResult.then === "function") {
+        await openResult;
+      }
+    } catch (error) {
+      ztoolkit.log("[ai-chat] 打开 Reader 失败", error);
+    }
+
+    try {
+      await Zotero.Promise.delay(50);
+    } catch (e) {
+      void e;
+    }
+
+    const reader = this.getActiveReader();
+    if (!reader) return;
+
+    // Ensure the viewer is ready before interacting
+    await this.waitForPdfReady(reader, 5000).catch(() => undefined);
+
+    try {
+      const maybeSetPage = (reader as any)?.setPage || (reader as any)?.setPageNumber;
+      if (typeof maybeSetPage === "function") {
+        await maybeSetPage.call(reader, page);
+      }
+      const win = (reader as any)?._iframeWindow || (reader as any)?._internalWindow || undefined;
+      const app = win?.PDFViewerApplication || win?.wrappedJSObject?.PDFViewerApplication;
+      const pdfViewer = app?.pdfViewer || app?.viewer || app;
+      if (pdfViewer && typeof pdfViewer === "object") {
+        if (typeof pdfViewer.currentPageNumber === "number") {
+          pdfViewer.currentPageNumber = page;
+        } else if (typeof app?.page === "number") {
+          app.page = page;
+        }
+      }
+    } catch (e) {
+      ztoolkit.log("[ai-chat] 设置页码失败", e);
+    }
+
+    if (!quote || !quote.trim()) return;
+
+    try {
+      const win = (reader as any)?._iframeWindow || (reader as any)?._internalWindow || undefined;
+      const app = win?.PDFViewerApplication || win?.wrappedJSObject?.PDFViewerApplication;
+      const findController = app?.findController;
+      const eventBus = app?.eventBus;
+      const query = String(quote).replace(/\s+/g, " ").slice(0, 256);
+
+      if (findController && typeof findController.executeCommand === "function") {
+        const opts = new (win as any).Object();
+        (opts as any).query = query;
+        (opts as any).phraseSearch = true;
+        (opts as any).highlightAll = true;
+        (opts as any).caseSensitive = false;
+        (opts as any).findPrevious = false;
+        (opts as any).entireWord = false;
+        findController.executeCommand.call(findController, "find", opts as any);
+      } else if (eventBus && typeof eventBus.dispatch === "function") {
+        const ev = new (win as any).Object();
+        (ev as any).type = "find";
+        (ev as any).source = app;
+        (ev as any).query = query;
+        (ev as any).phraseSearch = true;
+        (ev as any).highlightAll = true;
+        (ev as any).caseSensitive = false;
+        (ev as any).findPrevious = false;
+        (ev as any).entireWord = false;
+        eventBus.dispatch("find", ev as any);
+      }
+    } catch (e) {
+      ztoolkit.log("[ai-chat] 文本查找/高亮失败", e);
+    }
+  }
+
+  private async waitForPdfReady(reader: any, timeoutMs: number): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const win = reader?._iframeWindow || reader?._internalWindow || undefined;
+        const app = win?.PDFViewerApplication || win?.wrappedJSObject?.PDFViewerApplication;
+        const ok = Boolean(
+          app &&
+            app.pdfViewer &&
+            ((app.pdfViewer.pagesCount && app.pdfViewer.pagesCount > 0) ||
+              (app.pdfViewer._pages && app.pdfViewer._pages.length > 0)),
+        );
+        if (ok) return;
+      } catch (e) {
+        void e;
+      }
+      await Zotero.Promise.delay(100);
+    }
   }
 
   private async copyAssistantMessage(messageId: string): Promise<void> {
@@ -1217,4 +1459,142 @@ function createMessageId(): string {
     return crypto.randomUUID();
   }
   return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+interface CitationTarget {
+  attachmentID: number;
+  page: number;
+  quote?: string;
+}
+
+interface CitationsMetadata {
+  paragraphs: Array<{
+    citations?: Array<CitationTarget>;
+  }>;
+}
+
+function extractCitationsMetadata(content: string): CitationsMetadata | undefined {
+  if (typeof content !== "string") return undefined;
+  const fence = /```\s*(?:zotero-citations)\s*\n([\s\S]*?)```/i;
+  const match = fence.exec(content);
+  if (!match) return undefined;
+  const jsonText = match[1]?.trim();
+  if (!jsonText) return undefined;
+  try {
+    const data = JSON.parse(jsonText);
+    if (!data || typeof data !== "object") return undefined;
+    const arr = (data as any).paragraphs;
+    if (!Array.isArray(arr)) return undefined;
+    return {
+      paragraphs: arr.map((p: any) => ({
+        citations: Array.isArray(p?.citations) ? p.citations : [],
+      })),
+    };
+  } catch (e) {
+    return undefined;
+  }
+}
+
+function looksLikeCitationsJson(text: string): boolean {
+  if (!text || text.length < 10) return false;
+  const trimmed = text.trim();
+  if (trimmed.indexOf('{') === -1 || trimmed.lastIndexOf('}') === -1) return false;
+  const jsonSlice = trimmed.slice(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
+  try {
+    const data = JSON.parse(jsonSlice);
+    if (!data || typeof data !== "object") return false;
+    const arr = (data as any).paragraphs;
+    return Array.isArray(arr);
+  } catch {
+    return false;
+  }
+}
+
+function parseCitationsMetadataFromText(text: string): CitationsMetadata | undefined {
+  if (!text) return undefined;
+  const trimmed = text.trim();
+  const l = trimmed.indexOf('{');
+  const r = trimmed.lastIndexOf('}');
+  if (l === -1 || r === -1 || r <= l) return undefined;
+  const jsonSlice = trimmed.slice(l, r + 1);
+  try {
+    const data = JSON.parse(jsonSlice);
+    if (!data || typeof data !== 'object') return undefined;
+    const arr = (data as any).paragraphs;
+    if (!Array.isArray(arr)) return undefined;
+    return {
+      paragraphs: arr.map((p: any) => ({
+        citations: Array.isArray(p?.citations) ? p.citations : [],
+      })),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function trimTrailingLineBreaks(p: HTMLElement): void {
+  let node: any = p.lastChild as any;
+  while (node) {
+    if ((node as any).nodeType === 3) {
+      const txt = String((node as any).textContent || "").replace(/\u00a0/g, " ");
+      if (/^\s*$/.test(txt)) {
+        const prev = (node as any).previousSibling as any;
+        p.removeChild(node as any);
+        node = prev;
+        continue;
+      }
+      break;
+    }
+    const tag = ((node as any).tagName || "").toLowerCase();
+    if (tag === "br") {
+      const prev = (node as any).previousSibling as any;
+      p.removeChild(node as any);
+      node = prev;
+      continue;
+    }
+    break;
+  }
+}
+
+function parseInlineCitationsArray(text: string): CitationTarget[] | undefined {
+  if (!text) return undefined;
+  const trimmed = text.trim();
+  // Allow either a single object or an array of objects
+  let jsonSlice = trimmed;
+  const l = trimmed.indexOf("{") !== -1 ? trimmed.indexOf("{") : trimmed.indexOf("[");
+  const r = Math.max(trimmed.lastIndexOf("}"), trimmed.lastIndexOf("]"));
+  if (l !== -1 && r !== -1 && r > l) {
+    jsonSlice = trimmed.slice(l, r + 1);
+  }
+  try {
+    const data = JSON.parse(jsonSlice);
+    const arr = Array.isArray(data) ? data : [data];
+    const cites: CitationTarget[] = [];
+    for (const c of arr) {
+      const a = Number((c as any)?.attachmentID);
+      const p = Number((c as any)?.page);
+      if (Number.isFinite(a) && Number.isFinite(p)) {
+        cites.push({
+          attachmentID: a,
+          page: p,
+          quote: typeof (c as any)?.quote === "string" ? (c as any).quote : undefined,
+        });
+      }
+    }
+    return cites.length > 0 ? cites : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function shouldSkipForCitations(node: Text): boolean {
+  let el: Node | null = node.parentNode;
+  while (el && (el as any).nodeType === 1) {
+    const tag = ((el as HTMLElement).tagName || "").toLowerCase();
+    if (tag === "code" || tag === "pre") return true;
+    const cls = (el as HTMLElement).className || "";
+    if (/\b(katex|math-|ai-chat-citations)\b/.test(cls)) return true;
+    el = el.parentNode;
+  }
+  return false;
 }

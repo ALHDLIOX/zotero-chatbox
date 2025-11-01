@@ -32,4 +32,7 @@ ai-chat-error-server = 服务异常，请稍后再试
 ai-chat-error-settings-missing = 请先在偏好设置中填写接口地址、模型和 API 密钥
 ai-chat-error-endpoint-invalid = 接口地址必须为有效的 HTTPS 链接
 ai-chat-math-render-error = 数学公式渲染失败，已显示原文
+
+# 引用按钮
+ai-chat-citation-aria = 跳转到第 { $page } 页
 ai-chat-copy-button = 复制

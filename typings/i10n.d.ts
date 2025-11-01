@@ -3,6 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 export type FluentMessageId =
+  | 'ai-chat-citation-aria'
   | 'ai-chat-clear-button'
   | 'ai-chat-copy-button'
   | 'ai-chat-empty-placeholder'

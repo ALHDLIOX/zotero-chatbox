@@ -36,6 +36,7 @@ const ALLOWED_ATTRS = new Set([
   "role",
   "style",
   "data-role",
+  "data-language",
 ]);
 
 const SAFE_PROTOCOL = /^(https?:|mailto:)/i;
