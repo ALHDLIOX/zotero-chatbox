@@ -55,6 +55,31 @@ class NoopAbortController implements AbortControllerLike {
   }
 }
 
+const SYSTEM_PROMPT = [
+  "# Response Formatting Rules",
+  "",
+  "- Output Markdown only; use clear headings, lists, and code blocks when they improve readability.",
+  "- Render every mathematical expression with LaTeX delimiters:",
+  "  * Inline math: `$...$` or \\(\\(...\\)\\).",
+  "  * Block math: `$$...$$` or \\(\\[...\\]\\) on its own lines.",
+  "- Never place math delimiters inside inline code or fenced code blocks.",
+  "- Escape literal dollar signs that are not math with `\\$`.",
+  "- Keep explanations structured, concise, and easy to scan.",
+  "",
+  "# Zotero Citation Buttons (Inline)",
+  "",
+  "- Immediately after any sentence that uses a document source, insert an inline marker of the form:",
+  "  ((cite: { \"attachmentID\": 123, \"page\": 7, \"quote\": \"short snippet\" }))",
+  "  or for multiple sources: ((cite: [{...}, {...}]))",
+  "- The marker must sit right after the sentence, not in a separate paragraph; do not put it inside code blocks.",
+  "- Fields:",
+  "  * attachmentID: Zotero item ID of the cited PDF attachment",
+  "  * page: 1-based page number",
+  "  * quote: optional short text from the target page to improve in-viewer highlighting",
+  "- Numbering of citations starts from 1 and increases across the whole answer.",
+  "- Do NOT output any trailing citation JSON code block; use only inline markers.",
+].join("\n");
+
 export interface SendChatOptions {
   messages: SessionMessage[];
   signal?: AbortSignal;
@@ -114,6 +139,27 @@ function estimatePromptTokens(messages: SessionMessage[]): number {
     0,
   );
   return Math.ceil(totalChars / 3);
+}
+
+function withSystemPrompt(messages: SessionMessage[]): SessionMessage[] {
+  if (messages.length > 0) {
+    const first = messages[0];
+    if (
+      first.role === "system" &&
+      first.content.trim().startsWith("# Response Formatting Rules")
+    ) {
+      return messages;
+    }
+  }
+
+  const systemMessage: SessionMessage = {
+    id: `system-prompt-${Date.now()}`,
+    role: "system",
+    content: SYSTEM_PROMPT,
+    timestamp: Date.now(),
+  };
+
+  return [systemMessage, ...messages];
 }
 
 function ensureValidSettings(settings: ProviderSettings) {
@@ -270,7 +316,8 @@ export async function sendChat(
   const settings = { ...getProviderSettings() };
   ensureValidSettings(settings);
 
-  const estimatedTokens = estimatePromptTokens(options.messages);
+  const effectiveMessages = withSystemPrompt(options.messages);
+  const estimatedTokens = estimatePromptTokens(effectiveMessages);
   if (estimatedTokens > TOKEN_LIMIT) {
     throw new ProviderError(
       "TOKEN_LIMIT",
@@ -281,7 +328,10 @@ export async function sendChat(
   }
 
   try {
-    return await performStreamingRequest(options, settings);
+    return await performStreamingRequest(
+      { ...options, messages: effectiveMessages },
+      settings,
+    );
   } catch (error) {
     if (error instanceof ProviderError) {
       ztoolkit.log("[ai-chat] sendChat 捕获 ProviderError", {

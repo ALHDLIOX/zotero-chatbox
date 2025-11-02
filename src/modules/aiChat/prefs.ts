@@ -1,4 +1,11 @@
 import { config } from "../../../package.json";
+import {
+  PRESETS,
+  getDefaultPresetId,
+  getPresetById,
+  findPresetIdByProviderModel,
+  type ProviderId,
+} from "./providersRegistry";
 
 export interface ProviderSettings {
   provider: string;
@@ -13,60 +20,68 @@ export interface ProviderValidationResult {
   invalidEndpoint: boolean;
 }
 
-type ProviderSettingKey = keyof ProviderSettings;
-
 const PREFS_PREFIX = config.prefsPrefix;
 
-const PREF_KEYS: Record<ProviderSettingKey, string> = {
-  provider: `${PREFS_PREFIX}.provider`,
-  endpoint: `${PREFS_PREFIX}.endpoint`,
-  model: `${PREFS_PREFIX}.model`,
-  apiKey: `${PREFS_PREFIX}.apiKey`,
-};
+const KEY_PRESET = `${PREFS_PREFIX}.preset`;
+const KEY_APIKEY_OPENAI = `${PREFS_PREFIX}.apiKey.openai`;
+const KEY_APIKEY_DEEPSEEK = `${PREFS_PREFIX}.apiKey.deepseek`;
 
-const defaultSettings: ProviderSettings = {
-  provider: "openai-compatible",
-  endpoint: "",
-  model: "",
-  apiKey: "",
-};
-
-function readPref(key: ProviderSettingKey): string {
-  const value = Zotero.Prefs.get(PREF_KEYS[key], true);
-  if (typeof value === "string") {
-    return value.trim();
-  }
-  return "";
+function readStringPref(key: string): string {
+  const value = Zotero.Prefs.get(key, true);
+  return typeof value === "string" ? value.trim() : "";
 }
 
-function writePref(key: ProviderSettingKey, value: string): void {
-  Zotero.Prefs.set(PREF_KEYS[key], value, true);
+function writeStringPref(key: string, value: string): void {
+  Zotero.Prefs.set(key, value, true);
+}
+
+export function getSelectedPresetId(): string {
+  return readStringPref(KEY_PRESET) || getDefaultPresetId();
+}
+
+export function setSelectedPresetId(id: string): void {
+  const preset = getPresetById(id);
+  writeStringPref(KEY_PRESET, preset ? preset.id : getDefaultPresetId());
+}
+
+export function getApiKeyForProvider(provider: ProviderId): string {
+  const keyName = provider === "openai" ? KEY_APIKEY_OPENAI : KEY_APIKEY_DEEPSEEK;
+  return readStringPref(keyName);
+}
+
+export function setApiKeyForProvider(provider: ProviderId, apiKey: string): void {
+  const keyName = provider === "openai" ? KEY_APIKEY_OPENAI : KEY_APIKEY_DEEPSEEK;
+  writeStringPref(keyName, apiKey.trim());
 }
 
 export function getProviderSettings(): ProviderSettings {
+  const preset = getPresetById(getSelectedPresetId()) ?? getPresetById(getDefaultPresetId())!;
   return {
-    provider: readPref("provider") || defaultSettings.provider,
-    endpoint: readPref("endpoint"),
-    model: readPref("model"),
-    apiKey: readPref("apiKey"),
+    provider: preset.provider,
+    endpoint: preset.endpoint,
+    model: preset.model,
+    apiKey: getApiKeyForProvider(preset.provider),
   };
 }
 
-export function setProviderSettings(
-  settings: ProviderSettings,
-): ProviderSettings {
-  (Object.keys(settings) as ProviderSettingKey[]).forEach((key) => {
-    writePref(key, settings[key].trim());
-  });
-
+// Backward-compat: allow setting via provider/model pair (maps to a preset)
+export function setProviderSettings(settings: ProviderSettings): ProviderSettings {
+  const presetId =
+    findPresetIdByProviderModel(settings.provider as ProviderId, settings.model) ??
+    getDefaultPresetId();
+  setSelectedPresetId(presetId);
+  if (settings.apiKey) {
+    try {
+      setApiKeyForProvider(settings.provider as ProviderId, settings.apiKey);
+    } catch (e) {
+      // ignore
+    }
+  }
   return getProviderSettings();
 }
 
 function isValidHttpsEndpoint(endpoint: string): boolean {
-  if (!endpoint) {
-    return false;
-  }
-
+  if (!endpoint) return false;
   try {
     const url = new URL(endpoint);
     return url.protocol === "https:";
@@ -86,13 +101,12 @@ export function validateProviderSettings(
     apiKey: settings.apiKey.trim(),
   };
 
-  const missingKeys = (
-    ["endpoint", "model", "apiKey"] as ProviderSettingKey[]
-  ).filter((key) => !normalized[key]);
+  // Only API key is required by design; endpoint is derived but still validated for https
+  const missingKeys: Array<keyof ProviderSettings> = [];
+  if (!normalized.apiKey) missingKeys.push("apiKey");
 
   const invalidEndpoint =
-    normalized.endpoint.length > 0 &&
-    !isValidHttpsEndpoint(normalized.endpoint);
+    normalized.endpoint.length > 0 && !isValidHttpsEndpoint(normalized.endpoint);
 
   return {
     isValid: missingKeys.length === 0 && !invalidEndpoint,
