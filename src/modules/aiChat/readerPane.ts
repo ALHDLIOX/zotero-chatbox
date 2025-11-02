@@ -36,6 +36,7 @@ const PaneIcons = {
 
 const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/ai-chat.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
+// Shoelace removed: no theme/autoloader
 
 const ROLE_LABELS: Record<SessionMessage["role"], string> = {
   user: "我",
@@ -109,98 +110,111 @@ class AIChatPaneController {
     this.body = body;
     const doc = this.getDocument();
     ensurePaneStyles(doc, CHAT_STYLESHEET_HREF, KATEX_STYLESHEET_HREF);
+    // Shoelace injection removed
     this.messageView = new MessageView(doc, (messageId) => {
       void this.copyAssistantMessage(messageId);
     });
-    const container = doc.createElement("div");
-    container.classList.add("ai-chat-pane");
+    // Root container
+    const container = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-pane"],
+    });
 
-    this.statusEl = doc.createElement("div");
-    this.statusEl.classList.add("ai-chat-status");
-    this.statusEl.textContent = getString("ai-chat-status-loading");
+    // Status bar
+    this.statusEl = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-status"],
+      properties: { textContent: getString("ai-chat-status-loading") },
+    });
 
-    this.errorEl = doc.createElement("div");
-    this.errorEl.classList.add("ai-chat-error");
-    this.errorEl.hidden = true;
+    // Error banner (plain div)
+    this.errorEl = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-error"],
+      properties: { hidden: true },
+    });
 
-    this.messagesEl = doc.createElement("div");
-    this.messagesEl.classList.add("ai-chat-messages");
-
-    this.placeholderEl = doc.createElement("div");
-    this.placeholderEl.classList.add("ai-chat-empty-placeholder");
-    this.placeholderEl.textContent = getString("ai-chat-empty-placeholder");
+    // Messages container + placeholder
+    this.messagesEl = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-messages"],
+    });
+    this.placeholderEl = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-empty-placeholder"],
+      properties: { textContent: getString("ai-chat-empty-placeholder") },
+    });
     this.messagesEl.appendChild(this.placeholderEl);
 
-    const inputWrapper = doc.createElement("div");
-    inputWrapper.classList.add("ai-chat-input-wrapper");
-
     // Settings row: Provider + Model selector (applies globally)
-    const settingsRow = doc.createElement("div");
-    settingsRow.classList.add("ai-chat-settings-row");
-
-    const presetLabel = doc.createElement("label");
-    presetLabel.textContent = getString("ai-chat-model-label");
-    // keep semantic styling via CSS
-
-    this.presetSelect = doc.createElement("select");
-    this.presetSelect.classList.add("ai-chat-preset-select");
-
+    const inputWrapper = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-input-wrapper"],
+    });
+    const settingsRow = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-settings-row"],
+    });
+    const presetLabel = ztoolkit.UI.createElement(doc, "label", {
+      properties: { textContent: getString("ai-chat-model-label") },
+    });
+    this.presetSelect = ztoolkit.UI.createElement(doc, "select", {
+      classList: ["ai-chat-preset-select"],
+    }) as unknown as HTMLSelectElement;
     // Populate options with fallback labels (no preferences.ftl in this view)
     this.presetSelect.textContent = "";
     for (const p of PRESETS) {
-      const opt = doc.createElement("option");
-      opt.value = p.id;
-      opt.textContent = p.label;
-      this.presetSelect.appendChild(opt);
+      const opt = ztoolkit.UI.createElement(doc, "option", {
+        properties: { value: p.id, innerText: p.label } as any,
+      });
+      this.presetSelect.appendChild(opt as unknown as HTMLOptionElement);
     }
     const currentId = getPresetById(getSelectedPresetId())?.id ?? PRESETS[0].id;
     this.presetSelect.value = currentId;
-
     this.presetSelect.addEventListener("change", () => {
       setSelectedPresetId(this.presetSelect.value);
     });
-
     settingsRow.appendChild(presetLabel);
     settingsRow.appendChild(this.presetSelect);
 
+    // Input label + textarea
     const inputId = `ai-chat-input-${Math.random().toString(36).slice(2, 10)}`;
-    const inputLabel = doc.createElement("label");
-    inputLabel.classList.add("ai-chat-input-label");
-    inputLabel.id = `${inputId}-label`;
-    inputLabel.htmlFor = inputId;
-    inputLabel.textContent = getString("ai-chat-input-label");
+    const inputLabel = ztoolkit.UI.createElement(doc, "label", {
+      classList: ["ai-chat-input-label"],
+      properties: { id: `${inputId}-label`, htmlFor: inputId, textContent: getString("ai-chat-input-label") },
+    });
+    this.inputEl = ztoolkit.UI.createElement(doc, "textarea", {
+      classList: ["ai-chat-input"],
+      properties: {
+        id: inputId,
+        placeholder: getString("ai-chat-input-placeholder"),
+        rows: 3,
+      } as any,
+      attributes: {
+        "aria-labelledby": `${inputId}-label`,
+        "aria-label": getString("ai-chat-input-label"),
+      },
+    }) as unknown as HTMLTextAreaElement;
 
-    this.inputEl = doc.createElement("textarea");
-    this.inputEl.classList.add("ai-chat-input");
-    this.inputEl.placeholder = getString("ai-chat-input-placeholder");
-    this.inputEl.id = inputId;
-    this.inputEl.setAttribute("aria-labelledby", inputLabel.id);
-    this.inputEl.setAttribute("aria-label", getString("ai-chat-input-label"));
-    this.inputEl.rows = 3;
-
-    this.sendButton = doc.createElement("button");
-    this.sendButton.classList.add("ai-chat-send-button");
-
-    this.clearButton = doc.createElement("button");
-    this.clearButton.classList.add("ai-chat-clear-button");
-    this.clearButton.textContent = getString("ai-chat-clear-button");
-
-    const buttonRow = doc.createElement("div");
-    buttonRow.classList.add("ai-chat-button-row");
-
+    // Buttons
+    this.sendButton = ztoolkit.UI.createElement(doc, "button", {
+      classList: ["ai-chat-send-button"],
+      properties: { type: "button" } as any,
+    });
+    this.clearButton = ztoolkit.UI.createElement(doc, "button", {
+      classList: ["ai-chat-clear-button"],
+      properties: { type: "button", textContent: getString("ai-chat-clear-button") } as any,
+    });
+    const buttonRow = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-button-row"],
+    });
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
 
+    // Compose input wrapper
     inputWrapper.appendChild(settingsRow);
     inputWrapper.appendChild(inputLabel);
     inputWrapper.appendChild(this.inputEl);
     inputWrapper.appendChild(buttonRow);
 
+    // Mount container
     container.appendChild(this.statusEl);
     container.appendChild(this.errorEl);
     container.appendChild(this.messagesEl);
     container.appendChild(inputWrapper);
-
     body.replaceChildren(container);
 
     this.sendButton.addEventListener("click", (event: MouseEvent) => {

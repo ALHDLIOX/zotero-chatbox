@@ -55,30 +55,41 @@ export class MessageView {
     const existing = this.messageNodes.get(message.id);
     if (existing) return existing;
 
-    const container = this.doc.createElement("div");
-    container.classList.add("ai-chat-message");
-    container.dataset.messageId = message.id;
+    const container = ztoolkit.UI.createElement(this.doc, "div", {
+      classList: ["ai-chat-message"],
+      attributes: { "data-message-id": message.id },
+    });
 
-    const roleLabel = this.doc.createElement("span");
-    roleLabel.classList.add("ai-chat-message-role");
+    const roleLabel = ztoolkit.UI.createElement(this.doc, "span", {
+      classList: ["ai-chat-message-role"],
+    });
 
-    const content = this.doc.createElement("div");
-    content.classList.add("ai-chat-message-content");
+    const content = ztoolkit.UI.createElement(this.doc, "div", {
+      classList: ["ai-chat-message-content"],
+    });
 
-    const mathError = this.doc.createElement("div");
-    mathError.classList.add("ai-chat-message-math-error");
-    mathError.hidden = true;
+    const mathError = ztoolkit.UI.createElement(this.doc, "div", {
+      classList: ["ai-chat-message-math-error"],
+      properties: { hidden: true },
+    });
 
-    const actions = this.doc.createElement("div");
-    actions.classList.add("ai-chat-message-actions");
-    actions.hidden = true;
+    const actions = ztoolkit.UI.createElement(this.doc, "div", {
+      classList: ["ai-chat-message-actions"],
+      properties: { hidden: true },
+    });
 
-    const copyButton = this.doc.createElement("button");
-    copyButton.type = "button";
-    copyButton.classList.add("ai-chat-copy-button");
-    copyButton.textContent = getString("ai-chat-copy-button");
-    copyButton.addEventListener("click", () => {
-      this.onCopy(message.id);
+    const copyButton = ztoolkit.UI.createElement(this.doc, "button", {
+      classList: ["ai-chat-copy-button"],
+      properties: {
+        type: "button",
+        textContent: getString("ai-chat-copy-button"),
+      } as any,
+      listeners: [
+        {
+          type: "click",
+          listener: () => this.onCopy(message.id),
+        },
+      ],
     });
     actions.appendChild(copyButton);
 
@@ -235,21 +246,22 @@ export class MessageView {
             ),
           );
         } else {
-          const group = this.doc.createElement("span");
-          group.classList.add("ai-chat-citations");
-          group.setAttribute("role", "group");
+          const group = ztoolkit.UI.createElement(this.doc, "span", {
+            classList: ["ai-chat-citations"],
+            attributes: { role: "group" },
+          });
           for (const c of cites) {
-            const ref = this.doc.createElement("span");
-            ref.classList.add("ai-chat-cite-ref");
-            ref.setAttribute("role", "button");
-            ref.setAttribute("tabindex", "0");
-            ref.setAttribute(
-              "aria-label",
-              getString("ai-chat-citation-aria", {
-                args: { page: Number(c.page) || 1 },
-              } as any),
-            );
-            ref.textContent = String(serial++);
+            const ref = ztoolkit.UI.createElement(this.doc, "span", {
+              classList: ["ai-chat-cite-ref"],
+              attributes: {
+                role: "button",
+                tabindex: "0",
+                "aria-label": getString("ai-chat-citation-aria", {
+                  args: { page: Number(c.page) || 1 },
+                } as any),
+              },
+              properties: { textContent: String(serial++) },
+            });
             this.citationTargets.set(ref, {
               attachmentID: Number(c.attachmentID),
               page: Number(c.page),

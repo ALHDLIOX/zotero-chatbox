@@ -8,7 +8,22 @@ export interface CitationTarget {
 
 export function getActiveReader(
   doc: Document,
-): (_ZoteroTypes.Reader & { itemID: number }) | undefined {
+): (_ZoteroTypes.ReaderInstance & { itemID: number }) | undefined {
+  // Prefer ztoolkit globals to detect selected reader tab
+  try {
+    const Tabs = (ztoolkit as any)?.getGlobal?.("Zotero_Tabs");
+    const tabID = Tabs?.selectedID;
+    if (tabID) {
+      const reader = Zotero.Reader.getByTabID(tabID) as unknown;
+      if (reader && typeof (reader as { itemID?: unknown }).itemID === "number") {
+        return reader as _ZoteroTypes.ReaderInstance & { itemID: number };
+      }
+    }
+  } catch (e) {
+    void e;
+  }
+
+  // Fallback to window globals
   const win = (doc.defaultView || undefined) as
     | (Window & { Zotero_Tabs?: any })
     | undefined;
@@ -16,7 +31,21 @@ export function getActiveReader(
   if (!tabID) return undefined;
   const reader = Zotero.Reader.getByTabID(tabID) as unknown;
   if (reader && typeof (reader as { itemID?: unknown }).itemID === "number") {
-    return reader as _ZoteroTypes.Reader & { itemID: number };
+    return reader as _ZoteroTypes.ReaderInstance & { itemID: number };
+  }
+  return undefined;
+}
+
+export async function getActiveReaderAsync(
+  waitMs = 1000,
+): Promise<(_ZoteroTypes.ReaderInstance & { itemID: number }) | undefined> {
+  try {
+    const reader = await (ztoolkit as any)?.Reader?.getReader?.(waitMs);
+    if (reader && typeof (reader as { itemID?: unknown }).itemID === "number") {
+      return reader as _ZoteroTypes.ReaderInstance & { itemID: number };
+    }
+  } catch (e) {
+    void e;
   }
   return undefined;
 }
@@ -65,7 +94,8 @@ export async function openReaderAndNavigate(
     void e;
   }
 
-  const reader = getActiveReader(doc);
+  // Prefer ztoolkit.Reader for the newly opened/selected reader; fallback to sync getter
+  const reader = (await getActiveReaderAsync(1500)) || getActiveReader(doc);
   if (!reader) return;
 
   // Ensure the viewer is ready before interacting
@@ -125,4 +155,3 @@ export async function openReaderAndNavigate(
     ztoolkit.log("[ai-chat] 文本查找/高亮失败", e);
   }
 }
-
