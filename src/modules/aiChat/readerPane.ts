@@ -16,6 +16,8 @@ import {
   updateMessage,
 } from "./session";
 import { ProviderError, sendChat } from "./provider";
+import { getSelectedPresetId, setSelectedPresetId } from "./prefs";
+import { PRESETS, getPresetById } from "./providersRegistry";
 import { renderMessage } from "./render";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
@@ -103,6 +105,7 @@ class AIChatPaneController {
   private readonly inputEl: HTMLTextAreaElement;
   private readonly sendButton: HTMLButtonElement;
   private readonly clearButton: HTMLButtonElement;
+  private readonly presetSelect: HTMLSelectElement;
   private readonly messageNodes = new Map<string, MessageDom>();
   private readonly renderQueue = new Map<string, PendingRender>();
   private readonly citationTargets = new WeakMap<HTMLElement, CitationTarget>();
@@ -166,6 +169,41 @@ class AIChatPaneController {
     inputWrapper.style.flexDirection = "column";
     inputWrapper.style.gap = "6px";
 
+    // Settings row: Provider + Model selector (applies globally)
+    const settingsRow = doc.createElement("div");
+    settingsRow.style.display = "flex";
+    settingsRow.style.alignItems = "center";
+    settingsRow.style.gap = "8px";
+
+    const presetLabel = doc.createElement("label");
+    presetLabel.textContent = getString("ai-chat-model-label");
+    presetLabel.style.fontSize = "12px";
+    presetLabel.style.color = "rgba(0,0,0,0.7)";
+
+    this.presetSelect = doc.createElement("select");
+    this.presetSelect.style.minWidth = "180px";
+    this.presetSelect.style.maxWidth = "240px";
+    this.presetSelect.style.padding = "4px 6px";
+    this.presetSelect.style.borderRadius = "4px";
+
+    // Populate options with fallback labels (no preferences.ftl in this view)
+    this.presetSelect.textContent = "";
+    for (const p of PRESETS) {
+      const opt = doc.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.label;
+      this.presetSelect.appendChild(opt);
+    }
+    const currentId = getPresetById(getSelectedPresetId())?.id ?? PRESETS[0].id;
+    this.presetSelect.value = currentId;
+
+    this.presetSelect.addEventListener("change", () => {
+      setSelectedPresetId(this.presetSelect.value);
+    });
+
+    settingsRow.appendChild(presetLabel);
+    settingsRow.appendChild(this.presetSelect);
+
     const inputId = `ai-chat-input-${Math.random().toString(36).slice(2, 10)}`;
     const inputLabel = doc.createElement("label");
     inputLabel.classList.add("ai-chat-input-label");
@@ -206,6 +244,7 @@ class AIChatPaneController {
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
 
+    inputWrapper.appendChild(settingsRow);
     inputWrapper.appendChild(inputLabel);
     inputWrapper.appendChild(this.inputEl);
     inputWrapper.appendChild(buttonRow);

@@ -4,7 +4,7 @@ menuitem-label = 插件模板: 帮助工具样例
 menupopup-label = 插件模板: 弹出菜单
 menuitem-submenulabel = 插件模板：子菜单
 menuitem-filemenulabel = 插件模板: 文件菜单
-prefs-title = 插件模板
+prefs-title = AI 聊天
 prefs-table-title = 标题
 prefs-table-detail = 详情
 tabpanel-lib-tab-label = 库标签
@@ -29,10 +29,11 @@ ai-chat-error-token-limit = 文档过长，无法作为上下文发送（token �
 ai-chat-error-network = 模型响应超时或网络异常，请重试
 ai-chat-error-auth = API Key 无效或已过期
 ai-chat-error-server = 服务异常，请稍后再试
-ai-chat-error-settings-missing = 请先在偏好设置中填写接口地址、模型和 API 密钥
+ai-chat-error-settings-missing = 请先在偏好设置中填写 API 密钥
 ai-chat-error-endpoint-invalid = 接口地址必须为有效的 HTTPS 链接
 ai-chat-math-render-error = 数学公式渲染失败，已显示原文
 
 # 引用按钮
 ai-chat-citation-aria = 跳转到第 { $page } 页
 ai-chat-copy-button = 复制
+ai-chat-model-label = 服务商 + 模型
