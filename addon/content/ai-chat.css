@@ -2,6 +2,12 @@
   font-size: 14px;
   color: var(--zotero-text-color, #1b1b1b);
   background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  gap: 8px;
 }
 
 .ai-chat-status {
@@ -19,11 +25,21 @@
   color: var(--zotero-secondary-text-color, #444);
 }
 
+.ai-chat-input {
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: 6px;
+}
+
 .ai-chat-messages {
   display: flex;
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  flex: 1;
+  padding: 4px 0;
 }
 
 .ai-chat-message {
@@ -51,6 +67,16 @@
   white-space: normal;
   color: inherit;
   font-size: inherit;
+}
+
+/* Empty placeholder when there are no messages */
+.ai-chat-empty-placeholder {
+  color: var(--placeholder-text, #666);
+  font-style: italic;
+  text-align: center;
+  padding: 12px 8px;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
 }
 
 .ai-chat-message-content pre,
@@ -130,6 +156,10 @@
   gap: 4px;
 }
 
+.ai-chat-message-math-error[hidden] {
+  display: none !important;
+}
+
 .ai-chat-message-math-error::before {
   content: "⚠";
   font-size: 12px;
@@ -140,6 +170,36 @@
   justify-content: flex-end;
   gap: 6px;
   margin-top: 4px;
+}
+
+/* Input area */
+.ai-chat-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-chat-button-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ai-chat-clear-button {
+  padding: 6px 14px;
+  margin-right: auto;
+}
+
+.ai-chat-send-button {
+  padding: 6px 14px;
+}
+
+.ai-chat-preset-select {
+  min-width: 180px;
+  max-width: 240px;
+  padding: 4px 6px;
+  border-radius: 4px;
 }
 
 .ai-chat-copy-button {
@@ -190,4 +250,20 @@
 
 .ai-chat-cite-ref:hover {
   background-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Utilities */
+.ai-chat-hidden {
+  display: none !important;
+}
+
+.ai-chat-hidden-textarea {
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+}
+.ai-chat-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

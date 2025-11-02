@@ -5,7 +5,6 @@ import {
   appendMessage,
   clearMessages,
   ensureSession,
-  ensureSessionScope,
   getSession,
   removeMessage,
   setLastResult,
@@ -18,7 +17,12 @@ import {
 import { ProviderError, sendChat } from "./provider";
 import { getSelectedPresetId, setSelectedPresetId } from "./prefs";
 import { PRESETS, getPresetById } from "./providersRegistry";
-import { renderMessage } from "./render";
+import { ensurePaneStyles } from "./ui/styles";
+import { MessageView } from "./ui/messageView";
+import { copyText } from "./services/clipboard";
+import { buildContextMessage, loadContextForProps } from "./services/context";
+import { getActiveReader, openReaderAndNavigate } from "./services/readerNav";
+import { resolveSessionAndScope } from "./services/sessionOps";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =
@@ -32,8 +36,6 @@ const PaneIcons = {
 
 const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/ai-chat.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
-const KATEX_CDN_CSS =
-  "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css";
 
 const ROLE_LABELS: Record<SessionMessage["role"], string> = {
   user: "我",
@@ -41,21 +43,7 @@ const ROLE_LABELS: Record<SessionMessage["role"], string> = {
   system: "系统",
 };
 
-interface MessageDom {
-  container: HTMLDivElement;
-  content: HTMLDivElement;
-  roleLabel: HTMLSpanElement;
-  mathError: HTMLDivElement;
-  actions?: HTMLDivElement;
-  copyButton?: HTMLButtonElement;
-  latestContent?: string;
-}
-
-interface PendingRender {
-  entry: MessageDom;
-  content: string;
-  options?: { suppressMathError?: boolean };
-}
+import type { MessageDom } from "./ui/messageView";
 
 const paneControllers = new WeakMap<HTMLDivElement, AIChatPaneController>();
 
@@ -106,9 +94,7 @@ class AIChatPaneController {
   private readonly sendButton: HTMLButtonElement;
   private readonly clearButton: HTMLButtonElement;
   private readonly presetSelect: HTMLSelectElement;
-  private readonly messageNodes = new Map<string, MessageDom>();
-  private readonly renderQueue = new Map<string, PendingRender>();
-  private readonly citationTargets = new WeakMap<HTMLElement, CitationTarget>();
+  private readonly messageView: MessageView;
 
   private sessionId?: string;
   private isContextLoading = false;
@@ -117,21 +103,17 @@ class AIChatPaneController {
   private currentScopeKey?: string;
   private contextAttachmentKey?: string;
   private contextLoadPromise?: Promise<void>;
-  private pendingRenderHandle?: number;
-  private loggedNoHeadOnce = false;
+  private pendingRenderHandle?: number; // kept to avoid widespread removal; unused after refactor
 
   constructor(body: HTMLDivElement) {
     this.body = body;
     const doc = this.getDocument();
-    this.ensureStyles(doc);
+    ensurePaneStyles(doc, CHAT_STYLESHEET_HREF, KATEX_STYLESHEET_HREF);
+    this.messageView = new MessageView(doc, (messageId) => {
+      void this.copyAssistantMessage(messageId);
+    });
     const container = doc.createElement("div");
     container.classList.add("ai-chat-pane");
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.height = "100%";
-    container.style.padding = "8px";
-    container.style.boxSizing = "border-box";
-    container.style.gap = "8px";
 
     this.statusEl = doc.createElement("div");
     this.statusEl.classList.add("ai-chat-status");
@@ -140,51 +122,28 @@ class AIChatPaneController {
     this.errorEl = doc.createElement("div");
     this.errorEl.classList.add("ai-chat-error");
     this.errorEl.hidden = true;
-    this.errorEl.style.color = "var(--error-text, #c71515)";
-    this.errorEl.style.whiteSpace = "pre-wrap";
 
     this.messagesEl = doc.createElement("div");
     this.messagesEl.classList.add("ai-chat-messages");
-    this.messagesEl.style.flex = "1";
-    this.messagesEl.style.overflowY = "auto";
-    this.messagesEl.style.display = "flex";
-    this.messagesEl.style.flexDirection = "column";
-    this.messagesEl.style.gap = "8px";
-    this.messagesEl.style.padding = "4px 0";
 
     this.placeholderEl = doc.createElement("div");
     this.placeholderEl.classList.add("ai-chat-empty-placeholder");
     this.placeholderEl.textContent = getString("ai-chat-empty-placeholder");
-    this.placeholderEl.style.color = "var(--placeholder-text, #666)";
-    this.placeholderEl.style.fontStyle = "italic";
-    this.placeholderEl.style.textAlign = "center";
-    this.placeholderEl.style.padding = "12px 8px";
-    this.placeholderEl.style.border = "1px dashed rgba(0, 0, 0, 0.15)";
-    this.placeholderEl.style.borderRadius = "6px";
     this.messagesEl.appendChild(this.placeholderEl);
 
     const inputWrapper = doc.createElement("div");
     inputWrapper.classList.add("ai-chat-input-wrapper");
-    inputWrapper.style.display = "flex";
-    inputWrapper.style.flexDirection = "column";
-    inputWrapper.style.gap = "6px";
 
     // Settings row: Provider + Model selector (applies globally)
     const settingsRow = doc.createElement("div");
-    settingsRow.style.display = "flex";
-    settingsRow.style.alignItems = "center";
-    settingsRow.style.gap = "8px";
+    settingsRow.classList.add("ai-chat-settings-row");
 
     const presetLabel = doc.createElement("label");
     presetLabel.textContent = getString("ai-chat-model-label");
-    presetLabel.style.fontSize = "12px";
-    presetLabel.style.color = "rgba(0,0,0,0.7)";
+    // keep semantic styling via CSS
 
     this.presetSelect = doc.createElement("select");
-    this.presetSelect.style.minWidth = "180px";
-    this.presetSelect.style.maxWidth = "240px";
-    this.presetSelect.style.padding = "4px 6px";
-    this.presetSelect.style.borderRadius = "4px";
+    this.presetSelect.classList.add("ai-chat-preset-select");
 
     // Populate options with fallback labels (no preferences.ftl in this view)
     this.presetSelect.textContent = "";
@@ -218,28 +177,16 @@ class AIChatPaneController {
     this.inputEl.setAttribute("aria-labelledby", inputLabel.id);
     this.inputEl.setAttribute("aria-label", getString("ai-chat-input-label"));
     this.inputEl.rows = 3;
-    this.inputEl.style.resize = "vertical";
-    this.inputEl.style.width = "100%";
-    this.inputEl.style.boxSizing = "border-box";
-    this.inputEl.style.padding = "8px";
-    this.inputEl.style.borderRadius = "6px";
 
     this.sendButton = doc.createElement("button");
     this.sendButton.classList.add("ai-chat-send-button");
-    this.sendButton.style.padding = "6px 14px";
 
     this.clearButton = doc.createElement("button");
     this.clearButton.classList.add("ai-chat-clear-button");
     this.clearButton.textContent = getString("ai-chat-clear-button");
-    this.clearButton.style.padding = "6px 14px";
-    this.clearButton.style.marginRight = "auto";
 
     const buttonRow = doc.createElement("div");
     buttonRow.classList.add("ai-chat-button-row");
-    buttonRow.style.display = "flex";
-    buttonRow.style.alignItems = "center";
-    buttonRow.style.gap = "8px";
-    buttonRow.style.justifyContent = "flex-end";
 
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
@@ -300,46 +247,7 @@ class AIChatPaneController {
     this.setSendingState(false);
   }
 
-  private ensureStyles(doc: Document): void {
-    const head =
-      doc.head ?? (doc.getElementsByTagName("head")[0] as HTMLHeadElement);
-    const root = (doc.documentElement || (doc as any).documentElement) as
-      | HTMLElement
-      | null;
-    const container = (head || root) as HTMLElement | null;
-    if (!container) {
-      try {
-        ztoolkit.log("[ai-chat] no head/root for css injection");
-      } catch (e) {
-        void e;
-      }
-      return;
-    }
-
-    if (!doc.querySelector('link[data-ai-chat-style="chat"]')) {
-      const link = doc.createElement("link");
-      link.rel = "stylesheet";
-      link.href = CHAT_STYLESHEET_HREF;
-      link.setAttribute("data-ai-chat-style", "chat");
-      container.appendChild(link);
-    }
-
-    if (!doc.querySelector('link[data-ai-chat-style="katex"]')) {
-      const link = doc.createElement("link");
-      link.rel = "stylesheet";
-      link.href = KATEX_STYLESHEET_HREF;
-      link.setAttribute("data-ai-chat-style", "katex");
-      link.addEventListener("error", () => {
-        // fallback to CDN stylesheet if local asset is missing
-        try {
-          link.href = KATEX_CDN_CSS;
-        } catch (e) {
-          void e;
-        }
-      });
-      container.appendChild(link);
-    }
-  }
+  // Styles are handled via ensurePaneStyles() in constructor
 
   // Note: KaTeX JS is bundled; we only ensure CSS is available (with CDN fallback).
 
@@ -358,23 +266,58 @@ class AIChatPaneController {
 
   async onAsyncRender(props: SectionHookArgs): Promise<void> {
     this.assignSession(props);
-    this.contextLoadPromise = this.loadContext(props);
+    if (!this.sessionId) return;
+    this.isContextLoading = true;
+    if (!this.isSending) {
+      this.statusEl.textContent = getString("ai-chat-status-loading");
+    }
+    this.contextLoadPromise = loadContextForProps(
+      this.sessionId,
+      props,
+      this.getDocument(),
+      this.contextAttachmentKey,
+    )
+      .then(({ updated, key }) => {
+        this.contextAttachmentKey = key || undefined;
+        this.updateStatusDisplay(updated);
+      })
+      .catch((error) => {
+        ztoolkit.log("[ai-chat] 加载上下文失败", error);
+      })
+      .finally(() => {
+        this.isContextLoading = false;
+        if (this.sessionId) this.updateStatusDisplay(ensureSession(this.sessionId));
+      });
     try {
       await this.contextLoadPromise;
-    } catch (error) {
-      ztoolkit.log("[ai-chat] 加载上下文失败", error);
-    }
+    } catch {}
   }
 
   onItemChange(props: SectionHookArgs): void {
     this.assignSession(props);
     this.refreshMessages();
-    if (this.sessionId) {
-      this.contextLoadPromise = this.loadContext(props);
-      void this.contextLoadPromise.catch((error) => {
-        ztoolkit.log("[ai-chat] 刷新上下文失败", error);
-      });
+    if (!this.sessionId) return;
+    this.isContextLoading = true;
+    if (!this.isSending) {
+      this.statusEl.textContent = getString("ai-chat-status-loading");
     }
+    this.contextLoadPromise = loadContextForProps(
+      this.sessionId,
+      props,
+      this.getDocument(),
+      this.contextAttachmentKey,
+    )
+      .then(({ updated, key }) => {
+        this.contextAttachmentKey = key || undefined;
+        this.updateStatusDisplay(updated);
+      })
+      .catch((error) => {
+        ztoolkit.log("[ai-chat] 刷新上下文失败", error);
+      })
+      .finally(() => {
+        this.isContextLoading = false;
+        if (this.sessionId) this.updateStatusDisplay(ensureSession(this.sessionId));
+      });
   }
 
   onDestroy(_props: _ZoteroTypes.ItemPaneManagerSection.BasicHookArgs): void {
@@ -390,7 +333,7 @@ class AIChatPaneController {
       }
     }
     this.currentAbortController = undefined;
-    this.messageNodes.clear();
+    this.messageView.clear();
     this.sessionId = undefined;
     this.currentScopeKey = undefined;
     this.contextAttachmentKey = undefined;
@@ -402,24 +345,22 @@ class AIChatPaneController {
   }
 
   private assignSession(props: SectionHookArgs): void {
-    const sessionId = this.computeSessionId(props);
-    if (!sessionId) {
-      return;
-    }
-
-    const scopeKey = this.computeScopeKey(props) ?? sessionId;
-    const isNewSessionId = this.sessionId !== sessionId;
-    const isScopeChanged = this.currentScopeKey !== scopeKey;
+    const { sessionId, scopeKey, isNewSessionId, isScopeChanged, session } =
+      resolveSessionAndScope(
+        props,
+        this.getDocument(),
+        this.sessionId,
+        this.currentScopeKey,
+      );
+    if (!sessionId) return;
 
     if (isNewSessionId) {
       this.sessionId = sessionId;
     }
-
     if (isNewSessionId || isScopeChanged) {
       this.currentScopeKey = scopeKey;
       this.contextAttachmentKey = undefined;
-      this.clearPendingRenders();
-      this.messageNodes.clear();
+      this.messageView.clear();
       this.messagesEl.replaceChildren(this.placeholderEl);
       this.clearError();
       this.isSending = false;
@@ -427,61 +368,13 @@ class AIChatPaneController {
       this.updateActionButtonLabel();
       this.clearButton.disabled = true;
     }
-
-    const session = ensureSessionScope(sessionId, scopeKey);
-    if (isNewSessionId || isScopeChanged) {
+    if (session && (isNewSessionId || isScopeChanged)) {
       this.updateClearButtonState(session);
       this.placeholderEl.hidden = session.messages.length > 0;
     }
   }
 
-  private computeSessionId(props: SectionHookArgs): string | undefined {
-    const win = this.getDocument().defaultView as
-      | (Window & { Zotero_Tabs?: any; ZoteroPane?: any })
-      | undefined;
-    if (props.tabType === "reader") {
-      const tabID = win?.Zotero_Tabs?.selectedID;
-      if (tabID) {
-        return `reader-${tabID}`;
-      }
-    }
-
-    if (props.item?.isAttachment?.()) {
-      const windowId = win?.ZoteroPane?.id ?? "attachment-pane";
-      return `attachment-${props.item.id}-${windowId}`;
-    }
-
-    if (props.item?.isRegularItem?.()) {
-      const windowId = win?.ZoteroPane?.id ?? "library-pane";
-      return `item-${props.item.id}-${windowId}`;
-    }
-
-    return this.sessionId;
-  }
-
-  private computeScopeKey(props: SectionHookArgs): string | undefined {
-    const win = this.getDocument().defaultView as
-      | (Window & { ZoteroPane?: any })
-      | undefined;
-    const windowId = win?.ZoteroPane?.id ?? "main-window";
-
-    if (props.tabType === "reader") {
-      const reader = this.getActiveReader();
-      if (reader) {
-        return `reader:${reader.itemID}:${windowId}`;
-      }
-    }
-
-    if (props.item?.isAttachment?.()) {
-      return `attachment:${props.item.id}:${windowId}`;
-    }
-
-    if (props.item?.isRegularItem?.()) {
-      return `item:${props.item.id}:${windowId}`;
-    }
-
-    return undefined;
-  }
+  // computeSessionId/computeScopeKey moved to services/sessionOps
 
   private refreshMessages(): void {
     if (!this.sessionId) {
@@ -489,440 +382,54 @@ class AIChatPaneController {
     }
 
     const session = ensureSession(this.sessionId);
-    const existingIds = new Set(this.messageNodes.keys());
+    const existingIds = new Set(this.messageView.keys());
 
     for (const message of session.messages) {
-      const entry = this.ensureMessageDom(message);
-      this.updateMessageDom(entry, message);
+      const entry = this.messageView.ensureMessageDom(message);
+      this.messageView.updateMessageDom(entry, message);
       this.messagesEl.appendChild(entry.container);
       existingIds.delete(message.id);
     }
 
     for (const messageId of existingIds) {
-      const entry = this.messageNodes.get(messageId);
-      if (entry) {
-        entry.container.remove();
-      }
-      this.messageNodes.delete(messageId);
+      const entry = this.messageView.get(messageId as string);
+      if (entry) entry.container.remove();
+      this.messageView.delete(messageId as string);
     }
 
     this.placeholderEl.hidden = session.messages.length > 0;
     this.updateClearButtonState(session);
   }
 
-  private ensureMessageDom(message: SessionMessage): MessageDom {
-    const existing = this.messageNodes.get(message.id);
-    if (existing) {
-      return existing;
-    }
-
-    const doc = this.getDocument();
-    const container = doc.createElement("div");
-    container.classList.add("ai-chat-message");
-    container.dataset.messageId = message.id;
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.gap = "4px";
-    container.style.padding = "8px";
-    container.style.borderRadius = "6px";
-    container.style.backgroundColor =
-      message.role === "user"
-        ? "rgba(0, 122, 204, 0.12)"
-        : "rgba(0, 0, 0, 0.05)";
-
-    const roleLabel = doc.createElement("span");
-    roleLabel.classList.add("ai-chat-message-role");
-    roleLabel.style.fontSize = "12px";
-    roleLabel.style.fontWeight = "bold";
-    roleLabel.style.color = "rgba(0, 0, 0, 0.65)";
-
-    const content = doc.createElement("div");
-    content.classList.add("ai-chat-message-content");
-    content.style.whiteSpace = "normal";
-    content.style.lineHeight = "1.5";
-
-    const mathError = doc.createElement("div");
-    mathError.classList.add("ai-chat-message-math-error");
-    mathError.hidden = true;
-    // Ensure hidden state regardless of UA stylesheet precedence
-    mathError.style.display = "none";
-
-    const actions = doc.createElement("div");
-    actions.classList.add("ai-chat-message-actions");
-    actions.hidden = true;
-
-    const copyButton = doc.createElement("button");
-    copyButton.type = "button";
-    copyButton.classList.add("ai-chat-copy-button");
-    copyButton.textContent = getString("ai-chat-copy-button");
-    copyButton.addEventListener("click", () => {
-      this.copyAssistantMessage(message.id);
-    });
-    actions.appendChild(copyButton);
-
-    container.appendChild(roleLabel);
-    container.appendChild(content);
-    container.appendChild(mathError);
-    container.appendChild(actions);
-
-    const entry: MessageDom = {
-      container,
-      content,
-      roleLabel,
-      mathError,
-      actions,
-      copyButton,
-    };
-    this.messageNodes.set(message.id, entry);
-    return entry;
-  }
-
-  private updateMessageDom(entry: MessageDom, message: SessionMessage): void {
-    entry.roleLabel.textContent = ROLE_LABELS[message.role] ?? message.role;
-    entry.latestContent = message.content;
-    this.renderMessageContent(entry, message.content);
-    entry.container.dataset.role = message.role;
-    entry.container.style.backgroundColor =
-      message.role === "user"
-        ? "rgba(0, 122, 204, 0.12)"
-        : message.role === "assistant"
-          ? "rgba(92, 184, 92, 0.12)"
-          : "rgba(0, 0, 0, 0.05)";
-
-    const isAssistant = message.role === "assistant";
-    if (entry.actions) {
-      entry.actions.hidden = !isAssistant;
-    }
-    if (entry.copyButton) {
-      const hasContent = Boolean(message.content && message.content.trim());
-      entry.copyButton.disabled = !isAssistant || !hasContent;
-    }
-
-    // Try append citation controls (idempotent; no-op until metadata is complete)
-    if (isAssistant && message.content) {
-      try {
-        this.applyCitations(entry, message.content);
-      } catch (e) {
-        void e;
-      }
-    }
-  }
-
-  private renderMessageContent(
-    entry: MessageDom,
-    content: string,
-    options?: { suppressMathError?: boolean },
-  ): void {
-    entry.latestContent = content;
-    const doc = this.getDocument();
-    if (!content) {
-      entry.content.replaceChildren();
-      this.applyMathErrorState(entry, false, options?.suppressMathError);
-      return;
-    }
-
-    const result = renderMessage(content, doc);
-    entry.content.replaceChildren(result.fragment);
-    // Secondary check: only show error if error containers remain
-    const hasErrorNode = Boolean(
-      entry.content.querySelector(".math-error, .katex-error"),
-    );
-    this.applyMathErrorState(
-      entry,
-      result.hasMathError && hasErrorNode,
-      options?.suppressMathError,
-    );
-  }
-
-  private applyMathErrorState(
-    entry: MessageDom,
-    hasError: boolean,
-    suppress?: boolean,
-  ): void {
-    const show = Boolean(hasError && !suppress);
-    entry.mathError.hidden = !show;
-    // Inline style wins over author rules and UA defaults
-    entry.mathError.style.display = show ? "flex" : "none";
-    entry.mathError.textContent = show
-      ? getString("ai-chat-math-render-error")
-      : "";
-  }
-
-  // Parse inline citation markers and render small numeric buttons in-place
-  private applyCitations(entry: MessageDom, content: string): void {
-    // Remove existing to keep idempotent on re-render
-    const existing = entry.content.querySelectorAll(
-      ".ai-chat-citations",
-    );
-    for (let i = 0; i < existing.length; i++) {
-      const el = existing[i] as HTMLElement;
-      el.remove();
-    }
-
-    const doc = this.getDocument();
-    let serial = 1; // restart numbering per assistant message
-
-    const SHOW_TEXT = (doc.defaultView as any)?.NodeFilter?.SHOW_TEXT ?? 4;
-    const walker = doc.createTreeWalker(entry.content, SHOW_TEXT);
-    const toReplace: Array<{ node: Text; frag: DocumentFragment }> = [];
-
-    while (true) {
-      const node = walker.nextNode() as Text | null;
-      if (!node) break;
-      if (shouldSkipForCitations(node)) {
-        continue;
-      }
-      const text = node.nodeValue || "";
-      // Flexible regex: supports ASCII or full-width parentheses and colon
-      const re = /(?:\(\(|（（)cite[:：]\s*([\s\S]*?)(?:\)\)|））)/g;
-      let last = 0;
-      let matched = false;
-      const frag = doc.createDocumentFragment();
-      for (const m of text.matchAll(re)) {
-        matched = true;
-        const start = m.index ?? 0;
-        const before = text.slice(last, start);
-        if (before) frag.appendChild(doc.createTextNode(before));
-        const payload = m[1] || "";
-        const cites = parseInlineCitationsArray(payload);
-        if (!cites || cites.length === 0) {
-          // keep original when parse failed
-          frag.appendChild(doc.createTextNode(text.slice(start, start + (m[0]?.length || 0))));
-        } else {
-          const group = doc.createElement("span");
-          group.classList.add("ai-chat-citations");
-          group.setAttribute("role", "group");
-          for (const c of cites) {
-            const ref = doc.createElement("span");
-            ref.classList.add("ai-chat-cite-ref");
-            ref.setAttribute("role", "button");
-            ref.setAttribute("tabindex", "0");
-            ref.setAttribute(
-              "aria-label",
-              getString("ai-chat-citation-aria", {
-                args: { page: Number(c.page) || 1 },
-              } as any),
-            );
-            ref.textContent = String(serial++);
-            this.citationTargets.set(ref, {
-              attachmentID: Number(c.attachmentID),
-              page: Number(c.page),
-              quote: typeof c.quote === "string" ? c.quote : undefined,
-            });
-            group.appendChild(ref);
-          }
-          frag.appendChild(group);
-        }
-        last = start + (m[0]?.length || 0);
-      }
-      if (!matched) {
-        continue;
-      }
-      const tail = text.slice(last);
-      if (tail) frag.appendChild(doc.createTextNode(tail));
-      toReplace.push({ node, frag });
-    }
-
-    for (const { node, frag } of toReplace) {
-      node.parentNode?.replaceChild(frag, node);
-    }
-
-    // Hide any code blocks that contain the citations JSON (regardless of info string)
-    try {
-      const codes = entry.content.querySelectorAll("pre > code");
-      for (let i = 0; i < codes.length; i++) {
-        const code = codes[i] as HTMLElement;
-        const lang = code.getAttribute("data-language")?.toLowerCase();
-        const text = (code.textContent || "").trim();
-        if (lang === "zotero-citations" || looksLikeCitationsJson(text)) {
-          const pre = code.parentElement as HTMLElement | null;
-          if (pre) {
-            pre.style.display = "none";
-          } else {
-            code.style.display = "none";
-          }
-        }
-      }
-    } catch (e) {
-      void e;
-    }
-  }
+  // Message DOM/Render logic moved to MessageView
 
   private async handleCitationActivate(refEl: HTMLElement): Promise<void> {
-    const target = this.citationTargets.get(refEl);
+    const target = this.messageView.getCitationTarget(refEl);
     if (!target || !Number.isFinite(target.attachmentID) || !Number.isFinite(target.page)) {
       return;
     }
     try {
-      await this.openReaderAndNavigate(target.attachmentID!, target.page!, target.quote);
+      await openReaderAndNavigate(this.getDocument(), target.attachmentID!, target.page!, target.quote);
     } catch (error) {
       ztoolkit.log("[ai-chat] 引用跳转失败", { error, target });
     }
   }
 
-  private async openReaderAndNavigate(
-    attachmentID: number,
-    page: number,
-    quote?: string,
-  ): Promise<void> {
-    try {
-      const openResult = (Zotero as any)?.Reader?.open?.(attachmentID);
-      if (openResult && typeof openResult.then === "function") {
-        await openResult;
-      }
-    } catch (error) {
-      ztoolkit.log("[ai-chat] 打开 Reader 失败", error);
-    }
-
-    try {
-      await Zotero.Promise.delay(50);
-    } catch (e) {
-      void e;
-    }
-
-    const reader = this.getActiveReader();
-    if (!reader) return;
-
-    // Ensure the viewer is ready before interacting
-    await this.waitForPdfReady(reader, 5000).catch(() => undefined);
-
-    try {
-      const maybeSetPage = (reader as any)?.setPage || (reader as any)?.setPageNumber;
-      if (typeof maybeSetPage === "function") {
-        await maybeSetPage.call(reader, page);
-      }
-      const win = (reader as any)?._iframeWindow || (reader as any)?._internalWindow || undefined;
-      const app = win?.PDFViewerApplication || win?.wrappedJSObject?.PDFViewerApplication;
-      const pdfViewer = app?.pdfViewer || app?.viewer || app;
-      if (pdfViewer && typeof pdfViewer === "object") {
-        if (typeof pdfViewer.currentPageNumber === "number") {
-          pdfViewer.currentPageNumber = page;
-        } else if (typeof app?.page === "number") {
-          app.page = page;
-        }
-      }
-    } catch (e) {
-      ztoolkit.log("[ai-chat] 设置页码失败", e);
-    }
-
-    if (!quote || !quote.trim()) return;
-
-    try {
-      const win = (reader as any)?._iframeWindow || (reader as any)?._internalWindow || undefined;
-      const app = win?.PDFViewerApplication || win?.wrappedJSObject?.PDFViewerApplication;
-      const findController = app?.findController;
-      const eventBus = app?.eventBus;
-      const query = String(quote).replace(/\s+/g, " ").slice(0, 256);
-
-      if (findController && typeof findController.executeCommand === "function") {
-        const opts = new (win as any).Object();
-        (opts as any).query = query;
-        (opts as any).phraseSearch = true;
-        (opts as any).highlightAll = true;
-        (opts as any).caseSensitive = false;
-        (opts as any).findPrevious = false;
-        (opts as any).entireWord = false;
-        findController.executeCommand.call(findController, "find", opts as any);
-      } else if (eventBus && typeof eventBus.dispatch === "function") {
-        const ev = new (win as any).Object();
-        (ev as any).type = "find";
-        (ev as any).source = app;
-        (ev as any).query = query;
-        (ev as any).phraseSearch = true;
-        (ev as any).highlightAll = true;
-        (ev as any).caseSensitive = false;
-        (ev as any).findPrevious = false;
-        (ev as any).entireWord = false;
-        eventBus.dispatch("find", ev as any);
-      }
-    } catch (e) {
-      ztoolkit.log("[ai-chat] 文本查找/高亮失败", e);
-    }
-  }
-
-  private async waitForPdfReady(reader: any, timeoutMs: number): Promise<void> {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      try {
-        const win = reader?._iframeWindow || reader?._internalWindow || undefined;
-        const app = win?.PDFViewerApplication || win?.wrappedJSObject?.PDFViewerApplication;
-        const ok = Boolean(
-          app &&
-            app.pdfViewer &&
-            ((app.pdfViewer.pagesCount && app.pdfViewer.pagesCount > 0) ||
-              (app.pdfViewer._pages && app.pdfViewer._pages.length > 0)),
-        );
-        if (ok) return;
-      } catch (e) {
-        void e;
-      }
-      await Zotero.Promise.delay(100);
-    }
-  }
+  // Reader navigation utilities moved to services/readerNav
 
   private async copyAssistantMessage(messageId: string): Promise<void> {
     try {
       const session = this.sessionId ? getSession(this.sessionId) : undefined;
       const message = session?.messages.find((item) => item.id === messageId);
-      const entry = this.messageNodes.get(messageId);
+      const entry = this.messageView.get(messageId);
       const content = message?.content ?? entry?.latestContent ?? "";
       if (!content.trim()) {
         ztoolkit.log("[ai-chat] 无可复制的文本", { messageId });
         return;
       }
-
-      const win = this.getDocument().defaultView as
-        | (Window & { navigator?: any })
-        | null;
-      const clipboardApi = win && (win.navigator as any)?.clipboard;
-      if (clipboardApi && typeof clipboardApi.writeText === "function") {
-        await clipboardApi.writeText(content);
-        return;
-      }
-
-      const copyWithZotero =
-        (Zotero as any)?.Utilities?.Internal?.copyTextToClipboard;
-      if (typeof copyWithZotero === "function") {
-        await copyWithZotero(content);
-        return;
-      }
-
-      this.fallbackCopyText(content);
+      await copyText(this.getDocument(), content);
     } catch (error) {
       ztoolkit.log("[ai-chat] 复制消息失败", { messageId, error });
-    }
-  }
-
-  private fallbackCopyText(text: string): void {
-    const doc = this.getDocument();
-    const textarea = doc.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "readonly");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-
-    const body =
-      doc.body ?? (doc.getElementsByTagName("body")[0] as HTMLBodyElement | undefined);
-    if (!body) {
-      try {
-        ztoolkit.log("[ai-chat] 未找到 body，复制降级不可用");
-      } catch (e) {
-        void e;
-      }
-      return;
-    }
-    body.appendChild(textarea);
-    textarea.select();
-    try {
-      const ok =
-        typeof doc.execCommand === "function" ? doc.execCommand("copy") : false;
-      if (!ok) {
-        ztoolkit.log("[ai-chat] execCommand 无法复制文本");
-      }
-    } catch (error) {
-      ztoolkit.log("[ai-chat] 使用 execCommand 复制失败", error);
-    } finally {
-      textarea.remove();
     }
   }
 
@@ -932,39 +439,15 @@ class AIChatPaneController {
     content: string,
     options?: { suppressMathError?: boolean },
   ): void {
-    this.renderQueue.set(messageId, { entry, content, options });
-    if (this.pendingRenderHandle !== undefined) {
-      return;
-    }
-
-    const win = this.getDocument().defaultView;
-    if (win && typeof win.requestAnimationFrame === "function") {
-      this.pendingRenderHandle = win.requestAnimationFrame(() => {
-        this.pendingRenderHandle = undefined;
-        this.flushRenderQueue();
-      });
-    } else {
-      this.flushRenderQueue();
-    }
+    this.messageView.scheduleMessageRender(messageId, entry, content, options);
   }
 
   private flushRenderQueue(): void {
-    const items = Array.from(this.renderQueue.values());
-    this.renderQueue.clear();
-    for (const item of items) {
-      this.renderMessageContent(item.entry, item.content, item.options);
-    }
+    this.messageView.flushRenderQueue();
   }
 
   private clearPendingRenders(): void {
-    if (this.pendingRenderHandle !== undefined) {
-      const win = this.getDocument().defaultView;
-      if (win && typeof win.cancelAnimationFrame === "function") {
-        win.cancelAnimationFrame(this.pendingRenderHandle);
-      }
-      this.pendingRenderHandle = undefined;
-    }
-    this.renderQueue.clear();
+    this.messageView.clearPendingRenders();
   }
 
   private updateActionButtonLabel(): void {
@@ -1083,7 +566,7 @@ class AIChatPaneController {
     let state = setSessionStatus(this.sessionId, "sending");
     this.updateStatusDisplay(state);
 
-    const contextMessage = this.buildContextMessage();
+    const contextMessage = buildContextMessage(this.sessionId);
     const providerMessages = [
       ...(contextMessage ? [contextMessage] : []),
       ...ensureSession(this.sessionId).messages,
@@ -1110,7 +593,7 @@ class AIChatPaneController {
             timestamp: message.timestamp,
           }));
 
-          const entry = this.messageNodes.get(assistantMessage.id);
+          const entry = this.messageView.get(assistantMessage.id);
           if (entry) {
             this.scheduleMessageRender(assistantMessage.id, entry, aggregatedText, {
               suppressMathError: true,
@@ -1201,236 +684,11 @@ class AIChatPaneController {
     return setSessionStatus(sessionId, "idle");
   }
 
-  private buildContextMessage(): SessionMessage | undefined {
-    if (!this.sessionId) {
-      return undefined;
-    }
-    const session = getSession(this.sessionId);
-    const documentText = session?.context.documentText?.trim();
-    if (!documentText) {
-      return undefined;
-    }
+  // buildContextMessage moved to services/context
 
-    const header = "Document context:";
-    return {
-      id: `${this.sessionId}-context-${Date.now()}`,
-      role: "system",
-      content: `${header}\n${documentText}`,
-      timestamp: Date.now(),
-    };
-  }
+  // loadContext moved to services/context
 
-  private async loadContext(props: SectionHookArgs): Promise<void> {
-    if (!this.sessionId) {
-      return;
-    }
-
-    this.isContextLoading = true;
-    if (!this.isSending) {
-      this.statusEl.textContent = getString("ai-chat-status-loading");
-    }
-
-    try {
-      const attachments = await this.collectRelevantAttachments(props);
-      const attachmentIds = attachments
-        .map((item) => item.id)
-        .sort((a, b) => a - b);
-      const key = attachmentIds.join(",");
-
-      const session = ensureSession(this.sessionId);
-      if (
-        key &&
-        this.contextAttachmentKey === key &&
-        session.context.documentText
-      ) {
-        this.isContextLoading = false;
-        this.updateStatusDisplay(session);
-        return;
-      }
-
-      this.contextAttachmentKey = key || undefined;
-
-      if (attachments.length === 0) {
-        const updated = setSessionContext(this.sessionId, {
-          hasFulltext: false,
-          hasPageMap: false,
-          documentText: undefined,
-          attachmentIDs: [],
-        });
-        this.updateStatusDisplay(updated);
-        this.isContextLoading = false;
-        return;
-      }
-
-      const contextParts: string[] = [];
-      let hasPageMap = false;
-
-      for (const attachment of attachments) {
-        try {
-          const result = (await Zotero.PDFWorker.getFullText(
-            attachment.id,
-          )) as { text?: string; pageMap?: unknown };
-
-          const attachmentTitle =
-            (attachment as any).getDisplayTitle?.() ??
-            attachment.getField("title") ??
-            `Attachment ${attachment.id}`;
-
-          const text = result?.text?.trim();
-          if (text) {
-            contextParts.push(`# ${attachmentTitle}\n${text}`);
-          } else {
-            ztoolkit.log("[ai-chat] 附件全文为空", {
-              attachmentID: attachment.id,
-              title: attachmentTitle,
-            });
-          }
-
-          const pageMap = (result as any)?.pageMap;
-          if (Array.isArray(pageMap) && pageMap.length > 0) {
-            hasPageMap = true;
-          }
-        } catch (error) {
-          ztoolkit.log("[ai-chat] 获取附件全文失败", {
-            attachmentID: attachment.id,
-            error,
-          });
-        }
-      }
-
-      const documentText = contextParts.join("\n\n").trim();
-      const hasFulltext = documentText.length > 0;
-
-      const updated = setSessionContext(this.sessionId, {
-        hasFulltext,
-        hasPageMap,
-        documentText: hasFulltext ? documentText : undefined,
-        attachmentIDs: attachmentIds,
-      });
-
-      ztoolkit.log("[ai-chat] 上下文加载完成", {
-        sessionId: this.sessionId,
-        hasFulltext: updated.context.hasFulltext,
-        hasPageMap: updated.context.hasPageMap,
-        attachments: attachmentIds,
-      });
-
-      this.updateStatusDisplay(updated);
-    } finally {
-      this.isContextLoading = false;
-      if (this.sessionId) {
-        this.updateStatusDisplay(ensureSession(this.sessionId));
-      }
-    }
-  }
-
-  private async collectRelevantAttachments(
-    props: SectionHookArgs,
-  ): Promise<Zotero.Item[]> {
-    const attachments: Zotero.Item[] = [];
-    try {
-      if (props.tabType === "reader") {
-        const reader = this.getActiveReader();
-        if (reader) {
-          const item = (await Zotero.Items.getAsync(
-            reader.itemID,
-          )) as Zotero.Item;
-          if (item?.isAttachment?.()) {
-            if (this.isPdfAttachment(item)) {
-              attachments.push(item);
-            }
-          } else if (item?.isRegularItem?.()) {
-            attachments.push(...(await this.getPdfAttachments(item)));
-          }
-        } else {
-          ztoolkit.log("[ai-chat] 未找到当前 Reader 实例");
-        }
-        return attachments;
-      }
-
-      if (props.item?.isAttachment?.()) {
-        if (this.isPdfAttachment(props.item)) {
-          attachments.push(props.item);
-        }
-        return attachments;
-      }
-
-      if (props.item?.isRegularItem?.()) {
-        attachments.push(...(await this.getPdfAttachments(props.item)));
-      }
-    } catch (error) {
-      ztoolkit.log("[ai-chat] 收集附件失败", error);
-    }
-    return attachments;
-  }
-
-  private async getPdfAttachments(item: Zotero.Item): Promise<Zotero.Item[]> {
-    const results: Zotero.Item[] = [];
-    try {
-      const bestAttachmentId = await item.getBestAttachment?.();
-      const seen = new Set<number>();
-
-      if (typeof bestAttachmentId === "number") {
-        const attachment = (await Zotero.Items.getAsync(
-          bestAttachmentId,
-        )) as Zotero.Item;
-        if (attachment?.isAttachment?.() && this.isPdfAttachment(attachment)) {
-          results.push(attachment);
-          seen.add(attachment.id);
-        }
-      }
-
-      const attachmentIds = await item.getAttachments?.();
-      if (Array.isArray(attachmentIds)) {
-        for (const attachmentId of attachmentIds) {
-          if (seen.has(attachmentId)) {
-            continue;
-          }
-          const attachment = (await Zotero.Items.getAsync(
-            attachmentId,
-          )) as Zotero.Item;
-          if (
-            attachment?.isAttachment?.() &&
-            this.isPdfAttachment(attachment)
-          ) {
-            results.push(attachment);
-            seen.add(attachment.id);
-          }
-        }
-      }
-    } catch (error) {
-      ztoolkit.log("[ai-chat] 获取 PDF 附件失败", error);
-    }
-    return results;
-  }
-
-  private isPdfAttachment(item: Zotero.Item): boolean {
-    const mime =
-      (item as any).attachmentMIMEType ??
-      (item as any).attachmentMimeType ??
-      item.getField?.("mimeType");
-    if (typeof mime !== "string") {
-      return false;
-    }
-    return mime.toLowerCase().includes("pdf");
-  }
-
-  private getActiveReader():
-    | (_ZoteroTypes.Reader & { itemID: number })
-    | undefined {
-    const win = this.getDocument().defaultView as
-      | (Window & { Zotero_Tabs?: any })
-      | undefined;
-    const tabID = win?.Zotero_Tabs?.selectedID;
-    if (!tabID) {
-      return undefined;
-    }
-    const reader = Zotero.Reader.getByTabID(tabID) as unknown;
-    if (reader && typeof (reader as { itemID?: unknown }).itemID === "number") {
-      return reader as _ZoteroTypes.Reader & { itemID: number };
-    }
-    return undefined;
-  }
+  // Attachment helpers and reader getter moved to services
 
   private updateStatusDisplay(session: SessionState): void {
     if (session.status === "sending") {
@@ -1500,140 +758,4 @@ function createMessageId(): string {
   return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-interface CitationTarget {
-  attachmentID: number;
-  page: number;
-  quote?: string;
-}
-
-interface CitationsMetadata {
-  paragraphs: Array<{
-    citations?: Array<CitationTarget>;
-  }>;
-}
-
-function extractCitationsMetadata(content: string): CitationsMetadata | undefined {
-  if (typeof content !== "string") return undefined;
-  const fence = /```\s*(?:zotero-citations)\s*\n([\s\S]*?)```/i;
-  const match = fence.exec(content);
-  if (!match) return undefined;
-  const jsonText = match[1]?.trim();
-  if (!jsonText) return undefined;
-  try {
-    const data = JSON.parse(jsonText);
-    if (!data || typeof data !== "object") return undefined;
-    const arr = (data as any).paragraphs;
-    if (!Array.isArray(arr)) return undefined;
-    return {
-      paragraphs: arr.map((p: any) => ({
-        citations: Array.isArray(p?.citations) ? p.citations : [],
-      })),
-    };
-  } catch (e) {
-    return undefined;
-  }
-}
-
-function looksLikeCitationsJson(text: string): boolean {
-  if (!text || text.length < 10) return false;
-  const trimmed = text.trim();
-  if (trimmed.indexOf('{') === -1 || trimmed.lastIndexOf('}') === -1) return false;
-  const jsonSlice = trimmed.slice(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
-  try {
-    const data = JSON.parse(jsonSlice);
-    if (!data || typeof data !== "object") return false;
-    const arr = (data as any).paragraphs;
-    return Array.isArray(arr);
-  } catch {
-    return false;
-  }
-}
-
-function parseCitationsMetadataFromText(text: string): CitationsMetadata | undefined {
-  if (!text) return undefined;
-  const trimmed = text.trim();
-  const l = trimmed.indexOf('{');
-  const r = trimmed.lastIndexOf('}');
-  if (l === -1 || r === -1 || r <= l) return undefined;
-  const jsonSlice = trimmed.slice(l, r + 1);
-  try {
-    const data = JSON.parse(jsonSlice);
-    if (!data || typeof data !== 'object') return undefined;
-    const arr = (data as any).paragraphs;
-    if (!Array.isArray(arr)) return undefined;
-    return {
-      paragraphs: arr.map((p: any) => ({
-        citations: Array.isArray(p?.citations) ? p.citations : [],
-      })),
-    };
-  } catch {
-    return undefined;
-  }
-}
-
-function trimTrailingLineBreaks(p: HTMLElement): void {
-  let node: any = p.lastChild as any;
-  while (node) {
-    if ((node as any).nodeType === 3) {
-      const txt = String((node as any).textContent || "").replace(/\u00a0/g, " ");
-      if (/^\s*$/.test(txt)) {
-        const prev = (node as any).previousSibling as any;
-        p.removeChild(node as any);
-        node = prev;
-        continue;
-      }
-      break;
-    }
-    const tag = ((node as any).tagName || "").toLowerCase();
-    if (tag === "br") {
-      const prev = (node as any).previousSibling as any;
-      p.removeChild(node as any);
-      node = prev;
-      continue;
-    }
-    break;
-  }
-}
-
-function parseInlineCitationsArray(text: string): CitationTarget[] | undefined {
-  if (!text) return undefined;
-  const trimmed = text.trim();
-  // Allow either a single object or an array of objects
-  let jsonSlice = trimmed;
-  const l = trimmed.indexOf("{") !== -1 ? trimmed.indexOf("{") : trimmed.indexOf("[");
-  const r = Math.max(trimmed.lastIndexOf("}"), trimmed.lastIndexOf("]"));
-  if (l !== -1 && r !== -1 && r > l) {
-    jsonSlice = trimmed.slice(l, r + 1);
-  }
-  try {
-    const data = JSON.parse(jsonSlice);
-    const arr = Array.isArray(data) ? data : [data];
-    const cites: CitationTarget[] = [];
-    for (const c of arr) {
-      const a = Number((c as any)?.attachmentID);
-      const p = Number((c as any)?.page);
-      if (Number.isFinite(a) && Number.isFinite(p)) {
-        cites.push({
-          attachmentID: a,
-          page: p,
-          quote: typeof (c as any)?.quote === "string" ? (c as any).quote : undefined,
-        });
-      }
-    }
-    return cites.length > 0 ? cites : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function shouldSkipForCitations(node: Text): boolean {
-  let el: Node | null = node.parentNode;
-  while (el && (el as any).nodeType === 1) {
-    const tag = ((el as HTMLElement).tagName || "").toLowerCase();
-    if (tag === "code" || tag === "pre") return true;
-    const cls = (el as HTMLElement).className || "";
-    if (/\b(katex|math-|ai-chat-citations)\b/.test(cls)) return true;
-    el = el.parentNode;
-  }
-  return false;
-}
+// Unused citation helpers removed or moved to MessageView
