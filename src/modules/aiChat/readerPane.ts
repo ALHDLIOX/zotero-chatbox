@@ -17,7 +17,7 @@ import {
 import { ProviderError, sendChat } from "./provider";
 import { getSelectedPresetId, setSelectedPresetId } from "./prefs";
 import { PRESETS, getPresetById } from "./providersRegistry";
-import { ensurePaneStyles } from "./ui/styles";
+import { ensurePaneStyles, ensureWaterCss } from "./ui/styles";
 import { MessageView } from "./ui/messageView";
 import { copyText } from "./services/clipboard";
 import { buildContextMessage, loadContextForProps } from "./services/context";
@@ -36,6 +36,7 @@ const PaneIcons = {
 
 const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/ai-chat.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
+const WATER_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/ui/water.min.css`;
 // Shoelace removed: no theme/autoloader
 
 const ROLE_LABELS: Record<SessionMessage["role"], string> = {
@@ -92,10 +93,14 @@ class AIChatPaneController {
   private readonly placeholderEl: HTMLDivElement;
   private readonly errorEl: HTMLDivElement;
   private readonly inputEl: HTMLTextAreaElement;
+  private inputMinHeight = 0;
+  private readonly inputMaxHeight = 200; // px
   private readonly sendButton: HTMLButtonElement;
   private readonly clearButton: HTMLButtonElement;
   private readonly presetSelect: HTMLSelectElement;
   private readonly messageView: MessageView;
+  private sendIconPlane?: SVGSVGElement;
+  private sendIconStop?: SVGSVGElement;
 
   private sessionId?: string;
   private isContextLoading = false;
@@ -109,8 +114,9 @@ class AIChatPaneController {
   constructor(body: HTMLDivElement) {
     this.body = body;
     const doc = this.getDocument();
+    // Inject Water.css first (base styles), then pane CSS to override specifics
+    ensureWaterCss(doc, WATER_STYLESHEET_HREF);
     ensurePaneStyles(doc, CHAT_STYLESHEET_HREF, KATEX_STYLESHEET_HREF);
-    // Shoelace injection removed
     this.messageView = new MessageView(doc, (messageId) => {
       void this.copyAssistantMessage(messageId);
     });
@@ -141,18 +147,16 @@ class AIChatPaneController {
     });
     this.messagesEl.appendChild(this.placeholderEl);
 
-    // Settings row: Provider + Model selector (applies globally)
+    // Toolbar row (outside input wrapper): Model preset capsule
     const inputWrapper = ztoolkit.UI.createElement(doc, "div", {
       classList: ["ai-chat-input-wrapper"],
     });
-    const settingsRow = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-settings-row"],
-    });
-    const presetLabel = ztoolkit.UI.createElement(doc, "label", {
-      properties: { textContent: getString("ai-chat-model-label") },
+    const toolbarRow = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-toolbar"],
     });
     this.presetSelect = ztoolkit.UI.createElement(doc, "select", {
       classList: ["ai-chat-preset-select"],
+      attributes: { "aria-label": "Model" },
     }) as unknown as HTMLSelectElement;
     // Populate options with fallback labels (no preferences.ftl in this view)
     this.presetSelect.textContent = "";
@@ -167,24 +171,18 @@ class AIChatPaneController {
     this.presetSelect.addEventListener("change", () => {
       setSelectedPresetId(this.presetSelect.value);
     });
-    settingsRow.appendChild(presetLabel);
-    settingsRow.appendChild(this.presetSelect);
+    toolbarRow.appendChild(this.presetSelect);
 
-    // Input label + textarea
+    // Input textarea (no visible label)
     const inputId = `ai-chat-input-${Math.random().toString(36).slice(2, 10)}`;
-    const inputLabel = ztoolkit.UI.createElement(doc, "label", {
-      classList: ["ai-chat-input-label"],
-      properties: { id: `${inputId}-label`, htmlFor: inputId, textContent: getString("ai-chat-input-label") },
-    });
     this.inputEl = ztoolkit.UI.createElement(doc, "textarea", {
       classList: ["ai-chat-input"],
       properties: {
         id: inputId,
         placeholder: getString("ai-chat-input-placeholder"),
-        rows: 3,
+        rows: 1,
       } as any,
       attributes: {
-        "aria-labelledby": `${inputId}-label`,
         "aria-label": getString("ai-chat-input-label"),
       },
     }) as unknown as HTMLTextAreaElement;
@@ -192,21 +190,89 @@ class AIChatPaneController {
     // Buttons
     this.sendButton = ztoolkit.UI.createElement(doc, "button", {
       classList: ["ai-chat-send-button"],
-      properties: { type: "button" } as any,
+      properties: { type: "button", title: "Send" } as any,
     });
     this.clearButton = ztoolkit.UI.createElement(doc, "button", {
       classList: ["ai-chat-clear-button"],
-      properties: { type: "button", textContent: getString("ai-chat-clear-button") } as any,
+      properties: { type: "button", title: "Clear" } as any,
     });
     const buttonRow = ztoolkit.UI.createElement(doc, "div", {
       classList: ["ai-chat-button-row"],
     });
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
+    // Icons (SVG inline): plane / stop for send, broom for clear
+    try {
+      // Plane icon
+      const plane = doc.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      ) as unknown as SVGSVGElement;
+      plane.setAttribute("viewBox", "0 0 24 24");
+      plane.setAttribute("width", "18");
+      plane.setAttribute("height", "18");
+      plane.setAttribute("aria-hidden", "true");
+      const p = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("d", "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z");
+      p.setAttribute("fill", "currentColor");
+      plane.appendChild(p);
+      this.sendIconPlane = plane;
+
+      // Stop icon (rounded square)
+      const stop = doc.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      ) as unknown as SVGSVGElement;
+      stop.setAttribute("viewBox", "0 0 24 24");
+      stop.setAttribute("width", "18");
+      stop.setAttribute("height", "18");
+      stop.setAttribute("aria-hidden", "true");
+      const r = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+      r.setAttribute("x", "6");
+      r.setAttribute("y", "6");
+      r.setAttribute("width", "12");
+      r.setAttribute("height", "12");
+      r.setAttribute("rx", "2.5");
+      r.setAttribute("fill", "currentColor");
+      stop.appendChild(r);
+      this.sendIconStop = stop;
+
+      // Broom icon for clear (stroke)
+      const broom = doc.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      ) as unknown as SVGSVGElement;
+      broom.setAttribute("viewBox", "0 0 24 24");
+      broom.setAttribute("width", "18");
+      broom.setAttribute("height", "18");
+      broom.setAttribute("aria-hidden", "true");
+      const g = doc.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("fill", "none");
+      g.setAttribute("stroke", "currentColor");
+      g.setAttribute("stroke-width", "2");
+      g.setAttribute("stroke-linecap", "round");
+      g.setAttribute("stroke-linejoin", "round");
+      // handle
+      const l1 = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+      l1.setAttribute("d", "M3 21l6-6m4-10l8 8");
+      // head
+      const l2 = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+      l2.setAttribute("d", "M4 17l3 3 6-6-3-3z");
+      g.appendChild(l1);
+      g.appendChild(l2);
+      broom.appendChild(g);
+      this.clearButton.replaceChildren(broom);
+
+      // mount send icons: keep both and toggle hidden
+      if (this.sendIconPlane) this.sendButton.appendChild(this.sendIconPlane);
+      if (this.sendIconStop) this.sendButton.appendChild(this.sendIconStop);
+      if (this.sendIconStop) (this.sendIconStop.style as any).display = "none";
+    } catch (e) {
+      this.sendButton.textContent = "✈";
+      this.clearButton.textContent = "🧹";
+    }
 
     // Compose input wrapper
-    inputWrapper.appendChild(settingsRow);
-    inputWrapper.appendChild(inputLabel);
     inputWrapper.appendChild(this.inputEl);
     inputWrapper.appendChild(buttonRow);
 
@@ -214,7 +280,9 @@ class AIChatPaneController {
     container.appendChild(this.statusEl);
     container.appendChild(this.errorEl);
     container.appendChild(this.messagesEl);
+    container.appendChild(toolbarRow);
     container.appendChild(inputWrapper);
+    // Mount into pane body
     body.replaceChildren(container);
 
     this.sendButton.addEventListener("click", (event: MouseEvent) => {
@@ -257,6 +325,11 @@ class AIChatPaneController {
         void this.handleSubmit();
       }
     });
+
+    // Auto-resize textarea on input
+    this.inputEl.addEventListener("input", () => this.autoResizeInput());
+    // Initialize size after DOM mount
+    setTimeout(() => this.initInputAutoSize(), 0);
 
     this.setSendingState(false);
   }
@@ -465,15 +538,41 @@ class AIChatPaneController {
   }
 
   private updateActionButtonLabel(): void {
-    const labelKey = this.isSending
-      ? "ai-chat-stop-button"
-      : "ai-chat-send-button";
-    this.sendButton.textContent = getString(labelKey);
+    // icon-only; keep accessible title only
+    this.sendButton.title = this.isSending ? "Stop" : "Send";
     this.sendButton.dataset.mode = this.isSending ? "stop" : "send";
     this.sendButton.classList.toggle(
       "ai-chat-send-button--stop",
       this.isSending,
     );
+    // toggle icons
+    try {
+      if (this.sendIconPlane && this.sendIconStop) {
+        (this.sendIconPlane.style as any).display = this.isSending ? "none" : "";
+        (this.sendIconStop.style as any).display = this.isSending ? "" : "none";
+      }
+    } catch {}
+  }
+
+  private initInputAutoSize(): void {
+    try {
+      const style = this.getDocument().defaultView?.getComputedStyle?.(this.inputEl);
+      const line = style ? parseFloat(style.lineHeight || "0") : 0;
+      this.inputMinHeight = Math.max(this.inputEl.scrollHeight, Math.round(line * 2.6) || 48);
+    } catch {
+      this.inputMinHeight = this.inputEl.scrollHeight || 48;
+    }
+    this.autoResizeInput();
+  }
+
+  private autoResizeInput(): void {
+    const el = this.inputEl;
+    el.style.resize = "none"; // disable manual resize
+    el.style.overflowY = "auto";
+    el.style.maxHeight = `${this.inputMaxHeight}px`;
+    el.style.height = "auto";
+    const target = Math.min(this.inputMaxHeight, Math.max(this.inputMinHeight, el.scrollHeight));
+    el.style.height = `${target}px`;
   }
 
   private setSendingState(sending: boolean): void {
@@ -571,6 +670,7 @@ class AIChatPaneController {
 
     const userMessage = createSessionMessage("user", text);
     this.inputEl.value = "";
+    this.autoResizeInput();
     this.clearError();
     this.setSendingState(true);
 

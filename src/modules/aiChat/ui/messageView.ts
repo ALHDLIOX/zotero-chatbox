@@ -62,6 +62,7 @@ export class MessageView {
 
     const roleLabel = ztoolkit.UI.createElement(this.doc, "span", {
       classList: ["ai-chat-message-role"],
+      properties: { hidden: true },
     });
 
     const content = ztoolkit.UI.createElement(this.doc, "div", {
@@ -93,7 +94,7 @@ export class MessageView {
     });
     actions.appendChild(copyButton);
 
-    container.appendChild(roleLabel);
+    // Role label intentionally not shown in UI
     container.appendChild(content);
     container.appendChild(mathError);
     container.appendChild(actions);
@@ -111,7 +112,8 @@ export class MessageView {
   }
 
   updateMessageDom(entry: MessageDom, message: SessionMessage): void {
-    entry.roleLabel.textContent = ROLE_LABELS[message.role] ?? message.role;
+    // Hide role label in bubbles
+    entry.roleLabel.textContent = "";
     entry.latestContent = message.content;
     this.renderMessageContent(entry, message.content);
     entry.container.dataset.role = message.role;
