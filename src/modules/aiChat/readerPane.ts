@@ -87,11 +87,16 @@ function getController(body: HTMLDivElement): AIChatPaneController {
 
 class AIChatPaneController {
   private readonly body: HTMLDivElement;
+  private readonly containerEl: HTMLDivElement;
+  private readonly dialogEl: HTMLDivElement;
+  private readonly resizeHandleEl: HTMLDivElement;
   private readonly statusEl: HTMLDivElement;
   private readonly messagesEl: HTMLDivElement;
   private readonly placeholderEl: HTMLDivElement;
   private readonly errorEl: HTMLDivElement;
   private readonly inputEl: HTMLTextAreaElement;
+  private readonly dialogMinHeight = 180; // px
+  private readonly dialogDefaultHeight = 360; // px
   private inputMinHeight = 0;
   private readonly inputMaxHeight = 200; // px
   private readonly sendButton: HTMLButtonElement;
@@ -120,10 +125,15 @@ class AIChatPaneController {
     this.messageView = new MessageView(doc, (messageId) => {
       void this.copyAssistantMessage(messageId);
     });
-    // Root container
+    // Root container + fixed-height dialog wrapper
     const container = ztoolkit.UI.createElement(doc, "div", {
       classList: ["ai-chat-pane"],
     });
+    this.containerEl = container;
+    const dialog = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-dialog"],
+    });
+    this.dialogEl = dialog as HTMLDivElement;
 
     // Status bar
     this.statusEl = ztoolkit.UI.createElement(doc, "div", {
@@ -344,14 +354,29 @@ class AIChatPaneController {
     inputWrapper.appendChild(this.inputEl);
     inputWrapper.appendChild(buttonRow);
 
+    // Mount fixed-height dialog and resizer
+    dialog.appendChild(this.messagesEl);
+    dialog.appendChild(toolbarRow);
+    dialog.appendChild(inputWrapper);
+
+    // Resize handle (thin horizontal bar)
+    const handle = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-resize-handle"],
+      attributes: { role: "separator", "aria-orientation": "vertical" },
+    });
+    this.resizeHandleEl = handle as HTMLDivElement;
+
     // Mount container
     container.appendChild(this.statusEl);
     container.appendChild(this.errorEl);
-    container.appendChild(this.messagesEl);
-    container.appendChild(toolbarRow);
-    container.appendChild(inputWrapper);
+    container.appendChild(dialog);
+    container.appendChild(handle);
     // Mount into pane body
     body.replaceChildren(container);
+
+    // Initial height
+    this.dialogEl.style.height = `${this.dialogDefaultHeight}px`;
+    this.initResizeHandle();
 
     this.sendButton.addEventListener("click", (event: MouseEvent) => {
       event.preventDefault();
@@ -670,6 +695,45 @@ class AIChatPaneController {
       this.inputMinHeight = this.inputEl.scrollHeight || 48;
     }
     this.autoResizeInput();
+  }
+
+  private initResizeHandle(): void {
+    const doc = this.getDocument();
+    let dragging = false;
+    let startY = 0;
+    let startHeight = 0;
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!dragging) return;
+      const dy = e.clientY - startY;
+      const containerRect = this.containerEl.getBoundingClientRect();
+      const handleRect = this.resizeHandleEl.getBoundingClientRect();
+      const maxHeight = Math.max(
+        this.dialogMinHeight,
+        Math.min(
+          containerRect.height - (handleRect.height + 8),
+          9999,
+        ),
+      );
+      const target = Math.max(this.dialogMinHeight, Math.min(startHeight + dy, maxHeight));
+      this.dialogEl.style.height = `${Math.round(target)}px`;
+    };
+
+    const stop = () => {
+      if (!dragging) return;
+      dragging = false;
+      doc.removeEventListener("mousemove", onMouseMove);
+      doc.removeEventListener("mouseup", stop);
+    };
+
+    this.resizeHandleEl.addEventListener("mousedown", (e: MouseEvent) => {
+      dragging = true;
+      startY = e.clientY;
+      startHeight = this.dialogEl.getBoundingClientRect().height;
+      doc.addEventListener("mousemove", onMouseMove);
+      doc.addEventListener("mouseup", stop, { once: true });
+      e.preventDefault();
+    });
   }
 
   private autoResizeInput(): void {
