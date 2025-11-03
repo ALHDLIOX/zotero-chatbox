@@ -1,0 +1,89 @@
+:root {
+  /* Design tokens (global) */
+  --ai-accent: #170075; /* brand accent */
+  --ai-accent-hover: #5b3cf2;
+  --ai-accent-weak: rgba(111, 78, 246, 0.12);
+  --ai-border: color-mix(in oklab, currentColor 15%, transparent);
+  --ai-shadow: 0 1px 2px rgba(0,0,0,0.07), 0 6px 24px rgba(0,0,0,0.06);
+  --ai-color-text: var(--zotero-text-color, #1b1b1b);
+  --ai-surface-1: rgba(0, 0, 0, 0.04);
+  --ai-surface-2: rgba(0, 0, 0, 0.06);
+  --ai-danger: #ff4d4f;
+
+  /* Spacing scale (4px grid) */
+  --ai-space-1: 4px;
+  --ai-space-2: 8px;
+  --ai-space-3: 12px;
+  --ai-space-4: 16px;
+  --ai-space-5: 20px;
+  --ai-space-6: 24px;
+
+  /* Radii */
+  --ai-radius-sm: 8px;
+  --ai-radius: 12px;       /* md */
+  --ai-radius-md: 12px;    /* alias for clarity */
+  --ai-radius-lg: 16px;
+  --ai-radius-pill: 9999px; /* capsule */
+  --ai-preset-pad-left: 16px; /* align trigger/option */
+  --ai-preset-arrow-pad: var(--ai-space-6); /* space reserved for caret */
+  --ai-list-indent: var(--ai-space-5);
+
+  /* Motion */
+  --ai-ease: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ai-anim-fast: 120ms;
+
+  /* Borders */
+  --ai-border-width: 1px;
+  --ai-border-width-strong: 1.5px;
+
+  /* Typography */
+  --ai-font-size-base: 14px;
+  --ai-font-size-sm: 13px;
+  --ai-font-size-xs: 12px;
+  --ai-font-size-caret: 8px; /* used for caret symbol */
+
+  /* Controls and sizes */
+  --ai-control-size-sm: 28px;      /* small control/button height */
+  --ai-chip-size: 18px;            /* citation chip height/min-width */
+  --ai-icon-size: 16px;            /* default icon size */
+  --ai-icon-size-sm: 14px;         /* small icon size */
+  --ai-preset-width: 120px;        /* preset trigger width */
+  --ai-menu-max-height: 240px;     /* dropdown max height */
+
+  /* Colors (semantic) */
+  --ai-color-on-accent: #fff;
+  --ai-color-on-danger: #fff;
+  --ai-accent-weakest: rgba(111, 78, 246, 0.03);
+  --ai-surface-menu: rgba(255, 255, 255, 0.98);
+  --ai-surface-press: rgba(0, 0, 0, 0.08);
+  --ai-chip-bg: rgba(0, 0, 0, 0.08);
+  --ai-chip-bg-hover: rgba(0, 0, 0, 0.12);
+  --ai-chip-border: rgba(0, 0, 0, 0.2);
+  --ai-border-dashed-color: rgba(0, 0, 0, 0.15);
+
+  /* Shadows */
+  --ai-shadow-hover: 0 2px 4px rgba(0,0,0,0.08);
+  --ai-shadow-active: 0 1px 2px rgba(0,0,0,0.04);
+  --ai-shadow-accent-hover: 0 4px 12px rgba(111, 78, 246, 0.35);
+  --ai-shadow-accent-active: 0 2px 4px rgba(111, 78, 246, 0.25);
+  --ai-shadow-danger-hover: 0 4px 12px rgba(255, 77, 79, 0.35);
+
+  /* Z-index */
+  --ai-z-menu: 1000;
+
+  /* Outline */
+  --ai-outline-width: 2px;
+  --ai-outline-offset: 1px;
+  --ai-outline-color: var(--zotero-accent-color, #3a84ff);
+}
+
+/* Utilities */
+.ai-chat-hidden {
+  display: none !important;
+}
+
+.ai-chat-hidden-textarea {
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+}

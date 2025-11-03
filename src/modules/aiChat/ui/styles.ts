@@ -19,6 +19,18 @@ export function ensurePaneStyles(
 
   const scope: Document | ShadowRoot = (mount as any) || doc;
 
+  // Inject global design tokens/styles shared across UI (derived from chat css path)
+  try {
+    const globalHref = chatHref.replace(/ai-chat\.css$/, "global.css");
+    if (globalHref && !scope.querySelector('link[data-ai-chat-style="global"]')) {
+      const link = doc.createElement("link");
+      link.rel = "stylesheet";
+      link.href = globalHref;
+      link.setAttribute("data-ai-chat-style", "global");
+      (container as any).appendChild(link);
+    }
+  } catch {}
+
   if (!scope.querySelector('link[data-ai-chat-style="chat"]')) {
     const link = doc.createElement("link");
     link.rel = "stylesheet";
