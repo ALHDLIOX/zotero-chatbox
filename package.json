@@ -22,7 +22,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "start": "zotero-plugin serve",
-    "prebuild": "node scripts/clean-dist.mjs && node scripts/copy-katex-assets.mjs && node scripts/copy-water-assets.mjs",
+    "prebuild": "node scripts/clean-dist.mjs && node scripts/copy-katex-assets.mjs",
     "build": "node scripts/build-tabler-icons.mjs && zotero-plugin build && tsc --noEmit",
     "lint:check": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
@@ -46,9 +46,6 @@
     "katex": "^0.16.11",
     "zotero-plugin-scaffold": "^0.8.0",
     "zotero-types": "^4.1.0-beta.1",
-    "water.css": "^2.0.0",
-    "postcss": "^8.4.47",
-    "postcss-prefix-selector": "^1.16.0",
     "@tabler/icons-svg": "^3.24.0"
   },
   "prettier": {

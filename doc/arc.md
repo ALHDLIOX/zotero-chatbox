@@ -45,7 +45,6 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
   1. Registration via `Zotero.ItemPaneManager.registerSection` creates the AI Chat pane with `onInit`, `onRender`, `onAsyncRender`, `onItemChange`, `onDestroy`.
   2. `readerPane.ts` constructs the UI (status, error, message list, input, preset select) and attaches handlers. All styling is applied through CSS classes.
   3. A Shadow DOM is attached to the pane body; `ensurePaneStyles()` injects `ai-chat.css` and KaTeX CSS into that ShadowRoot.
-  4. Water.css (local) is injected into the ShadowRoot to provide modern base styling without affecting the rest of Zotero UI.
 
 - Session & Scope Resolution
   - `resolveSessionAndScope()` computes `sessionId` and `scopeKey` based on the current tab/item context and ensures a scoped session. The controller resets UI state when either changes.
@@ -84,7 +83,7 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 ## Styling
 
 - All visual rules live in `addon/content/ai-chat.css`. The controller and view attach semantic classes only.
-- Style injection happens per pane ShadowRoot via `ensurePaneStyles()` using `<link>` tags. No CDN fallbacks; all assets are local. Water.css is loaded from `addon/content/vendor/ui/water.min.css`.
+- Style injection happens per pane ShadowRoot via `ensurePaneStyles()` using `<link>` tags. No CDN fallbacks; all assets are local and scoped to the pane.
 
 ## Error Handling & Logging
 
@@ -100,7 +99,6 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 - Assets:
   - `addon/content/ai-chat.css` (pane styles)
   - `addon/content/vendor/katex.min.css` + fonts (copied during build)
-  - `addon/content/vendor/ui/water.min.css` (local Water.css)
 
 ## Directory Guide
 

@@ -17,7 +17,7 @@ import {
 import { ProviderError, sendChat } from "./provider";
 import { getSelectedPresetId, setSelectedPresetId } from "./prefs";
 import { PRESETS, getPresetById } from "./providersRegistry";
-import { ensurePaneStyles, ensureWaterCss } from "./ui/styles";
+import { ensurePaneStyles } from "./ui/styles";
 import { MessageView } from "./ui/messageView";
 import { copyText } from "./services/clipboard";
 import { buildContextMessage, loadContextForProps } from "./services/context";
@@ -36,7 +36,6 @@ const PaneIcons = {
 
 const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/ai-chat.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
-const WATER_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/ui/water.min.css`;
 // Shoelace removed: no theme/autoloader
 
 const ROLE_LABELS: Record<SessionMessage["role"], string> = {
@@ -116,8 +115,7 @@ class AIChatPaneController {
   constructor(body: HTMLDivElement) {
     this.body = body;
     const doc = this.getDocument();
-    // Inject Water.css first (base styles), then pane CSS to override specifics
-    ensureWaterCss(doc, WATER_STYLESHEET_HREF);
+    // Inject pane styles (scoped base + component) and KaTeX CSS
     ensurePaneStyles(doc, CHAT_STYLESHEET_HREF, KATEX_STYLESHEET_HREF);
     this.messageView = new MessageView(doc, (messageId) => {
       void this.copyAssistantMessage(messageId);

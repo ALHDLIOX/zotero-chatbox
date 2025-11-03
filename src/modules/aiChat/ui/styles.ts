@@ -36,36 +36,4 @@ export function ensurePaneStyles(
   }
 }
 
-export function ensureWaterCss(
-  doc: Document,
-  href: string,
-  mount?: Document | ShadowRoot,
-): void {
-  const scope: Document | ShadowRoot = (mount as any) || doc;
-  const has = scope.querySelector 
-    ? scope.querySelector('link[data-ai-chat-style="ui"]')
-    : undefined;
-  if (has) return;
-
-  const link = doc.createElement("link");
-  link.rel = "stylesheet";
-  link.href = href;
-  link.setAttribute("data-ai-chat-style", "ui");
-
-  // Append to head if mount is Document; otherwise append to mount
-  const head = (doc.head || doc.getElementsByTagName("head")[0]) as
-    | HTMLHeadElement
-    | undefined;
-  const root = (doc.documentElement || (doc as any).documentElement) as
-    | HTMLElement
-    | null;
-  if (!mount && head) {
-    head.appendChild(link);
-  } else if (mount && typeof (mount as any).appendChild === "function") {
-    (mount as any).appendChild(link);
-  } else if (head) {
-    head.appendChild(link);
-  } else if (root) {
-    root.appendChild(link);
-  }
-}
+// Water.css removed: base control transitions are now scoped in ai-chat.css
