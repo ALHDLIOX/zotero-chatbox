@@ -15,6 +15,10 @@ interface PrefsState {
   apiKey: HTMLInputElement;
   testBtn: HTMLButtonElement;
   errorBox: HTMLElement;
+  navButtons: HTMLButtonElement[];
+  panelProfile: HTMLElement;
+  panelModel: HTMLElement;
+  modelList: HTMLElement;
   handleUnload: () => void;
 }
 
@@ -37,6 +41,9 @@ export async function registerPrefsScripts(window: Window) {
   populateForm(state);
   bindEvents(state);
   clearMessage(state);
+  renderModelList(state);
+  setActivePanel(state, "model");
+  syncModelListSelection(state);
   window.addEventListener("unload", state.handleUnload, { once: true });
 }
 
@@ -48,8 +55,14 @@ function createPrefsState(window: Window): PrefsState {
   const apiKey = doc.getElementById(ELEMENT_IDS.apiKey) as HTMLInputElement | null;
   const testBtn = doc.getElementById(ELEMENT_IDS.testBtn) as HTMLButtonElement | null;
   const errorBox = doc.getElementById(ERROR_BOX_ID) as HTMLElement | null;
+  const navButtons = Array.from(
+    doc.querySelectorAll(".ai-pref-nav-button"),
+  ) as HTMLButtonElement[];
+  const panelProfile = doc.getElementById("ai-pref-panel-profile") as HTMLElement | null;
+  const panelModel = doc.getElementById("ai-pref-panel-model") as HTMLElement | null;
+  const modelList = doc.getElementById("ai-pref-model-list") as HTMLElement | null;
 
-  if (!preset || !endpoint || !apiKey || !testBtn || !errorBox) {
+  if (!preset || !endpoint || !apiKey || !testBtn || !errorBox || !panelProfile || !panelModel || !modelList) {
     throw new Error("Missing preference UI elements");
   }
 
@@ -60,6 +73,10 @@ function createPrefsState(window: Window): PrefsState {
     apiKey,
     testBtn,
     errorBox,
+    navButtons,
+    panelProfile,
+    panelModel,
+    modelList,
     handleUnload: () => teardownPrefsState(),
   };
 }
@@ -98,6 +115,16 @@ function populateForm(state: PrefsState) {
 }
 
 function bindEvents(state: PrefsState) {
+  // Nav: switch panels
+  for (const btn of state.navButtons) {
+    btn.addEventListener("click", () => {
+      const panel = btn.getAttribute("data-panel");
+      if (panel === "profile" || panel === "model") {
+        setActivePanel(state, panel);
+      }
+    });
+  }
+
   state.preset.addEventListener("change", () => {
     const preset = getCurrentPreset(state);
     state.endpoint.value = preset.endpoint;
@@ -105,6 +132,7 @@ function bindEvents(state: PrefsState) {
     // Save selection immediately
     setSelectedPresetId(preset.id);
     clearMessage(state);
+    syncModelListSelection(state);
   });
 
   state.apiKey.addEventListener("input", () => clearMessage(state));
@@ -138,6 +166,56 @@ function showValidationError(state: PrefsState, invalidEndpoint: boolean) {
     // ignore
   }
   state.errorBox.removeAttribute("hidden");
+}
+
+function setActivePanel(state: PrefsState, panel: "profile" | "model") {
+  const isModel = panel === "model";
+  state.panelModel.hidden = !isModel;
+  state.panelProfile.hidden = isModel;
+  for (const btn of state.navButtons) {
+    const active = btn.getAttribute("data-panel") === panel;
+    btn.classList.toggle("ai-pref-nav-button--active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  }
+}
+
+function renderModelList(state: PrefsState) {
+  const doc = state.window.document as any;
+  const l10n = doc.l10n;
+  state.modelList.textContent = "";
+  for (const p of PRESETS) {
+    const li = state.window.document.createElement("li") as any;
+    li.className = "ai-pref-model-item";
+    li.setAttribute("role", "option");
+    li.setAttribute("data-id", p.id);
+    li.textContent = p.label;
+    try {
+      l10n?.setAttributes?.(li, p.labelKey);
+    } catch {}
+    li.addEventListener("click", () => selectModelById(state, p.id));
+    state.modelList.appendChild(li);
+  }
+}
+
+function selectModelById(state: PrefsState, id: string) {
+  const exists = PRESETS.some((p) => p.id === id);
+  if (!exists) return;
+  state.preset.value = id;
+  // Trigger existing change logic
+  state.preset.dispatchEvent(new state.window.Event("change", { bubbles: true }));
+}
+
+function syncModelListSelection(state: PrefsState) {
+  const current = getCurrentPreset(state).id;
+  const items = Array.from(
+    state.modelList.querySelectorAll(".ai-pref-model-item"),
+  ) as HTMLElement[];
+  for (const li of items) {
+    li.classList.toggle(
+      "ai-pref-model-item--selected",
+      li.getAttribute("data-id") === current,
+    );
+  }
 }
 
 function clearMessage(state: PrefsState) {

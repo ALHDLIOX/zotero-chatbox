@@ -10,6 +10,11 @@ ai-chat-pref-error-apikey-required = API key is required
 ai-chat-pref-error-endpoint = Endpoint URL must be a valid HTTPS link
 ai-chat-pref-error-generic = Settings were not saved. Please check your input.
 
+# Preferences navigation
+ai-pref-nav-profile = Profile
+ai-pref-nav-model = Model
+ai-pref-panel-profile-empty = No profile settings yet.
+
 # Preset option labels
 ai-chat-preset-openai-gpt-4-1 = ChatGPT 4.1
 ai-chat-preset-deepseek-chat = deepseek chat

@@ -13,3 +13,8 @@ ai-chat-pref-error-generic = 设置未保存，请检查输入
 # 预置项标签
 ai-chat-preset-openai-gpt-4-1 = ChatGPT 4.1
 ai-chat-preset-deepseek-chat = deepseek chat
+
+# 偏好页导航
+ai-pref-nav-profile = 个人资料
+ai-pref-nav-model = 模型
+ai-pref-panel-profile-empty = 暂无个人资料设置

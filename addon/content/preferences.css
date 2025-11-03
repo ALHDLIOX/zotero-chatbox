@@ -1,0 +1,131 @@
+/* Two-column preferences layout styled with global design tokens */
+
+.ai-pref-root {
+  display: flex;
+  gap: var(--ai-space-3);
+}
+
+.ai-pref-sidebar {
+  width: 180px;
+  flex: 0 0 auto;
+}
+
+.ai-pref-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-space-2);
+}
+
+.ai-pref-nav-button {
+  height: var(--ai-control-size-sm);
+  padding: 0 var(--ai-space-3);
+  border-radius: var(--ai-radius-pill);
+  background: var(--ai-surface-1);
+  border: var(--ai-border-width) solid var(--ai-border);
+  cursor: pointer;
+  color: var(--ai-color-text);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--ai-space-2);
+  transition: background-color var(--ai-anim-fast) linear, border-color var(--ai-anim-fast) linear, transform var(--ai-anim-fast) var(--ai-ease);
+}
+
+.ai-pref-nav-button:hover {
+  background: var(--ai-surface-2);
+  border-color: color-mix(in oklab, var(--ai-accent) 40%, transparent);
+}
+
+.ai-pref-nav-button--active,
+.ai-pref-nav-button[aria-selected="true"] {
+  background: var(--ai-accent-weak);
+  color: var(--ai-accent);
+  border-color: color-mix(in oklab, var(--ai-accent) 50%, transparent);
+  font-weight: 500;
+}
+
+.ai-pref-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-space-3);
+}
+
+.ai-pref-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-space-3);
+}
+
+/* Ensure hidden attribute actually hides panel even with display defaults */
+.ai-pref-panel[hidden] {
+  display: none !important;
+}
+
+.ai-pref-models {
+  display: flex;
+  gap: var(--ai-space-3);
+}
+
+.ai-pref-model-list {
+  width: 260px;
+  flex: 0 0 auto;
+}
+
+#ai-pref-model-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-space-1);
+}
+
+.ai-pref-model-item {
+  height: var(--ai-control-size-sm);
+  line-height: var(--ai-control-size-sm);
+  padding: 0 var(--ai-space-3);
+  border-radius: var(--ai-radius-md);
+  background: var(--ai-surface-1);
+  border: var(--ai-border-width) solid var(--ai-border);
+  color: var(--ai-color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color var(--ai-anim-fast) linear, border-color var(--ai-anim-fast) linear;
+}
+
+.ai-pref-model-item:hover,
+.ai-pref-model-item:focus {
+  background: var(--ai-surface-2);
+}
+
+.ai-pref-model-item--selected {
+  background: var(--ai-accent-weak);
+  border-color: color-mix(in oklab, var(--ai-accent) 50%, transparent);
+  color: var(--ai-accent);
+  font-weight: 500;
+}
+
+.ai-pref-model-form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ai-space-2);
+  padding: var(--ai-space-2);
+  border-radius: var(--ai-radius-lg);
+  border: var(--ai-border-width-strong) solid color-mix(in oklab, var(--ai-accent) 45%, transparent);
+  background: var(--ai-accent-weakest);
+}
+
+.ai-pref-field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ai-space-2);
+}
+
+.ai-pref-error {
+  margin-top: var(--ai-space-1);
+  color: var(--zotero-error-color, #c71515);
+}
