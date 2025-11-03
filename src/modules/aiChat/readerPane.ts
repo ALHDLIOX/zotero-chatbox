@@ -97,7 +97,9 @@ class AIChatPaneController {
   private readonly inputMaxHeight = 200; // px
   private readonly sendButton: HTMLButtonElement;
   private readonly clearButton: HTMLButtonElement;
-  private readonly presetSelect: HTMLSelectElement;
+  private readonly presetWrapper: HTMLDivElement;
+  private readonly presetButton: HTMLButtonElement;
+  private readonly presetMenu: HTMLUListElement;
   private readonly messageView: MessageView;
   private sendIconPlane?: SVGSVGElement;
   private sendIconStop?: SVGSVGElement;
@@ -154,24 +156,96 @@ class AIChatPaneController {
     const toolbarRow = ztoolkit.UI.createElement(doc, "div", {
       classList: ["ai-chat-toolbar"],
     });
-    this.presetSelect = ztoolkit.UI.createElement(doc, "select", {
-      classList: ["ai-chat-preset-select"],
-      attributes: { "aria-label": "Model" },
-    }) as unknown as HTMLSelectElement;
-    // Populate options with fallback labels (no preferences.ftl in this view)
-    this.presetSelect.textContent = "";
-    for (const p of PRESETS) {
-      const opt = ztoolkit.UI.createElement(doc, "option", {
-        properties: { value: p.id, innerText: p.label } as any,
-      });
-      this.presetSelect.appendChild(opt as unknown as HTMLOptionElement);
-    }
-    const currentId = getPresetById(getSelectedPresetId())?.id ?? PRESETS[0].id;
-    this.presetSelect.value = currentId;
-    this.presetSelect.addEventListener("change", () => {
-      setSelectedPresetId(this.presetSelect.value);
+    // Preset dropdown: custom button + menu to keep styling consistent
+    this.presetWrapper = ztoolkit.UI.createElement(doc, "div", {
+      classList: ["ai-chat-preset-wrapper"],
     });
-    toolbarRow.appendChild(this.presetSelect);
+    this.presetButton = ztoolkit.UI.createElement(doc, "button", {
+      classList: ["ai-chat-preset-button"],
+      properties: { type: "button" } as any,
+      attributes: {
+        "aria-haspopup": "listbox",
+        "aria-expanded": "false",
+      },
+    }) as unknown as HTMLButtonElement;
+    // Inner label span for ellipsis control
+    const presetLabel = doc.createElement("span");
+    presetLabel.className = "ai-chat-preset-button__label";
+    this.presetButton.appendChild(presetLabel);
+    this.presetMenu = ztoolkit.UI.createElement(doc, "ul", {
+      classList: ["ai-chat-preset-menu"],
+      properties: { hidden: true },
+      attributes: { role: "listbox" },
+    }) as unknown as HTMLUListElement;
+    this.presetWrapper.appendChild(this.presetButton);
+    this.presetWrapper.appendChild(this.presetMenu);
+
+    // Populate menu items
+    const currentId = getPresetById(getSelectedPresetId())?.id ?? PRESETS[0].id;
+    for (const p of PRESETS) {
+      const li = ztoolkit.UI.createElement(doc, "li", {
+        classList: [
+          "ai-chat-preset-option",
+          p.id === currentId ? "ai-chat-preset-option--selected" : undefined,
+        ].filter(Boolean) as string[],
+        attributes: { role: "option", "data-id": p.id },
+        properties: { textContent: p.label },
+        listeners: [
+          {
+            type: "click",
+            listener: () => this.selectPreset(p.id),
+          },
+        ],
+      });
+      this.presetMenu.appendChild(li);
+    }
+    this.updatePresetButtonLabel(currentId);
+    this.presetButton.addEventListener("click", () => this.togglePresetMenu());
+    // Dismiss when clicking outside
+    doc.addEventListener("click", (ev) => {
+      const target = ev.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest && target.closest(".ai-chat-preset-wrapper")) return;
+      this.closePresetMenu();
+    });
+    // Keyboard support
+    this.presetButton.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        this.openPresetMenu();
+        const first = this.presetMenu.querySelector(
+          ".ai-chat-preset-option",
+        ) as HTMLElement | null;
+        first?.focus?.();
+      }
+    });
+    this.presetMenu.addEventListener("keydown", (e: KeyboardEvent) => {
+      const items = Array.from(
+        this.presetMenu.querySelectorAll<HTMLElement>(".ai-chat-preset-option"),
+      );
+      const active = this.getDocument().activeElement as HTMLElement | null;
+      const idx = Math.max(0, items.indexOf(active || items[0]!));
+      if (e.key === "Escape") {
+        this.closePresetMenu();
+        this.presetButton.focus();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const nextIdx = Math.min(items.length - 1, idx + 1);
+        const next = items[nextIdx];
+        if (next) (next as any)?.focus?.();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prevIdx = Math.max(0, idx - 1);
+        const prev = items[prevIdx];
+        if (prev) (prev as any)?.focus?.();
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const el = this.getDocument().activeElement as HTMLElement | null;
+        const id = el?.getAttribute("data-id");
+        if (id) this.selectPreset(id);
+      }
+    });
+    toolbarRow.appendChild(this.presetWrapper);
 
     // Input textarea (no visible label)
     const inputId = `ai-chat-input-${Math.random().toString(36).slice(2, 10)}`;
@@ -201,19 +275,21 @@ class AIChatPaneController {
     });
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
-    // Icons (SVG inline): plane / stop for send, broom for clear
+    // Icons (SVG inline): Ant Design style icons
     try {
-      // Plane icon
+      // Send icon (Ant Design SendOutlined style - paper plane)
       const plane = doc.createElementNS(
         "http://www.w3.org/2000/svg",
         "svg",
       ) as unknown as SVGSVGElement;
-      plane.setAttribute("viewBox", "0 0 24 24");
-      plane.setAttribute("width", "18");
-      plane.setAttribute("height", "18");
+      plane.setAttribute("viewBox", "0 0 1024 1024");
+      plane.setAttribute("width", "16");
+      plane.setAttribute("height", "16");
       plane.setAttribute("aria-hidden", "true");
+      plane.setAttribute("fill", "currentColor");
+      plane.style.display = "block";
       const p = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("d", "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z");
+      p.setAttribute("d", "M931.4 498.9L94.9 79.5c-3.4-1.7-7.3-2.1-11-1.2-8.5 2.1-13.8 10.7-11.7 19.3l86.2 352.2c1.3 5.3 5.2 9.6 10.4 11.3l147.7 50.7-147.6 50.7c-5.2 1.8-9.1 6.1-10.4 11.3L72.2 926.5c-.9 3.7-.5 7.6 1.2 10.9 3.9 7.9 13.5 11.1 21.5 7.2l836.5-417c3.1-1.5 5.6-4.1 7.2-7.1 3.9-8 .7-17.6-7.2-21.6zM170.8 826.3l50.3-205.6 295.2-101.3c2.3-.8 4.2-2.6 5-5 1.4-4.2-.8-8.7-5-10.2L221.1 403.3l-50.3-205.6L845.2 512 170.8 826.3z");
       p.setAttribute("fill", "currentColor");
       plane.appendChild(p);
       this.sendIconPlane = plane;
@@ -223,45 +299,39 @@ class AIChatPaneController {
         "http://www.w3.org/2000/svg",
         "svg",
       ) as unknown as SVGSVGElement;
-      stop.setAttribute("viewBox", "0 0 24 24");
-      stop.setAttribute("width", "18");
-      stop.setAttribute("height", "18");
+      stop.setAttribute("viewBox", "0 0 1024 1024");
+      stop.setAttribute("width", "16");
+      stop.setAttribute("height", "16");
       stop.setAttribute("aria-hidden", "true");
-      const r = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
-      r.setAttribute("x", "6");
-      r.setAttribute("y", "6");
-      r.setAttribute("width", "12");
-      r.setAttribute("height", "12");
-      r.setAttribute("rx", "2.5");
-      r.setAttribute("fill", "currentColor");
-      stop.appendChild(r);
+      stop.setAttribute("fill", "currentColor");
+      stop.style.display = "block";
+      const stopRect = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+      stopRect.setAttribute("x", "256");
+      stopRect.setAttribute("y", "256");
+      stopRect.setAttribute("width", "512");
+      stopRect.setAttribute("height", "512");
+      stopRect.setAttribute("rx", "64");
+      stopRect.setAttribute("ry", "64");
+      stopRect.setAttribute("fill", "currentColor");
+      stop.appendChild(stopRect);
       this.sendIconStop = stop;
 
-      // Broom icon for clear (stroke)
-      const broom = doc.createElementNS(
+      // Delete icon (Ant Design DeleteOutlined style - trash can)
+      const deleteIcon = doc.createElementNS(
         "http://www.w3.org/2000/svg",
         "svg",
       ) as unknown as SVGSVGElement;
-      broom.setAttribute("viewBox", "0 0 24 24");
-      broom.setAttribute("width", "18");
-      broom.setAttribute("height", "18");
-      broom.setAttribute("aria-hidden", "true");
-      const g = doc.createElementNS("http://www.w3.org/2000/svg", "g");
-      g.setAttribute("fill", "none");
-      g.setAttribute("stroke", "currentColor");
-      g.setAttribute("stroke-width", "2");
-      g.setAttribute("stroke-linecap", "round");
-      g.setAttribute("stroke-linejoin", "round");
-      // handle
-      const l1 = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-      l1.setAttribute("d", "M3 21l6-6m4-10l8 8");
-      // head
-      const l2 = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-      l2.setAttribute("d", "M4 17l3 3 6-6-3-3z");
-      g.appendChild(l1);
-      g.appendChild(l2);
-      broom.appendChild(g);
-      this.clearButton.replaceChildren(broom);
+      deleteIcon.setAttribute("viewBox", "0 0 1024 1024");
+      deleteIcon.setAttribute("width", "16");
+      deleteIcon.setAttribute("height", "16");
+      deleteIcon.setAttribute("aria-hidden", "true");
+      deleteIcon.setAttribute("fill", "currentColor");
+      deleteIcon.style.display = "block";
+      const deletePath = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+      deletePath.setAttribute("d", "M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.4l24.7 523c1.6 34.1 29.8 61 63.9 61h454c34.2 0 62.3-26.8 63.9-61l24.7-523H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM731.3 840H292.7l-24.2-512h487l-24.2 512z");
+      deletePath.setAttribute("fill", "currentColor");
+      deleteIcon.appendChild(deletePath);
+      this.clearButton.replaceChildren(deleteIcon);
 
       // mount send icons: keep both and toggle hidden
       if (this.sendIconPlane) this.sendButton.appendChild(this.sendIconPlane);
@@ -269,7 +339,7 @@ class AIChatPaneController {
       if (this.sendIconStop) (this.sendIconStop.style as any).display = "none";
     } catch (e) {
       this.sendButton.textContent = "✈";
-      this.clearButton.textContent = "🧹";
+      this.clearButton.textContent = "🗑";
     }
 
     // Compose input wrapper
@@ -332,6 +402,45 @@ class AIChatPaneController {
     setTimeout(() => this.initInputAutoSize(), 0);
 
     this.setSendingState(false);
+  }
+
+  // Preset dropdown helpers
+  private updatePresetButtonLabel(presetId: string): void {
+    const preset = getPresetById(presetId) ?? PRESETS[0];
+    const labelEl = this.presetButton.querySelector(
+      ".ai-chat-preset-button__label",
+    ) as HTMLSpanElement | null;
+    if (labelEl) labelEl.textContent = preset.label;
+    else this.presetButton.textContent = preset.label;
+  }
+
+  private openPresetMenu(): void {
+    this.presetMenu.hidden = false;
+    this.presetButton.setAttribute("aria-expanded", "true");
+  }
+
+  private closePresetMenu(): void {
+    if (this.presetMenu.hidden) return;
+    this.presetMenu.hidden = true;
+    this.presetButton.setAttribute("aria-expanded", "false");
+  }
+
+  private togglePresetMenu(): void {
+    if (this.presetMenu.hidden) this.openPresetMenu();
+    else this.closePresetMenu();
+  }
+
+  private selectPreset(presetId: string): void {
+    setSelectedPresetId(presetId);
+    this.updatePresetButtonLabel(presetId);
+    const items = this.presetMenu.querySelectorAll(".ai-chat-preset-option");
+    for (let i = 0; i < items.length; i++) {
+      const el = items[i] as HTMLElement;
+      if (el.getAttribute("data-id") === presetId)
+        el.classList.add("ai-chat-preset-option--selected");
+      else el.classList.remove("ai-chat-preset-option--selected");
+    }
+    this.closePresetMenu();
   }
 
   // Styles are handled via ensurePaneStyles() in constructor

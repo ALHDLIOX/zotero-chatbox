@@ -1,12 +1,13 @@
 .ai-chat-pane {
   /* Theme tokens */
-  --ai-accent: #6f4ef6;
+  --ai-accent: #170075;
   --ai-accent-hover: #5b3cf2;
   --ai-accent-weak: rgba(111, 78, 246, 0.12);
   --ai-border: color-mix(in oklab, currentColor 15%, transparent);
   --ai-shadow: 0 1px 2px rgba(0,0,0,0.07), 0 6px 24px rgba(0,0,0,0.06);
   --ai-radius: 12px;
   --ai-radius-lg: 16px;
+  --ai-preset-pad-left: 16px; /* keep trigger and option visually aligned */
 
   font-size: 14px;
   color: var(--zotero-text-color, #1b1b1b);
@@ -38,13 +39,22 @@
   resize: none;
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 12px;
-  border-radius: calc(var(--ai-radius) - 2px);
+  padding: 12px 14px;
+  border-radius: calc(var(--ai-radius-lg) - 4px);
   border: none;
   outline: none;
   background: transparent;
   max-height: 200px;
   overflow-y: auto;
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+}
+
+.ai-chat-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .ai-chat-messages {
@@ -62,7 +72,6 @@
   padding: 10px 12px;
   background-color: rgba(0, 0, 0, 0.04);
   border: 1px solid var(--ai-border);
-  box-shadow: var(--ai-shadow);
 }
 
 .ai-chat-message[data-role="user"] {
@@ -194,24 +203,28 @@
 .ai-chat-input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: 4px;
+  padding: 8px 8px 4px 8px;
   border-radius: var(--ai-radius-lg);
   border: 1.5px solid color-mix(in oklab, var(--ai-accent) 50%, transparent);
   background: rgba(111, 78, 246, 0.03);
-  box-shadow: var(--ai-shadow);
+  flex: 0 0 auto;
 }
 
 .ai-chat-button-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   justify-content: flex-end;
+  margin-top: 0;
+  padding: 0;
 }
 
 .ai-chat-clear-button {
-  width: 32px !important;
-  height: 32px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
   aspect-ratio: 1 / 1;
   margin-right: auto;
   border-radius: 50% !important;
@@ -220,18 +233,35 @@
   justify-content: center;
   padding: 0 !important;
   line-height: 1 !important;
-  background: rgba(0,0,0,0.06) !important;
-  border: 1px solid var(--ai-border) !important;
-  color: inherit;
+  background: transparent !important;
+  border: none !important;
+  color: var(--zotero-text-color, #1b1b1b);
   flex: 0 0 auto;
-  box-shadow: var(--ai-shadow);
+  box-shadow: none;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
 }
-.ai-chat-clear-button:hover { background: rgba(0,0,0,0.1); }
-.ai-chat-clear-button svg { width: 16px; height: 16px; }
+.ai-chat-clear-button:hover {
+  background: rgba(0,0,0,0.06) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+.ai-chat-clear-button:active {
+  background: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transform: scale(0.95);
+}
+.ai-chat-clear-button svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
 
 .ai-chat-send-button {
-  width: 32px !important;
-  height: 32px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
   aspect-ratio: 1 / 1;
   flex: 0 0 auto;
   display: inline-flex !important;
@@ -241,47 +271,232 @@
   gap: 0;
   line-height: 1 !important;
   border-radius: 50% !important;
+  background: transparent !important;
+  color: var(--ai-accent) !important;
+  border: none !important;
+  box-shadow: none;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+.ai-chat-send-button svg {
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+.ai-chat-send-button:hover {
   background: var(--ai-accent) !important;
   color: #fff !important;
-  border: 1px solid color-mix(in oklab, var(--ai-accent) 75%, #0000) !important;
-  box-shadow: var(--ai-shadow);
+  box-shadow: 0 4px 12px rgba(111, 78, 246, 0.35);
+  transform: translateY(-1px);
 }
-.ai-chat-send-button svg { pointer-events: none; }
-.ai-chat-send-button:hover {
-  background: var(--ai-accent-hover) !important;
+.ai-chat-send-button:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 2px 4px rgba(111, 78, 246, 0.25);
 }
 .ai-chat-send-button.ai-chat-send-button--stop {
-  background: #cc3d3d !important;
-  border-color: color-mix(in oklab, #cc3d3d 75%, #0000) !important;
+  background: transparent !important;
+  color: #ff4d4f !important;
+  box-shadow: none;
+}
+.ai-chat-send-button.ai-chat-send-button--stop:hover {
+  background: #ff4d4f !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.35);
 }
 
-.ai-chat-preset-select {
-  min-width: 180px;
-  max-width: 260px;
-  padding: 6px 10px;
+/* Custom preset dropdown */
+.ai-chat-preset-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 120px; /* Fixed width for button and menu */
+}
+
+.ai-chat-preset-button {
+  width: 100%;
+  height: 28px;
+  padding: 0 22px 0 var(--ai-preset-pad-left); /* left aligns with option */
   border-radius: 9999px !important;
   background: rgba(0,0,0,0.04);
   border: 1px solid var(--ai-border);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  font-size: 13px;
+  line-height: 1.25; /* do not force; avoid clipping */
+  color: var(--zotero-text-color, #1b1b1b);
+  text-align: left !important; /* force left align over UA styles */
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative; /* for absolute arrow */
+  display: flex;
+  align-items: center; /* vertically center text reliably */
+  justify-content: flex-start !important; /* keep content left-aligned */
+  gap: 0;
+  min-width: 0; /* allow ellipsis in flex item */
+  -moz-appearance: none;
+  appearance: none;
 }
-.ai-chat-preset-select:focus {
+
+.ai-chat-preset-button:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: color-mix(in oklab, var(--ai-accent) 40%, transparent);
+}
+
+.ai-chat-preset-button:focus {
   outline: none !important;
-  box-shadow: 0 0 0 2px var(--ai-accent) !important;
-  border-color: color-mix(in oklab, var(--ai-accent) 60%, #0000) !important;
+  border-color: color-mix(in oklab, var(--ai-accent) 60%, transparent) !important;
+}
+
+.ai-chat-preset-button::after {
+  content: "▼";
+  font-size: 8px;
+  opacity: 0.5;
+  transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ai-chat-preset-button[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+/* Label inside the preset button for correct ellipsis behavior */
+.ai-chat-preset-button__label {
+  flex: 1 1 auto;
+  min-width: 0; /* required for ellipsis in flex children */
+  display: block; /* Gecko: ensure text-overflow works */
+  width: 100%;
+  text-align: left !important;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Remove Firefox inner focus padding that can shift text */
+.ai-chat-preset-button::-moz-focus-inner { border: 0; padding: 0; }
+
+.ai-chat-preset-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  width: 100%; /* Match wrapper/button width */
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--ai-border);
+  border-radius: 18px;
+  padding: 4px 4px 4px 0; /* remove left padding to match trigger */
+  margin: 0;
+  list-style: none;
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.ai-chat-preset-menu[hidden] {
+  display: none;
+}
+
+.ai-chat-preset-option {
+  padding: 0 12px 0 var(--ai-preset-pad-left); /* match trigger left */
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  line-height: 28px; /* match trigger height */
+  color: var(--zotero-text-color, #1b1b1b);
+  user-select: none;
+  border-radius: 14px;
+  height: 28px; /* match trigger height */
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.ai-chat-preset-option:last-child {
+  margin-bottom: 0;
+}
+
+.ai-chat-preset-option:hover,
+.ai-chat-preset-option:focus {
+  background: var(--ai-accent-weak);
+  outline: none;
+}
+
+.ai-chat-preset-option--selected {
+  background: var(--ai-accent-weak);
+  color: var(--ai-accent);
+  font-weight: 500;
+  padding-right: 28px;
+}
+
+.ai-chat-preset-option--selected::after {
+  content: "✓";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .ai-chat-copy-button {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 9999px;
-  border: 1px solid var(--ai-border);
-  background-color: rgba(255, 255, 255, 0.9);
-  color: inherit;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  aspect-ratio: 1 / 1;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  line-height: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--zotero-text-color, #1b1b1b);
   cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.ai-chat-copy-button:hover {
+  background: rgba(0,0,0,0.06) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.ai-chat-copy-button:active {
+  background: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transform: scale(0.95);
+}
+
+.ai-chat-copy-button svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 
 .ai-chat-copy-button:disabled {
-  opacity: 0.5;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent !important;
+}
+
+.ai-chat-copy-button:disabled:hover {
+  box-shadow: none;
+  transform: none;
 }
 
 /* Citation buttons */
@@ -335,3 +550,5 @@
   align-items: center;
   gap: 10px;
 }
+
+/* --- Removed duplicate preset dropdown rules; unified above with fixed 120px width --- */
