@@ -42,7 +42,7 @@ function toSymbol(svg, symbolId) {
 async function main() {
   const dir = findPkgDir();
   if (!dir) {
-    console.log("[ai-chat] Tabler icons package not found; skip sprite build");
+    console.log("[zorecto] Tabler icons package not found; skip sprite build");
     return;
   }
   await fsp.mkdir(outDir, { recursive: true }).catch(() => {});
@@ -51,7 +51,7 @@ async function main() {
   for (const c of candidates) {
     const svg = await readIcon(dir, c.ids);
     if (!svg) {
-      console.log("[ai-chat] missing icon:", c);
+      console.log("[zorecto] missing icon:", c);
       continue;
     }
     symbols.push(toSymbol(svg, `ti-${c.name}`));
@@ -59,15 +59,14 @@ async function main() {
 
   const content = `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" style="display:none">\n` +
-    symbols.join("\n") +
+    symbols.join("\n") + 
     `\n</svg>\n`;
 
   await fsp.writeFile(outFile, content, "utf8");
-  console.log("[ai-chat] Tabler sprite built:", outFile);
+  console.log("[zorecto] Tabler sprite built:", outFile);
 }
 
 main().catch((e) => {
-  console.error("[ai-chat] failed to build Tabler sprite", e);
+  console.error("[zorecto] failed to build Tabler sprite", e);
   process.exitCode = 0;
 });
-

@@ -7,90 +7,90 @@
 <groupbox onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window });">
   <label><html:h2 data-l10n-id="pref-title"></html:h2></label>
 
-  <hbox class="ai-pref-root" flex="1">
+  <hbox class="pref-root" flex="1">
     <!-- Sidebar navigation -->
-    <vbox class="ai-pref-sidebar">
-      <html:div class="ai-pref-nav" role="tablist" aria-orientation="vertical">
+    <vbox class="pref-sidebar">
+      <html:div class="pref-nav" role="tablist" aria-orientation="vertical">
         <html:button
-          class="ai-pref-nav-button"
+          class="pref-nav-button"
           data-panel="profile"
           role="tab"
-          data-l10n-id="ai-pref-nav-profile"
+          data-l10n-id="zorecto-pref-nav-profile"
           aria-selected="false"
         ></html:button>
         <html:button
-          class="ai-pref-nav-button ai-pref-nav-button--active"
+          class="pref-nav-button pref-nav-button--active"
           data-panel="model"
           role="tab"
-          data-l10n-id="ai-pref-nav-model"
+          data-l10n-id="zorecto-pref-nav-model"
           aria-selected="true"
         ></html:button>
       </html:div>
     </vbox>
 
     <!-- Content area -->
-    <vbox class="ai-pref-content" flex="1">
+    <vbox class="pref-content" flex="1">
       <!-- Profile panel (placeholder) -->
-      <vbox id="ai-pref-panel-profile" class="ai-pref-panel" hidden="true">
-        <html:p data-l10n-id="ai-pref-panel-profile-empty"></html:p>
+      <vbox id="pref-panel-profile" class="pref-panel" hidden="true">
+        <html:p data-l10n-id="zorecto-pref-panel-profile-empty"></html:p>
       </vbox>
 
       <!-- Model settings panel -->
-      <vbox id="ai-pref-panel-model" class="ai-pref-panel" flex="1">
-        <hbox class="ai-pref-models" flex="1">
+      <vbox id="pref-panel-model" class="pref-panel" flex="1">
+        <hbox class="pref-models" flex="1">
           <!-- Model list (populated by script from PRESETS) -->
-          <vbox class="ai-pref-model-list">
-            <html:ul id="ai-pref-model-list" role="listbox"></html:ul>
+          <vbox class="pref-model-list">
+            <html:ul id="pref-model-list" role="listbox"></html:ul>
           </vbox>
 
           <!-- Model parameter form -->
-          <vbox class="ai-pref-model-form" flex="1">
+          <vbox class="pref-model-form" flex="1">
             <!-- Hidden select for preset (kept for existing logic) -->
-            <html:div class="ai-chat-hidden">
+            <html:div class="hidden">
               <html:label
-                id="ai-chat-pref-preset-label"
+                id="pref-preset-label"
                 for="zotero-prefpane-__addonRef__-preset"
-                data-l10n-id="ai-chat-pref-preset"
+                data-l10n-id="zorecto-pref-preset"
               ></html:label>
               <html:select
                 id="zotero-prefpane-__addonRef__-preset"
                 preference="preset"
-                aria-labelledby="ai-chat-pref-preset-label"
+                aria-labelledby="pref-preset-label"
               ></html:select>
             </html:div>
 
             <!-- Hidden endpoint (value auto-updated; not shown per requirements) -->
-            <html:div class="ai-chat-hidden">
+            <html:div class="hidden">
               <html:label
-                id="ai-chat-pref-endpoint-label"
+                id="pref-endpoint-label"
                 for="zotero-prefpane-__addonRef__-endpoint"
-                data-l10n-id="ai-chat-pref-endpoint"
+                data-l10n-id="zorecto-pref-endpoint"
               ></html:label>
               <html:input
                 id="zotero-prefpane-__addonRef__-endpoint"
                 type="text"
                 readonly="true"
                 disabled="true"
-                aria-labelledby="ai-chat-pref-endpoint-label"
+                aria-labelledby="pref-endpoint-label"
               ></html:input>
             </html:div>
 
             <!-- Visible fields: API key + test -->
-            <hbox class="ai-pref-field-row" align="center" pack="start">
+            <hbox class="pref-field-row" align="center" pack="start">
               <html:label
-                id="ai-chat-pref-api-key-label"
+                id="pref-api-key-label"
                 for="zotero-prefpane-__addonRef__-apiKey"
-                data-l10n-id="ai-chat-pref-api-key"
+                data-l10n-id="zorecto-pref-api-key"
               ></html:label>
               <html:input
                 id="zotero-prefpane-__addonRef__-apiKey"
                 type="password"
-                aria-labelledby="ai-chat-pref-api-key-label"
+                aria-labelledby="pref-api-key-label"
               ></html:input>
-              <html:button id="zotero-prefpane-__addonRef__-test" data-l10n-id="ai-chat-pref-test"></html:button>
+              <html:button id="zotero-prefpane-__addonRef__-test" data-l10n-id="zorecto-pref-test"></html:button>
             </hbox>
 
-            <html:div id="ai-chat-pref-error-message" class="ai-pref-error" hidden="true"></html:div>
+            <html:div id="pref-error-message" class="pref-error" hidden="true"></html:div>
           </vbox>
         </hbox>
       </vbox>

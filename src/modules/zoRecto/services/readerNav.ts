@@ -85,7 +85,7 @@ export async function openReaderAndNavigate(
       await openResult;
     }
   } catch (error) {
-    ztoolkit.log("[ai-chat] 打开 Reader 失败", error);
+    ztoolkit.log("[zorecto] 打开 Reader 失败", error);
   }
 
   try {
@@ -117,7 +117,7 @@ export async function openReaderAndNavigate(
       }
     }
   } catch (e) {
-    ztoolkit.log("[ai-chat] 设置页码失败", e);
+    ztoolkit.log("[zorecto] 设置页码失败", e);
   }
 
   if (!quote || !quote.trim()) return;
@@ -152,6 +152,6 @@ export async function openReaderAndNavigate(
       eventBus.dispatch("find", ev as any);
     }
   } catch (e) {
-    ztoolkit.log("[ai-chat] 文本查找/高亮失败", e);
+    ztoolkit.log("[zorecto] 文本查找/高亮失败", e);
   }
 }

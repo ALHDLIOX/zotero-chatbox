@@ -19,12 +19,12 @@ function fallbackCopyText(doc: Document, text: string): void {
   const textarea = doc.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "readonly");
-  textarea.classList.add("ai-chat-hidden-textarea");
+  textarea.classList.add("zorecto-hidden-textarea");
 
   const body = doc.body ?? (doc.getElementsByTagName("body")[0] as HTMLBodyElement | undefined);
   if (!body) {
     try {
-      ztoolkit.log("[ai-chat] 未找到 body，复制降级不可用");
+      ztoolkit.log("[zorecto] 未找到 body，复制降级不可用");
     } catch (e) {
       void e;
     }
@@ -35,10 +35,10 @@ function fallbackCopyText(doc: Document, text: string): void {
   try {
     const ok = typeof doc.execCommand === "function" ? doc.execCommand("copy") : false;
     if (!ok) {
-      ztoolkit.log("[ai-chat] execCommand 无法复制文本");
+      ztoolkit.log("[zorecto] execCommand 无法复制文本");
     }
   } catch (error) {
-    ztoolkit.log("[ai-chat] 使用 execCommand 复制失败", error);
+    ztoolkit.log("[zorecto] 使用 execCommand 复制失败", error);
   } finally {
     textarea.remove();
   }

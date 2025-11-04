@@ -8,9 +8,8 @@
 - 002-chat-katex-ui: Added TypeScript 5.x + Zotero 7 plugin APIs, zotero-plugin-toolkit, zotero-types, Markdown parsing, KaTeX for typesetting, Fluent (.ftl) for localization
 - 002-chat-katex-ui: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
-- 001-ai-chat-sidebar: Added TypeScript 5.x, targeting Zotero 7 runtime (Firefox platform), Node.js LTS for tooling + `zotero-plugin-toolkit`, `zotero-types`; built‑ins: `fetch`, `AbortController`, Streams API
+- 001-zorecto-sidebar: Added TypeScript 5.x, targeting Zotero 7 runtime (Firefox platform), Node.js LTS for tooling + `zotero-plugin-toolkit`, `zotero-types`; built‑ins: `fetch`, `AbortController`, Streams API
 
 ## Active Technologies
 - TypeScript 5.x + Zotero 7 plugin APIs, zotero-plugin-toolkit, zotero-types, Markdown parsing, KaTeX for typesetting, Fluent (.ftl) for localization (002-chat-katex-ui)
 - N/A – in-memory per reader tab (no cross-item/window persistence) (002-chat-katex-ui)
-

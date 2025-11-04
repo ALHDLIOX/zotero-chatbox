@@ -19,7 +19,7 @@ export async function collectRelevantAttachments(
           attachments.push(...(await getPdfAttachments(item)));
         }
       } else {
-        ztoolkit.log("[ai-chat] 未找到当前 Reader 实例");
+        ztoolkit.log("[zorecto] 未找到当前 Reader 实例");
       }
       return attachments;
     }
@@ -33,7 +33,7 @@ export async function collectRelevantAttachments(
       attachments.push(...(await getPdfAttachments(props.item)));
     }
   } catch (error) {
-    ztoolkit.log("[ai-chat] 收集附件失败", error);
+    ztoolkit.log("[zorecto] 收集附件失败", error);
   }
   return attachments;
 }
@@ -64,7 +64,7 @@ export async function getPdfAttachments(item: Zotero.Item): Promise<Zotero.Item[
       }
     }
   } catch (error) {
-    ztoolkit.log("[ai-chat] 获取 PDF 附件失败", error);
+    ztoolkit.log("[zorecto] 获取 PDF 附件失败", error);
   }
   return results;
 }
@@ -104,7 +104,7 @@ export async function readAttachmentsContext(attachments: Zotero.Item[]): Promis
       if (text) {
         contextParts.push(`# ${attachmentTitle}\n${text}`);
       } else {
-        ztoolkit.log("[ai-chat] 附件全文为空", {
+        ztoolkit.log("[zorecto] 附件全文为空", {
           attachmentID: attachment.id,
           title: attachmentTitle,
         });
@@ -115,7 +115,7 @@ export async function readAttachmentsContext(attachments: Zotero.Item[]): Promis
         hasPageMap = true;
       }
     } catch (error) {
-      ztoolkit.log("[ai-chat] 获取附件全文失败", {
+      ztoolkit.log("[zorecto] 获取附件全文失败", {
         attachmentID: attachment.id,
         error,
       });

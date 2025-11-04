@@ -1,6 +1,6 @@
-# Quickstart: AI Chat Sidebar
+# Quickstart: zoRecto Sidebar
 
-Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-ai-chat-sidebar/spec.md
+Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-zorecto-sidebar/spec.md
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ npm run build
 npm start
 ```
 
-3) In Zotero, open Preferences → “zotero-chatbox” tab and configure:
+3) In Zotero, open Preferences → "zorecto" tab and configure:
 
 - Provider: “OpenAI-compatible” (free text)
 - Endpoint URL: e.g. `https://api.openai.com`
@@ -35,7 +35,7 @@ Saving applies immediately; no restart is required.
 ## Try It
 
 1) Open a PDF in the Zotero reader.
-2) In the item pane, click the AI chat icon/tab to open the sidebar.
+2) In the item pane, click the zoRecto icon/tab to open the sidebar.
 3) Check the status bar:
    - “文档上下文：已载入” if full‑text + page mapping is available.
    - “无文档上下文” otherwise.
@@ -53,4 +53,3 @@ Saving applies immediately; no restart is required.
 
 - All user-facing strings are implemented through `.ftl` localization and appear in Simplified Chinese.
 - The chat session is in-memory per reader tab and is not persisted.
-

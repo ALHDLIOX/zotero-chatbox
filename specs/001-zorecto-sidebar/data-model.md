@@ -1,6 +1,6 @@
-# Data Model: AI Chat Sidebar
+# Data Model: zoRecto Sidebar
 
-Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-ai-chat-sidebar/spec.md  
+Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-zorecto-sidebar/spec.md  
 Design Date: 2025-10-29
 
 ## Entities
@@ -66,4 +66,3 @@ Design Date: 2025-10-29
 
 - Do not send if token limit is exceeded when building the prompt; instead, surface an error (Chinese), no truncation/summarization.
 - Preferences validation prevents saving with missing required fields; errors are localized.
-

@@ -8,11 +8,10 @@ async function main() {
     await fs.rm(dist, { recursive: true, force: true });
     // Recreate root folder to avoid race conditions in some builders
     await fs.mkdir(dist, { recursive: true });
-    console.log("[ai-chat] cleaned dist:", dist);
+    console.log("[zorecto] cleaned dist:", dist);
   } catch (e) {
-    console.log("[ai-chat] clean dist failed (non-fatal)", e?.message || e);
+    console.log("[zorecto] clean dist failed (non-fatal)", e?.message || e);
   }
 }
 
 main();
-

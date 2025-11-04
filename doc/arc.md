@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item side panel. It is implemented in TypeScript and organized into clear layers: UI (DOM + CSS), Services (imperative integrations with Zotero APIs), Core (rendering, session/state), and Integration (provider and presets). This document explains the main components, data flow, and extension points.
+This project is a Zotero 7 plugin that adds an zoRecto pane to the Reader/Item side panel. It is implemented in TypeScript and organized into clear layers: UI (DOM + CSS), Services (imperative integrations with Zotero APIs), Core (rendering, session/state), and Integration (provider and presets). This document explains the main components, data flow, and extension points.
 
 ## Runtime Targets
 
@@ -12,28 +12,28 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 ## High‑Level Structure
 
 - UI Layer
-  - `src/modules/aiChat/readerPane.ts`: Registers the Item Pane section, binds lifecycle hooks, coordinates state and services, and wires DOM to events.
-  - `src/modules/aiChat/ui/messageView.ts`: Message list view. Creates message entries, renders content, shows math errors, injects inline citation buttons, and batches re-renders via `requestAnimationFrame`.
-  - `src/modules/aiChat/ui/styles.ts`: Injects chat and KaTeX styles into a provided mount (Document or ShadowRoot) with `<link>` tags; no CDN fallbacks.
-  - CSS: `addon/content/ai-chat.css` contains all visual styling for the pane and its sub-elements.
+  - `src/modules/zoRecto/readerPane.ts`: Registers the Item Pane section, binds lifecycle hooks, coordinates state and services, and wires DOM to events.
+  - `src/modules/zoRecto/ui/messageView.ts`: Message list view. Creates message entries, renders content, shows math errors, injects inline citation buttons, and batches re-renders via `requestAnimationFrame`.
+  - `src/modules/zoRecto/ui/styles.ts`: Injects chat and KaTeX styles into a provided mount (Document or ShadowRoot) with `<link>` tags; no CDN fallbacks.
+  - CSS: `addon/content/zorecto.css` contains all visual styling for the pane and its sub-elements.
 
 - Services Layer
-  - `src/modules/aiChat/services/context.ts`: Collects relevant attachments for the current scope, reads full text via `Zotero.PDFWorker.getFullText`, sets session context, and builds a synthetic system message with document text.
-  - `src/modules/aiChat/services/readerNav.ts`: Integrates with Zotero Reader. Opens attachments, waits for PDF viewer readiness, navigates to pages, and triggers text find/highlight.
-  - `src/modules/aiChat/services/sessionOps.ts`: Computes the session ID and scope key, and resolves/ensures a scoped session.
-  - `src/modules/aiChat/services/clipboard.ts`: Robust clipboard copy with progressive enhancement (Clipboard API → Zotero utilities → `execCommand` fallback).
+  - `src/modules/zoRecto/services/context.ts`: Collects relevant attachments for the current scope, reads full text via `Zotero.PDFWorker.getFullText`, sets session context, and builds a synthetic system message with document text.
+  - `src/modules/zoRecto/services/readerNav.ts`: Integrates with Zotero Reader. Opens attachments, waits for PDF viewer readiness, navigates to pages, and triggers text find/highlight.
+  - `src/modules/zoRecto/services/sessionOps.ts`: Computes the session ID and scope key, and resolves/ensures a scoped session.
+  - `src/modules/zoRecto/services/clipboard.ts`: Robust clipboard copy with progressive enhancement (Clipboard API → Zotero utilities → `execCommand` fallback).
 
 - Core Rendering & Sanitization
-  - `src/modules/aiChat/render.ts`: Renders Markdown blocks and inline tokens to DOM, calls math typesetting, and returns sanitized `DocumentFragment` + flags.
-  - `src/modules/aiChat/markdown.ts`: Markdown + math tokenization (including inline/block math).
-  - `src/modules/aiChat/math.ts`: KaTeX integration (server-side string to HTML); no DOM coupling.
-  - `src/modules/aiChat/sanitize.ts`: Sanitizes generated HTML fragments to protect the UI and restricts links.
+  - `src/modules/zoRecto/render.ts`: Renders Markdown blocks and inline tokens to DOM, calls math typesetting, and returns sanitized `DocumentFragment` + flags.
+  - `src/modules/zoRecto/markdown.ts`: Markdown + math tokenization (including inline/block math).
+  - `src/modules/zoRecto/math.ts`: KaTeX integration (server-side string to HTML); no DOM coupling.
+  - `src/modules/zoRecto/sanitize.ts`: Sanitizes generated HTML fragments to protect the UI and restricts links.
 
 - State & Provider
-  - `src/modules/aiChat/session.ts`: In-memory session store by `sessionId` and `scopeKey`. Tracks messages, context, last result, and status (`idle/sending/streaming/stopped`).
-  - `src/modules/aiChat/provider.ts`: Provider abstraction for sending chat completions, streaming tokens, errors, and usage. Raises `ProviderError` with standardized codes.
-  - `src/modules/aiChat/providersRegistry.ts`: Built-in presets of provider+model combinations plus helpers to look up the current preset.
-  - `src/modules/aiChat/prefs.ts`: Reads/writes plugin preferences (selected preset, API key, endpoints, validation).
+  - `src/modules/zoRecto/session.ts`: In-memory session store by `sessionId` and `scopeKey`. Tracks messages, context, last result, and status (`idle/sending/streaming/stopped`).
+  - `src/modules/zoRecto/provider.ts`: Provider abstraction for sending chat completions, streaming tokens, errors, and usage. Raises `ProviderError` with standardized codes.
+  - `src/modules/zoRecto/providersRegistry.ts`: Built-in presets of provider+model combinations plus helpers to look up the current preset.
+  - `src/modules/zoRecto/prefs.ts`: Reads/writes plugin preferences (selected preset, API key, endpoints, validation).
 
 - Localization
   - `src/utils/locale.ts`: Fluent-based localization helpers (`getString`, `getLocaleID`, `initLocale`).
@@ -42,9 +42,9 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 ## Key Flows
 
 - Pane Lifecycle (Item Pane Section)
-  1. Registration via `Zotero.ItemPaneManager.registerSection` creates the AI Chat pane with `onInit`, `onRender`, `onAsyncRender`, `onItemChange`, `onDestroy`.
+  1. Registration via `Zotero.ItemPaneManager.registerSection` creates the zoRecto pane with `onInit`, `onRender`, `onAsyncRender`, `onItemChange`, `onDestroy`.
   2. `readerPane.ts` constructs the UI (status, error, message list, input, preset select) and attaches handlers. All styling is applied through CSS classes.
-  3. A Shadow DOM is attached to the pane body; `ensurePaneStyles()` injects `ai-chat.css` and KaTeX CSS into that ShadowRoot.
+  3. A Shadow DOM is attached to the pane body; `ensurePaneStyles()` injects `zorecto.css` and KaTeX CSS into that ShadowRoot.
 
 - Session & Scope Resolution
   - `resolveSessionAndScope()` computes `sessionId` and `scopeKey` based on the current tab/item context and ensures a scoped session. The controller resets UI state when either changes.
@@ -62,7 +62,7 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 
 - Rendering Pipeline
   - `renderMessage()` parses Markdown, renders math with KaTeX, sanitizes output, and returns a fragment to be mounted by `MessageView`.
-  - Math errors are signaled by a message-level banner (`.ai-chat-message-math-error`).
+  - Math errors are signaled by a message-level banner (`.zorecto-message-math-error`).
 
 - Inline Citations
   - `MessageView` scans rendered text nodes for markers like `((cite: ...))` or full‑width equivalents, parses JSON payloads, and injects numbered buttons inline.
@@ -82,7 +82,7 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 
 ## Styling
 
-- All visual rules live in `addon/content/ai-chat.css`. The controller and view attach semantic classes only.
+- All visual rules live in `addon/content/zorecto.css`. The controller and view attach semantic classes only.
 - Style injection happens per pane ShadowRoot via `ensurePaneStyles()` using `<link>` tags. No CDN fallbacks; all assets are local and scoped to the pane.
 
 ## Error Handling & Logging
@@ -97,33 +97,33 @@ This project is a Zotero 7 plugin that adds an AI chat pane to the Reader/Item s
 - `npm run build`: copies KaTeX assets (prebuild step) and bundles + type-checks.
 - Bundling/packaging is handled by `zotero-plugin` scripts and `zotero-plugin-toolkit` scaffolding.
 - Assets:
-  - `addon/content/ai-chat.css` (pane styles)
+  - `addon/content/zorecto.css` (pane styles)
   - `addon/content/vendor/katex.min.css` + fonts (copied during build)
 
 ## Directory Guide
 
 - UI & Controller
-  - `src/modules/aiChat/readerPane.ts`
-  - `src/modules/aiChat/ui/messageView.ts`
-  - `src/modules/aiChat/ui/styles.ts`
+  - `src/modules/zoRecto/readerPane.ts`
+  - `src/modules/zoRecto/ui/messageView.ts`
+  - `src/modules/zoRecto/ui/styles.ts`
 
 - Services
-  - `src/modules/aiChat/services/context.ts`
-  - `src/modules/aiChat/services/readerNav.ts`
-  - `src/modules/aiChat/services/sessionOps.ts`
-  - `src/modules/aiChat/services/clipboard.ts`
+  - `src/modules/zoRecto/services/context.ts`
+  - `src/modules/zoRecto/services/readerNav.ts`
+  - `src/modules/zoRecto/services/sessionOps.ts`
+  - `src/modules/zoRecto/services/clipboard.ts`
 
 - Core Rendering & State
-  - `src/modules/aiChat/render.ts`
-  - `src/modules/aiChat/markdown.ts`
-  - `src/modules/aiChat/math.ts`
-  - `src/modules/aiChat/sanitize.ts`
-  - `src/modules/aiChat/session.ts`
+  - `src/modules/zoRecto/render.ts`
+  - `src/modules/zoRecto/markdown.ts`
+  - `src/modules/zoRecto/math.ts`
+  - `src/modules/zoRecto/sanitize.ts`
+  - `src/modules/zoRecto/session.ts`
 
 - Provider & Preferences
-  - `src/modules/aiChat/provider.ts`
-  - `src/modules/aiChat/providersRegistry.ts`
-  - `src/modules/aiChat/prefs.ts`
+  - `src/modules/zoRecto/provider.ts`
+  - `src/modules/zoRecto/providersRegistry.ts`
+  - `src/modules/zoRecto/prefs.ts`
 
 - Localization & Assets
   - `src/utils/locale.ts`
@@ -175,7 +175,7 @@ graph TD
   end
 
   A --> L[utils/locale.ts]
-  STY -. inject .-> CSS[addon/content/ai-chat.css]
+  STY -. inject .-> CSS[addon/content/zorecto.css]
 ```
 
 ### Key Flows

@@ -60,8 +60,8 @@ const SYSTEM_PROMPT = [
   "",
   "- Output Markdown only; use clear headings, lists, and code blocks when they improve readability.",
   "- Render every mathematical expression with LaTeX delimiters:",
-  "  * Inline math: `$...$` or \\(\\(...\\)\\).",
-  "  * Block math: `$$...$$` or \\(\\[...\\]\\) on its own lines.",
+  "  * Inline math: `$...$` or \(\(...\)\).",
+  "  * Block math: `$$...$$` or \(\[...\\]\) on its own lines.",
   "- Never place math delimiters inside inline code or fenced code blocks.",
   "- Escape literal dollar signs that are not math with `\\$`.",
   "- Keep explanations structured, concise, and easy to scan.",
@@ -169,16 +169,16 @@ function ensureValidSettings(settings: ProviderSettings) {
     if (validation.invalidEndpoint) {
       throw new ProviderError(
         "SETTINGS",
-        "ai-chat-error-endpoint-invalid",
-        getString("ai-chat-error-endpoint-invalid"),
+        "zorecto-error-endpoint-invalid",
+        getString("zorecto-error-endpoint-invalid"),
       );
     }
 
     if (validation.missingKeys.length > 0) {
       throw new ProviderError(
         "SETTINGS",
-        "ai-chat-error-settings-missing",
-        getString("ai-chat-error-settings-missing"),
+        "zorecto-error-settings-missing",
+        getString("zorecto-error-settings-missing"),
         { cause: validation.missingKeys },
       );
     }
@@ -321,8 +321,8 @@ export async function sendChat(
   if (estimatedTokens > TOKEN_LIMIT) {
     throw new ProviderError(
       "TOKEN_LIMIT",
-      "ai-chat-error-token-limit",
-      getString("ai-chat-error-token-limit"),
+      "zorecto-error-token-limit",
+      getString("zorecto-error-token-limit"),
       { cause: { estimatedTokens, limit: TOKEN_LIMIT } },
     );
   }
@@ -334,7 +334,7 @@ export async function sendChat(
     );
   } catch (error) {
     if (error instanceof ProviderError) {
-      ztoolkit.log("[ai-chat] sendChat 捕获 ProviderError", {
+      ztoolkit.log("[zorecto] sendChat 捕获 ProviderError", {
         code: error.code,
         status: error.status,
         message: error.message,
@@ -347,11 +347,11 @@ export async function sendChat(
     if (isAbortLikeError(error)) {
       const wrapped = new ProviderError(
         "ABORTED",
-        "ai-chat-error-network",
-        getString("ai-chat-error-network"),
+        "zorecto-error-network",
+        getString("zorecto-error-network"),
         { cause: error },
       );
-      ztoolkit.log("[ai-chat] sendChat 请求被外部中止", {
+      ztoolkit.log("[zorecto] sendChat 请求被外部中止", {
         cause: {
           name: (error as { name?: unknown }).name,
           message: (error as { message?: unknown }).message,
@@ -363,11 +363,11 @@ export async function sendChat(
     if (error instanceof TypeError) {
       const wrapped = new ProviderError(
         "NETWORK",
-        "ai-chat-error-network",
-        getString("ai-chat-error-network"),
+        "zorecto-error-network",
+        getString("zorecto-error-network"),
         { cause: error },
       );
-      ztoolkit.log("[ai-chat] sendChat 捕获网络层错误", {
+      ztoolkit.log("[zorecto] sendChat 捕获网络层错误", {
         message: error.message,
         stack: error.stack,
       });
@@ -376,11 +376,11 @@ export async function sendChat(
 
     const wrapped = new ProviderError(
       "UNKNOWN",
-      "ai-chat-error-server",
-      getString("ai-chat-error-server"),
+      "zorecto-error-server",
+      getString("zorecto-error-server"),
       { cause: error },
     );
-    ztoolkit.log("[ai-chat] sendChat 捕获未知错误", {
+    ztoolkit.log("[zorecto] sendChat 捕获未知错误", {
       error,
     });
     throw wrapped;
@@ -422,7 +422,7 @@ async function performStreamingRequest(
 
   if (!response.ok) {
     const bodyPreview = await readErrorBody(response);
-    ztoolkit.log("[ai-chat] Provider 请求返回错误状态", {
+    ztoolkit.log("[zorecto] Provider 请求返回错误状态", {
       status: response.status,
       statusText: response.statusText,
       bodyPreview,
@@ -434,7 +434,7 @@ async function performStreamingRequest(
 
   if (!contentType.includes("text/event-stream")) {
     const json = (await response.json()) as any;
-    ztoolkit.log("[ai-chat] Provider 返回非流式响应", {
+    ztoolkit.log("[zorecto] Provider 返回非流式响应", {
       contentType,
       hasChoices: Boolean(json?.choices?.length),
       usage: json?.usage,
@@ -448,13 +448,13 @@ async function performStreamingRequest(
   }
 
   if (!response.body) {
-    ztoolkit.log("[ai-chat] Provider 响应缺少可读流", {
+    ztoolkit.log("[zorecto] Provider 响应缺少可读流", {
       status: response.status,
     });
     throw new ProviderError(
       "NETWORK",
-      "ai-chat-error-network",
-      getString("ai-chat-error-network"),
+      "zorecto-error-network",
+      getString("zorecto-error-network"),
     );
   }
 
@@ -476,7 +476,7 @@ async function performStreamingRequest(
         if (typeof cancel === "function") {
           void cancel.call(reader, abortReason).catch(() => undefined);
         }
-        ztoolkit.log("[ai-chat] 已中断流式读取", {
+        ztoolkit.log("[zorecto] 已中断流式读取", {
           status: "signal-abort",
           reason: abortReason,
         });
@@ -529,8 +529,8 @@ function httpErrorToProviderError(status: number): ProviderError {
   if (status === 401 || status === 403) {
     return new ProviderError(
       "AUTH",
-      "ai-chat-error-auth",
-      getString("ai-chat-error-auth"),
+      "zorecto-error-auth",
+      getString("zorecto-error-auth"),
       { status },
     );
   }
@@ -538,16 +538,16 @@ function httpErrorToProviderError(status: number): ProviderError {
   if (status === 408 || status === 429 || status === 504) {
     return new ProviderError(
       "NETWORK",
-      "ai-chat-error-network",
-      getString("ai-chat-error-network"),
+      "zorecto-error-network",
+      getString("zorecto-error-network"),
       { status },
     );
   }
 
   return new ProviderError(
     "SERVER",
-    "ai-chat-error-server",
-    getString("ai-chat-error-server"),
+    "zorecto-error-server",
+    getString("zorecto-error-server"),
     { status },
   );
 }

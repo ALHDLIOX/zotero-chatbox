@@ -1,14 +1,14 @@
 {
-  "name": "zotero-plugin-template",
+  "name": "zorecto",
   "type": "module",
-  "version": "3.1.0",
-  "description": "Zotero Plugin Template",
+  "version": "0.0.0",
+  "description": "Chatbox build in Zotero",
   "config": {
-    "addonName": "Zotero Plugin Template",
-    "addonID": "addontemplate@euclpts.com",
-    "addonRef": "addontemplate",
-    "addonInstance": "AddonTemplate",
-    "prefsPrefix": "extensions.zotero.addontemplate"
+    "addonName": "zoRecto",
+    "addonID": "zoRecto@gmail.com",
+    "addonRef": "zoRecto",
+    "addonInstance": "zoRecto",
+    "prefsPrefix": "extensions.zotero.zorecto"
   },
   "repository": {
     "type": "git",
@@ -31,7 +31,7 @@
     "update-deps": "npm update --save"
   },
   "dependencies": {
-    "zotero-plugin-toolkit": "^5.1.0-beta.4"
+    "zotero-plugin-toolkit": "^5.1.0-4.beta"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
@@ -45,8 +45,7 @@
     "typescript": "^5.9.2",
     "katex": "^0.16.11",
     "zotero-plugin-scaffold": "^0.8.0",
-    "zotero-types": "^4.1.0-beta.1",
-    "@tabler/icons-svg": "^3.24.0"
+    "zotero-types": "^4.1.0-beta.1"
   },
   "prettier": {
     "printWidth": 80,

@@ -38,7 +38,7 @@ async function main() {
   const exists = fs.existsSync(srcDir);
   if (!exists) {
     console.log(
-      "[ai-chat] skip copying KaTeX assets: node_modules/katex/dist not found",
+      "[zorecto] skip copying KaTeX assets: node_modules/katex/dist not found",
     );
     return;
   }
@@ -60,19 +60,18 @@ async function main() {
 
   if (ops.length === 0) {
     console.log(
-      "[ai-chat] KaTeX assets missing in node_modules; please run `npm i katex@^0.16.11`",
+      "[zorecto] KaTeX assets missing in node_modules; please run `npm i katex@^0.16.11`",
     );
     return;
   }
 
   await Promise.all(ops);
   console.log(
-    "[ai-chat] KaTeX assets copied to addon/content/vendor (katex.min.js, katex.min.css, fonts/)",
+    "[zorecto] KaTeX assets copied to addon/content/vendor (katex.min.js, katex.min.css, fonts/)",
   );
 }
 
 main().catch((err) => {
-  console.error("[ai-chat] failed to copy KaTeX assets", err);
+  console.error("[zorecto] failed to copy KaTeX assets", err);
   process.exitCode = 0; // keep build going
 });
-

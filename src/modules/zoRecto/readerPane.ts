@@ -28,13 +28,13 @@ type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =
   _ZoteroTypes.ItemPaneManagerSection.SectionInitHookArgs;
 
-const PANE_ID = "ai-chat";
+const PANE_ID = "zorecto";
 const PaneIcons = {
   header: `chrome://${config.addonRef}/content/icons/favicon.png`,
   sidenav: `chrome://${config.addonRef}/content/icons/favicon@0.5x.png`,
 } as const;
 
-const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/ai-chat.css`;
+const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/zorecto.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
 // Shoelace removed: no theme/autoloader
 
@@ -46,18 +46,18 @@ const ROLE_LABELS: Record<SessionMessage["role"], string> = {
 
 import type { MessageDom } from "./ui/messageView";
 
-const paneControllers = new WeakMap<HTMLDivElement, AIChatPaneController>();
+const paneControllers = new WeakMap<HTMLDivElement, zoRectoPaneController>();
 
-export async function registerAIChatReaderPane(): Promise<void> {
+export async function registerzoRectoReaderPane(): Promise<void> {
   const result = Zotero.ItemPaneManager.registerSection({
     paneID: PANE_ID,
     pluginID: config.addonID,
     header: {
-      l10nID: getLocaleID("ai-chat-pane-header"),
+      l10nID: getLocaleID("zorecto-pane-header"),
       icon: PaneIcons.header,
     },
     sidenav: {
-      l10nID: getLocaleID("ai-chat-pane-sidenav"),
+      l10nID: getLocaleID("zorecto-pane-sidenav"),
       icon: PaneIcons.sidenav,
     },
     onInit: (props) => getController(props.body).onInit(props),
@@ -72,20 +72,20 @@ export async function registerAIChatReaderPane(): Promise<void> {
   });
 
   if (result === false) {
-    ztoolkit.log("[ai-chat] 注册 AI 聊天面板失败：paneID 已存在");
+    ztoolkit.log("[zorecto] 注册 zoRecto 聊天面板失败：paneID 已存在");
   }
 }
 
-function getController(body: HTMLDivElement): AIChatPaneController {
+function getController(body: HTMLDivElement): zoRectoPaneController {
   let controller = paneControllers.get(body);
   if (!controller) {
-    controller = new AIChatPaneController(body);
+    controller = new zoRectoPaneController(body);
     paneControllers.set(body, controller);
   }
   return controller;
 }
 
-class AIChatPaneController {
+class zoRectoPaneController {
   private readonly body: HTMLDivElement;
   private readonly containerEl: HTMLDivElement;
   private readonly dialogEl: HTMLDivElement;
@@ -127,53 +127,53 @@ class AIChatPaneController {
     });
     // Root container + fixed-height dialog wrapper
     const container = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-pane"],
+      classList: ["zorecto-pane"],
     });
     this.containerEl = container;
     const dialog = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-dialog"],
+      classList: ["zorecto-dialog"],
     });
     this.dialogEl = dialog as HTMLDivElement;
 
     // Status bar
     this.statusEl = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-status"],
-      properties: { textContent: getString("ai-chat-status-loading") },
+      classList: ["zorecto-status"],
+      properties: { textContent: getString("zorecto-status-loading") },
     });
 
     // Error banner (plain div)
     this.errorEl = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-error"],
+      classList: ["zorecto-error"],
       properties: { hidden: true },
     });
 
     // Messages container + placeholder (welcome with quick prompts)
     this.messagesEl = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-messages"],
+      classList: ["zorecto-messages"],
     });
     this.placeholderEl = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-empty-placeholder"],
+      classList: ["zorecto-empty-placeholder"],
     });
     // Build welcome block with suggestion cards
     const welcome = doc.createElement("div");
-    welcome.className = "ai-chat-welcome";
+    welcome.className = "zorecto-welcome";
     const welcomeTitle = doc.createElement("div");
-    welcomeTitle.className = "ai-chat-welcome-title";
-    welcomeTitle.textContent = getString("ai-chat-welcome-title");
+    welcomeTitle.className = "zorecto-welcome-title";
+    welcomeTitle.textContent = getString("zorecto-welcome-title");
     const welcomeSub = doc.createElement("div");
-    welcomeSub.className = "ai-chat-welcome-subtitle";
-    welcomeSub.textContent = getString("ai-chat-welcome-subtitle");
+    welcomeSub.className = "zorecto-welcome-subtitle";
+    welcomeSub.textContent = getString("zorecto-welcome-subtitle");
     const suggList = doc.createElement("div");
-    suggList.className = "ai-chat-suggestions";
+    suggList.className = "zorecto-suggestions";
     const promptIds = [
-      "ai-chat-suggest-1",
-      "ai-chat-suggest-2",
-      "ai-chat-suggest-3",
+      "zorecto-suggest-1",
+      "zorecto-suggest-2",
+      "zorecto-suggest-3",
     ] as const; // show first 3 only
     for (const id of promptIds) {
       const label = getString(id as any);
       const btn = ztoolkit.UI.createElement(doc, "button", {
-        classList: ["ai-chat-suggestion"],
+        classList: ["zorecto-suggestion"],
         properties: { type: "button", textContent: label } as any,
         listeners: [
           {
@@ -192,17 +192,17 @@ class AIChatPaneController {
 
     // Toolbar row (outside input wrapper): Model preset capsule
     const inputWrapper = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-input-wrapper"],
+      classList: ["zorecto-input-wrapper"],
     });
     const toolbarRow = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-toolbar"],
+      classList: ["zorecto-toolbar"],
     });
     // Preset dropdown: custom button + menu to keep styling consistent
     this.presetWrapper = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-preset-wrapper"],
+      classList: ["zorecto-preset-wrapper"],
     });
     this.presetButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["ai-chat-preset-button"],
+      classList: ["zorecto-preset-button"],
       properties: { type: "button" } as any,
       attributes: {
         "aria-haspopup": "listbox",
@@ -211,10 +211,10 @@ class AIChatPaneController {
     }) as unknown as HTMLButtonElement;
     // Inner label span for ellipsis control
     const presetLabel = doc.createElement("span");
-    presetLabel.className = "ai-chat-preset-button__label";
+    presetLabel.className = "zorecto-preset-button__label";
     this.presetButton.appendChild(presetLabel);
     this.presetMenu = ztoolkit.UI.createElement(doc, "ul", {
-      classList: ["ai-chat-preset-menu"],
+      classList: ["zorecto-preset-menu"],
       properties: { hidden: true },
       attributes: { role: "listbox" },
     }) as unknown as HTMLUListElement;
@@ -226,8 +226,8 @@ class AIChatPaneController {
     for (const p of PRESETS) {
       const li = ztoolkit.UI.createElement(doc, "li", {
         classList: [
-          "ai-chat-preset-option",
-          p.id === currentId ? "ai-chat-preset-option--selected" : undefined,
+          "zorecto-preset-option",
+          p.id === currentId ? "zorecto-preset-option--selected" : undefined,
         ].filter(Boolean) as string[],
         attributes: { role: "option", "data-id": p.id },
         properties: { textContent: p.label },
@@ -246,7 +246,7 @@ class AIChatPaneController {
     doc.addEventListener("click", (ev) => {
       const target = ev.target as HTMLElement | null;
       if (!target) return;
-      if (target.closest && target.closest(".ai-chat-preset-wrapper")) return;
+      if (target.closest && target.closest(".zorecto-preset-wrapper")) return;
       this.closePresetMenu();
     });
     // Keyboard support
@@ -255,14 +255,14 @@ class AIChatPaneController {
         e.preventDefault();
         this.openPresetMenu();
         const first = this.presetMenu.querySelector(
-          ".ai-chat-preset-option",
+          ".zorecto-preset-option",
         ) as HTMLElement | null;
         first?.focus?.();
       }
     });
     this.presetMenu.addEventListener("keydown", (e: KeyboardEvent) => {
       const items = Array.from(
-        this.presetMenu.querySelectorAll<HTMLElement>(".ai-chat-preset-option"),
+        this.presetMenu.querySelectorAll<HTMLElement>(".zorecto-preset-option"),
       );
       const active = this.getDocument().activeElement as HTMLElement | null;
       const idx = Math.max(0, items.indexOf(active || items[0]!));
@@ -289,30 +289,30 @@ class AIChatPaneController {
     toolbarRow.appendChild(this.presetWrapper);
 
     // Input textarea (no visible label)
-    const inputId = `ai-chat-input-${Math.random().toString(36).slice(2, 10)}`;
+    const inputId = `zorecto-input-${Math.random().toString(36).slice(2, 10)}`;
     this.inputEl = ztoolkit.UI.createElement(doc, "textarea", {
-      classList: ["ai-chat-input"],
+      classList: ["zorecto-input"],
       properties: {
         id: inputId,
-        placeholder: getString("ai-chat-input-placeholder"),
+        placeholder: getString("zorecto-input-placeholder"),
         rows: 1,
       } as any,
       attributes: {
-        "aria-label": getString("ai-chat-input-label"),
+        "aria-label": getString("zorecto-input-label"),
       },
     }) as unknown as HTMLTextAreaElement;
 
     // Buttons
     this.sendButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["ai-chat-send-button"],
+      classList: ["zorecto-send-button"],
       properties: { type: "button", title: "Send" } as any,
     });
     this.clearButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["ai-chat-clear-button"],
+      classList: ["zorecto-clear-button"],
       properties: { type: "button", title: "Clear" } as any,
     });
     const buttonRow = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-button-row"],
+      classList: ["zorecto-button-row"],
     });
     buttonRow.appendChild(this.clearButton);
     buttonRow.appendChild(this.sendButton);
@@ -394,7 +394,7 @@ class AIChatPaneController {
 
     // Resize handle (thin horizontal bar)
     const handle = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["ai-chat-resize-handle"],
+      classList: ["zorecto-resize-handle"],
       attributes: { role: "separator", "aria-orientation": "vertical" },
     });
     this.resizeHandleEl = handle as HTMLDivElement;
@@ -424,7 +424,7 @@ class AIChatPaneController {
     this.messagesEl.addEventListener("click", (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      const el = target.closest(".ai-chat-cite-ref") as HTMLElement | null;
+      const el = target.closest(".zorecto-cite-ref") as HTMLElement | null;
       if (!el) return;
       event.preventDefault();
       void this.handleCitationActivate(el);
@@ -434,7 +434,7 @@ class AIChatPaneController {
       if (event.key !== "Enter") return;
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      const el = target.closest(".ai-chat-cite-ref") as HTMLElement | null;
+      const el = target.closest(".zorecto-cite-ref") as HTMLElement | null;
       if (!el) return;
       event.preventDefault();
       void this.handleCitationActivate(el);
@@ -464,7 +464,7 @@ class AIChatPaneController {
   private updatePresetButtonLabel(presetId: string): void {
     const preset = getPresetById(presetId) ?? PRESETS[0];
     const labelEl = this.presetButton.querySelector(
-      ".ai-chat-preset-button__label",
+      ".zorecto-preset-button__label",
     ) as HTMLSpanElement | null;
     if (labelEl) labelEl.textContent = preset.label;
     else this.presetButton.textContent = preset.label;
@@ -489,12 +489,12 @@ class AIChatPaneController {
   private selectPreset(presetId: string): void {
     setSelectedPresetId(presetId);
     this.updatePresetButtonLabel(presetId);
-    const items = this.presetMenu.querySelectorAll(".ai-chat-preset-option");
+    const items = this.presetMenu.querySelectorAll(".zorecto-preset-option");
     for (let i = 0; i < items.length; i++) {
       const el = items[i] as HTMLElement;
       if (el.getAttribute("data-id") === presetId)
-        el.classList.add("ai-chat-preset-option--selected");
-      else el.classList.remove("ai-chat-preset-option--selected");
+        el.classList.add("zorecto-preset-option--selected");
+      else el.classList.remove("zorecto-preset-option--selected");
     }
     this.closePresetMenu();
   }
@@ -521,7 +521,7 @@ class AIChatPaneController {
     if (!this.sessionId) return;
     this.isContextLoading = true;
     if (!this.isSending) {
-      this.statusEl.textContent = getString("ai-chat-status-loading");
+      this.statusEl.textContent = getString("zorecto-status-loading");
     }
     this.contextLoadPromise = loadContextForProps(
       this.sessionId,
@@ -534,7 +534,7 @@ class AIChatPaneController {
         this.updateStatusDisplay(updated);
       })
       .catch((error) => {
-        ztoolkit.log("[ai-chat] 加载上下文失败", error);
+        ztoolkit.log("[zorecto] 加载上下文失败", error);
       })
       .finally(() => {
         this.isContextLoading = false;
@@ -551,7 +551,7 @@ class AIChatPaneController {
     if (!this.sessionId) return;
     this.isContextLoading = true;
     if (!this.isSending) {
-      this.statusEl.textContent = getString("ai-chat-status-loading");
+      this.statusEl.textContent = getString("zorecto-status-loading");
     }
     this.contextLoadPromise = loadContextForProps(
       this.sessionId,
@@ -564,7 +564,7 @@ class AIChatPaneController {
         this.updateStatusDisplay(updated);
       })
       .catch((error) => {
-        ztoolkit.log("[ai-chat] 刷新上下文失败", error);
+        ztoolkit.log("[zorecto] 刷新上下文失败", error);
       })
       .finally(() => {
         this.isContextLoading = false;
@@ -581,7 +581,7 @@ class AIChatPaneController {
             : undefined,
         );
       } catch (error) {
-        ztoolkit.log("[ai-chat] 销毁面板时停止请求出错", error);
+        ztoolkit.log("[zorecto] 销毁面板时停止请求出错", error);
       }
     }
     this.currentAbortController = undefined;
@@ -663,7 +663,7 @@ class AIChatPaneController {
     try {
       await openReaderAndNavigate(this.getDocument(), target.attachmentID!, target.page!, target.quote);
     } catch (error) {
-      ztoolkit.log("[ai-chat] 引用跳转失败", { error, target });
+      ztoolkit.log("[zorecto] 引用跳转失败", { error, target });
     }
   }
 
@@ -687,12 +687,12 @@ class AIChatPaneController {
       const entry = this.messageView.get(messageId);
       const content = message?.content ?? entry?.latestContent ?? "";
       if (!content.trim()) {
-        ztoolkit.log("[ai-chat] 无可复制的文本", { messageId });
+        ztoolkit.log("[zorecto] 无可复制的文本", { messageId });
         return;
       }
       await copyText(this.getDocument(), content);
     } catch (error) {
-      ztoolkit.log("[ai-chat] 复制消息失败", { messageId, error });
+      ztoolkit.log("[zorecto] 复制消息失败", { messageId, error });
     }
   }
 
@@ -718,7 +718,7 @@ class AIChatPaneController {
     this.sendButton.title = this.isSending ? "Stop" : "Send";
     this.sendButton.dataset.mode = this.isSending ? "stop" : "send";
     this.sendButton.classList.toggle(
-      "ai-chat-send-button--stop",
+      "zorecto-send-button--stop",
       this.isSending,
     );
     // toggle icons
@@ -818,16 +818,16 @@ class AIChatPaneController {
             : undefined,
         );
       } catch (error) {
-        ztoolkit.log("[ai-chat] 停止请求时出错", error);
+        ztoolkit.log("[zorecto] 停止请求时出错", error);
       }
     } else {
-      ztoolkit.log("[ai-chat] 当前环境不支持 AbortController，无法停止请求");
+      ztoolkit.log("[zorecto] 当前环境不支持 AbortController，无法停止请求");
     }
 
     if (this.sessionId) {
       const state = setSessionStatus(this.sessionId, "stopped");
       this.updateStatusDisplay(state);
-      ztoolkit.log("[ai-chat] 已请求停止当前流", {
+      ztoolkit.log("[zorecto] 已请求停止当前流", {
         sessionId: this.sessionId,
         hasController: Boolean(controller),
       });
@@ -843,7 +843,7 @@ class AIChatPaneController {
     this.refreshMessages();
     this.updateStatusDisplay(state);
     this.clearError();
-    ztoolkit.log("[ai-chat] 已清除会话消息", { sessionId: this.sessionId });
+    ztoolkit.log("[zorecto] 已清除会话消息", { sessionId: this.sessionId });
   }
 
   private createAbortController(): AbortController | undefined {
@@ -869,8 +869,8 @@ class AIChatPaneController {
 
   private async handleSubmit(): Promise<void> {
     if (!this.sessionId) {
-      this.showError(getString("ai-chat-error-server"));
-      ztoolkit.log("[ai-chat] 会话未初始化，无法发送消息");
+      this.showError(getString("zorecto-error-server"));
+      ztoolkit.log("[zorecto] 会话未初始化，无法发送消息");
       return;
     }
 
@@ -977,7 +977,7 @@ class AIChatPaneController {
     setLastResult(sessionId, undefined);
 
     if (error instanceof ProviderError) {
-      ztoolkit.log("[ai-chat] ProviderError", {
+      ztoolkit.log("[zorecto] ProviderError", {
         code: error.code,
         status: error.status,
         message: error.message,
@@ -995,19 +995,19 @@ class AIChatPaneController {
       }
 
       const messageKey = (error.messageKey ??
-        "ai-chat-error-server") as FluentMessageId;
+        "zorecto-error-server") as FluentMessageId;
       this.showError(getString(messageKey));
       removeMessage(sessionId, assistantMessageId);
       this.refreshMessages();
       return setSessionStatus(sessionId, "idle");
     }
 
-    ztoolkit.log("[ai-chat] 未知发送错误", {
+    ztoolkit.log("[zorecto] 未知发送错误", {
       error,
       sessionId,
       assistantMessageId,
     });
-    this.showError(getString("ai-chat-error-server"));
+    this.showError(getString("zorecto-error-server"));
     removeMessage(sessionId, assistantMessageId);
     this.refreshMessages();
     return setSessionStatus(sessionId, "idle");
@@ -1021,35 +1021,35 @@ class AIChatPaneController {
 
   private updateStatusDisplay(session: SessionState): void {
     if (session.status === "sending") {
-      this.statusEl.textContent = getString("ai-chat-status-sending");
+      this.statusEl.textContent = getString("zorecto-status-sending");
       return;
     }
     if (session.status === "streaming") {
-      this.statusEl.textContent = getString("ai-chat-status-streaming");
+      this.statusEl.textContent = getString("zorecto-status-streaming");
       return;
     }
 
     if (session.status === "stopped") {
-      this.statusEl.textContent = getString("ai-chat-status-stopped");
+      this.statusEl.textContent = getString("zorecto-status-stopped");
       return;
     }
 
     if (this.isContextLoading) {
-      this.statusEl.textContent = getString("ai-chat-status-loading");
+      this.statusEl.textContent = getString("zorecto-status-loading");
       return;
     }
 
     if (session.context.hasFulltext) {
-      this.statusEl.textContent = getString("ai-chat-status-loaded");
+      this.statusEl.textContent = getString("zorecto-status-loaded");
     } else {
-      this.statusEl.textContent = getString("ai-chat-status-missing");
+      this.statusEl.textContent = getString("zorecto-status-missing");
     }
   }
 
   private getDocument(): Document {
     const doc = this.body.ownerDocument;
     if (!doc) {
-      throw new Error("AI chat pane 缺少有效的 document");
+      throw new Error("zoRecto pane 缺少有效的 document");
     }
     return doc;
   }

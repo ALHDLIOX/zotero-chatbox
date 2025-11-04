@@ -1,8 +1,8 @@
-# Research: AI Chat Sidebar
+# Research: zoRecto Sidebar
 
 Date: 2025-10-29  
-Branch: 001-ai-chat-sidebar  
-Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-ai-chat-sidebar/spec.md
+Branch: 001-zorecto-sidebar  
+Spec: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-zorecto-sidebar/spec.md
 
 ## Goals
 

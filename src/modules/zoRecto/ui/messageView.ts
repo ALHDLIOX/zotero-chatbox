@@ -56,21 +56,21 @@ export class MessageView {
     if (existing) return existing;
 
     const container = ztoolkit.UI.createElement(this.doc, "div", {
-      classList: ["ai-chat-message"],
+      classList: ["zorecto-message"],
       attributes: { "data-message-id": message.id },
     });
 
     const roleLabel = ztoolkit.UI.createElement(this.doc, "span", {
-      classList: ["ai-chat-message-role"],
+      classList: ["zorecto-message-role"],
       properties: { hidden: true },
     });
 
     const content = ztoolkit.UI.createElement(this.doc, "div", {
-      classList: ["ai-chat-message-content"],
+      classList: ["zorecto-message-content"],
     });
 
     const mathError = ztoolkit.UI.createElement(this.doc, "div", {
-      classList: ["ai-chat-message-math-error"],
+      classList: ["zorecto-message-math-error"],
       properties: { hidden: true },
     });
 
@@ -79,15 +79,15 @@ export class MessageView {
     let copyButton: HTMLButtonElement | undefined;
     if (message.role === "assistant") {
       actions = ztoolkit.UI.createElement(this.doc, "div", {
-        classList: ["ai-chat-message-actions"],
+        classList: ["zorecto-message-actions"],
         properties: { hidden: true },
       });
 
       copyButton = ztoolkit.UI.createElement(this.doc, "button", {
-        classList: ["ai-chat-copy-button"],
+        classList: ["zorecto-copy-button"],
         properties: {
           type: "button",
-          title: getString("ai-chat-copy-button"),
+          title: getString("zorecto-copy-button"),
         } as any,
         listeners: [
           {
@@ -115,7 +115,7 @@ export class MessageView {
         copyIcon.appendChild(copyPath);
         copyButton.appendChild(copyIcon);
       } catch (e) {
-        copyButton.textContent = getString("ai-chat-copy-button");
+        copyButton.textContent = getString("zorecto-copy-button");
       }
 
       actions.appendChild(copyButton);
@@ -235,13 +235,13 @@ export class MessageView {
     const show = Boolean(hasError && !suppress);
     entry.mathError.hidden = !show;
     entry.mathError.textContent = show
-      ? getString("ai-chat-math-render-error")
+      ? getString("zorecto-math-render-error")
       : "";
   }
 
   // Parse inline citation markers and render small numeric buttons in-place
   private applyCitations(entry: MessageDom, content: string): void {
-    const existing = entry.content.querySelectorAll(".ai-chat-citations");
+    const existing = entry.content.querySelectorAll(".zorecto-citations");
     for (let i = 0; i < existing.length; i++) {
       const el = existing[i] as HTMLElement;
       el.remove();
@@ -276,16 +276,16 @@ export class MessageView {
           );
         } else {
           const group = ztoolkit.UI.createElement(this.doc, "span", {
-            classList: ["ai-chat-citations"],
+            classList: ["zorecto-citations"],
             attributes: { role: "group" },
           });
           for (const c of cites) {
             const ref = ztoolkit.UI.createElement(this.doc, "span", {
-              classList: ["ai-chat-cite-ref"],
+              classList: ["zorecto-cite-ref"],
               attributes: {
                 role: "button",
                 tabindex: "0",
-                "aria-label": getString("ai-chat-citation-aria", {
+                "aria-label": getString("zorecto-citation-aria", {
                   args: { page: Number(c.page) || 1 },
                 } as any),
               },
@@ -321,8 +321,8 @@ export class MessageView {
         const text = (code.textContent || "").trim();
         if (lang === "zotero-citations" || looksLikeCitationsJson(text)) {
           const pre = code.parentElement as HTMLElement | null;
-          if (pre) pre.classList.add("ai-chat-hidden");
-          else code.classList.add("ai-chat-hidden");
+          if (pre) pre.classList.add("zorecto-hidden");
+          else code.classList.add("zorecto-hidden");
         }
       }
     } catch (e) {
@@ -394,7 +394,7 @@ function shouldSkipForCitations(node: Text): boolean {
     const tag = ((el as HTMLElement).tagName || "").toLowerCase();
     if (tag === "code" || tag === "pre") return true;
     const cls = (el as HTMLElement).className || "";
-    if (/\b(katex|math-|ai-chat-citations)\b/.test(cls)) return true;
+    if (/\b(katex|math-|zorecto-citations)\b/.test(cls)) return true;
     el = el.parentNode;
   }
   return false;
