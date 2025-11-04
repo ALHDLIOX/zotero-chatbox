@@ -1,5 +1,5 @@
 import { BasicExampleFactory } from "./modules/examples";
-import { registerAIChatReaderPane } from "./modules/aiChat/readerPane";
+import { registerzoRectoReaderPane } from "./modules/zoRecto/readerPane";
 import { getString, initLocale } from "./utils/locale";
 import { registerPrefsScripts } from "./modules/preferenceScript";
 import { createZToolkit } from "./utils/ztoolkit";
@@ -15,7 +15,7 @@ async function onStartup() {
 
   BasicExampleFactory.registerPrefs();
 
-  await registerAIChatReaderPane();
+  await registerzoRectoReaderPane();
 
   await Promise.all(
     Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),
@@ -32,6 +32,12 @@ async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
 
   win.MozXULElement.insertFTLIfNeeded(
     `${addon.data.config.addonRef}-mainWindow.ftl`,
+  );
+  // The reader pane header/sidenav strings live in addon.ftl
+  // and need to be available to the main window's DOM l10n.
+  // Without this, data-l10n-id on the pane header resolves to empty.
+  win.MozXULElement.insertFTLIfNeeded(
+    `${addon.data.config.addonRef}-addon.ftl`,
   );
 
   const popupWin = new ztoolkit.ProgressWindow(addon.data.config.addonName, {

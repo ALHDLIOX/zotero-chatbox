@@ -14,7 +14,7 @@ Validate Markdown + LaTeX math rendering and UI cleanup (Settings and Sidebar) w
 
 ## Steps
 
-1) Open a PDF in Zotero reader and open the AI chat sidebar.
+1) Open a PDF in Zotero reader and open the zoRecto sidebar.
 2) Send a prompt with inline math, e.g., `Pythagorean theorem: $a^2 + b^2 = c^2$`.
    - Expect: Inline typeset math; surrounding text rendered as Markdown.
 3) Send a prompt with block math, e.g.,

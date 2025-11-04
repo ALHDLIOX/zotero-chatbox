@@ -1,11 +1,11 @@
 ---
 
-description: "Task list for 001-ai-chat-sidebar feature implementation"
+description: "Task list for 001-zorecto-sidebar feature implementation"
 ---
 
-# Tasks: AI Chat Sidebar
+# Tasks: zoRecto Sidebar
 
-**Input**: Design documents from `/specs/001-ai-chat-sidebar/`
+**Input**: Design documents from `/specs/001-zorecto-sidebar/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/
 
 **Tests**: Tests are optional. This plan focuses on implementation tasks; acceptance is validated via the Independent Test criteria per story.
@@ -31,13 +31,13 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 **Purpose**: Establish feature module, registration, localization, and default preferences.
 
-- [X] T001 Create feature module folder and `readerPane.ts` skeleton in `src/modules/aiChat/readerPane.ts`
-- [X] T002 [P] Create provider client skeleton in `src/modules/aiChat/provider.ts`
-- [X] T003 [P] Create session state skeleton in `src/modules/aiChat/session.ts`
-- [X] T004 [P] Create preferences helper skeleton in `src/modules/aiChat/prefs.ts`
-- [X] T005 Register AI Chat Reader Item Pane in `src/hooks.ts` (import and call register from `src/modules/aiChat/readerPane.ts`)
+- [X] T001 Create feature module folder and `readerPane.ts` skeleton in `src/modules/zoRecto/readerPane.ts`
+- [X] T002 [P] Create provider client skeleton in `src/modules/zoRecto/provider.ts`
+- [X] T003 [P] Create session state skeleton in `src/modules/zoRecto/session.ts`
+- [X] T004 [P] Create preferences helper skeleton in `src/modules/zoRecto/prefs.ts`
+- [X] T005 Register zoRecto Reader Item Pane in `src/hooks.ts` (import and call register from `src/modules/zoRecto/readerPane.ts`)
 - [X] T006 Add default preference keys for provider settings in `addon/prefs.js` (keys: `provider`, `endpoint`, `model`, `apiKey`)
-- [X] T007 [P] Add Chinese UI strings for AI Chat (panel title, status labels, buttons) in `addon/locale/zh-CN/addon.ftl`
+- [X] T007 [P] Add Chinese UI strings for zoRecto (panel title, status labels, buttons) in `addon/locale/zh-CN/addon.ftl`
 - [X] T008 [P] Add Chinese preference labels (Provider, Endpoint URL, Model, API Key) in `addon/locale/zh-CN/preferences.ftl`
 
 ---
@@ -46,30 +46,30 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 **Purpose**: Core building blocks required by all user stories (no user story work before completing this phase).
 
-- [X] T009 Implement preferences accessors and validation in `src/modules/aiChat/prefs.ts` (read via `config.prefsPrefix`)
-- [X] T010 [P] Define entities and session operations in `src/modules/aiChat/session.ts` (Message, ChatResult, Session; add get/set/clear APIs)
-- [X] T011 [P] Implement OpenAI-compatible client with SSE streaming in `src/modules/aiChat/provider.ts` (sendChat, stream parsing, abort support)
-- [X] T012 Add token-limit preflight check and localized error propagation in `src/modules/aiChat/provider.ts`
+- [X] T009 Implement preferences accessors and validation in `src/modules/zoRecto/prefs.ts` (read via `config.prefsPrefix`)
+- [X] T010 [P] Define entities and session operations in `src/modules/zoRecto/session.ts` (Message, ChatResult, Session; add get/set/clear APIs)
+- [X] T011 [P] Implement OpenAI-compatible client with SSE streaming in `src/modules/zoRecto/provider.ts` (sendChat, stream parsing, abort support)
+- [X] T012 Add token-limit preflight check and localized error propagation in `src/modules/zoRecto/provider.ts`
 - [X] T013 [P] Add Chinese error messages (token limit, network, auth) in `addon/locale/zh-CN/addon.ftl`
 
 **Checkpoint**: Foundation ready — proceed to user stories.
 
 ---
 
-## Phase 3: User Story 1 - View and Interact with AI Chat Sidebar (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - View and Interact with zoRecto Sidebar (Priority: P1) 🎯 MVP
 
-**Goal**: Display an AI chat sidebar in the Zotero reader that shows document-context status and supports basic send/receive chat.
+**Goal**: Display an zoRecto sidebar in the Zotero reader that shows document-context status and supports basic send/receive chat.
 
 **Independent Test**: Open a PDF, open the sidebar, verify context status (“已载入” vs “无文档上下文”), send a message with Shift+Enter, and observe the streamed response.
 
 ### Implementation for User Story 1
 
-- [X] T014 [US1] Register Reader Item Pane section (header/sidenav with l10n) in `src/modules/aiChat/readerPane.ts`
-- [X] T015 [US1] Render chat UI (status, messages area, input, Send button) in `src/modules/aiChat/readerPane.ts`
-- [X] T016 [US1] Detect PDF full-text index + page map via Zotero API and update status in `src/modules/aiChat/readerPane.ts`
-- [X] T017 [US1] Implement Shift+Enter send handler to call `sendChat` and stream to UI in `src/modules/aiChat/readerPane.ts`
-- [X] T018 [US1] Read and validate settings via `src/modules/aiChat/prefs.ts`; show localized errors when missing in `src/modules/aiChat/readerPane.ts`
-- [X] T019 [US1] Scope per-reader-tab in-memory session and lifecycle in `src/modules/aiChat/session.ts` (no persistence across items/windows)
+- [X] T014 [US1] Register Reader Item Pane section (header/sidenav with l10n) in `src/modules/zoRecto/readerPane.ts`
+- [X] T015 [US1] Render chat UI (status, messages area, input, Send button) in `src/modules/zoRecto/readerPane.ts`
+- [X] T016 [US1] Detect PDF full-text index + page map via Zotero API and update status in `src/modules/zoRecto/readerPane.ts`
+- [X] T017 [US1] Implement Shift+Enter send handler to call `sendChat` and stream to UI in `src/modules/zoRecto/readerPane.ts`
+- [X] T018 [US1] Read and validate settings via `src/modules/zoRecto/prefs.ts`; show localized errors when missing in `src/modules/zoRecto/readerPane.ts`
+- [X] T019 [US1] Scope per-reader-tab in-memory session and lifecycle in `src/modules/zoRecto/session.ts` (no persistence across items/windows)
 
 **Checkpoint**: User Story 1 independently testable and demoable (MVP).
 
@@ -83,10 +83,10 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 ### Implementation for User Story 2
 
-- [X] T020 [US2] Implement Stop toggle UI and wiring with AbortController in `src/modules/aiChat/readerPane.ts`
-- [X] T021 [P] [US2] Handle `AbortController` correctly in streaming client in `src/modules/aiChat/provider.ts` (stop within ≤1s)
-- [X] T022 [US2] Implement Clear action to reset messages but retain context in `src/modules/aiChat/readerPane.ts` and `src/modules/aiChat/session.ts`
-- [X] T023 [US2] Ensure session isolation across items/windows in `src/modules/aiChat/session.ts` (no cross-item/window persistence)
+- [X] T020 [US2] Implement Stop toggle UI and wiring with AbortController in `src/modules/zoRecto/readerPane.ts`
+- [X] T021 [P] [US2] Handle `AbortController` correctly in streaming client in `src/modules/zoRecto/provider.ts` (stop within ≤1s)
+- [X] T022 [US2] Implement Clear action to reset messages but retain context in `src/modules/zoRecto/readerPane.ts` and `src/modules/zoRecto/session.ts`
+- [X] T023 [US2] Ensure session isolation across items/windows in `src/modules/zoRecto/session.ts` (no cross-item/window persistence)
 
 **Checkpoint**: User Stories 1 and 2 both independently functional.
 
@@ -96,14 +96,14 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 **Goal**: Allow users to configure Provider, Endpoint URL, Model, and API Key in Zotero Preferences; apply immediately.
 
-**Independent Test**: Open Preferences → “zotero-chatbox” tab, modify fields, save; verify new settings are used by subsequent chats without restart; saving blocked if required fields empty.
+**Independent Test**: Open Preferences → "zorecto" tab, modify fields, save; verify new settings are used by subsequent chats without restart; saving blocked if required fields empty.
 
 ### Implementation for User Story 3
 
 - [X] T024 [US3] Add Provider/Endpoint/Model/API Key fields to prefs UI in `addon/content/preferences.xhtml` (with appropriate `data-l10n-id`)
 - [X] T025 [P] [US3] Add Chinese l10n entries for new fields and validation messages in `addon/locale/zh-CN/preferences.ftl`
 - [X] T026 [US3] Bind prefs validation and events in `src/modules/preferenceScript.ts` (block save when required fields missing)
-- [X] T027 [US3] Ensure `src/modules/aiChat/provider.ts` reads current settings on each request (no restart required)
+- [X] T027 [US3] Ensure `src/modules/zoRecto/provider.ts` reads current settings on each request (no restart required)
 
 **Checkpoint**: All three user stories independently functional.
 
@@ -114,7 +114,7 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 **Purpose**: Localization completeness, cleanup, and manual quickstart validation.
 
 - [X] T028 [P] Add English fallback l10n for new keys in `addon/locale/en-US/addon.ftl` and `addon/locale/en-US/preferences.ftl`
-- [X] T029 Run quickstart validation steps in `/specs/001-ai-chat-sidebar/quickstart.md`
+- [X] T029 Run quickstart validation steps in `/specs/001-zorecto-sidebar/quickstart.md`
 - [X] T030 [P] Lint and format the codebase (`eslint`/`prettier`) at repository root
 
 ---
@@ -156,19 +156,19 @@ description: "Task list for 001-ai-chat-sidebar feature implementation"
 
 ```
 Parallel prep (after Phase 2):
-- Implement session operations: src/modules/aiChat/session.ts (T010)
-- Implement provider streaming: src/modules/aiChat/provider.ts (T011)
+- Implement session operations: src/modules/zoRecto/session.ts (T010)
+- Implement provider streaming: src/modules/zoRecto/provider.ts (T011)
 
 Then UI wiring:
-- Register + render UI + context detection + send: src/modules/aiChat/readerPane.ts (T014–T018)
+- Register + render UI + context detection + send: src/modules/zoRecto/readerPane.ts (T014–T018)
 ```
 
 ### User Story 2
 
 ```
 In parallel:
-- Abort handling in provider: src/modules/aiChat/provider.ts (T021)
-- Stop/clear UI wiring: src/modules/aiChat/readerPane.ts (T020, T022)
+- Abort handling in provider: src/modules/zoRecto/provider.ts (T021)
+- Stop/clear UI wiring: src/modules/zoRecto/readerPane.ts (T020, T022)
 ```
 
 ### User Story 3
@@ -180,7 +180,7 @@ In parallel:
 
 Then:
 - Bind prefs validation: src/modules/preferenceScript.ts (T026)
-- Ensure provider reads fresh settings: src/modules/aiChat/provider.ts (T027)
+- Ensure provider reads fresh settings: src/modules/zoRecto/provider.ts (T027)
 ```
 
 ---

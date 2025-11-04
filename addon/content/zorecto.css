@@ -1,0 +1,586 @@
+.zorecto-pane {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-3);
+  box-sizing: border-box;
+  gap: var(--space-3);
+}
+
+/* Fixed-height dialog wrapper with resizable handle */
+.zorecto-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: var(--dialog-height, 360px);
+  min-height: 180px;
+  max-height: calc(100% - var(--space-6));
+}
+
+.zorecto-resize-handle {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  user-select: none;
+  touch-action: none;
+  /* pull closer to input (counter the pane gap) */
+  margin-top: calc(var(--space-1) - var(--space-3));
+}
+.zorecto-resize-handle::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  box-shadow: var(--shadow-active);
+}
+
+/* Scoped base controls */
+.zorecto-pane button,
+.zorecto-pane input,
+.zorecto-pane textarea {
+  transition:
+    background-color var(--anim-fast) linear,
+    border-color var(--anim-fast) linear,
+    color var(--anim-fast) linear,
+    box-shadow var(--anim-fast) linear,
+    transform var(--anim-fast) var(--ease);
+}
+
+.zorecto-status {
+  font-weight: 500;
+  color: var(--zotero-secondary-text-color, #444);
+  padding: var(--space-1) var(--space-1);
+}
+
+.zorecto-error {
+  color: var(--zotero-error-color, #c71515);
+}
+
+.zorecto-input-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--zotero-secondary-text-color, #444);
+}
+
+.zorecto-input {
+  resize: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-1) var(--space-1);
+  border-radius: calc(var(--radius-lg) - var(--space-1));
+  border: none;
+  outline: none;
+  background: transparent;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+}
+
+.zorecto-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.zorecto-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+  flex: 1;
+  padding: var(--space-1) 0;
+}
+
+.zorecto-message {
+  max-width: 85%;
+  border-radius: var(--radius-lg);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--surface-1);
+  border: var(--border-width) solid var(--border);
+}
+
+.zorecto-message[data-role="user"] {
+  align-self: flex-end;
+  background-color: var(--accent-weak);
+  border-color: color-mix(in oklab, var(--accent) 25%, transparent);
+}
+
+.zorecto-message[data-role="assistant"] {
+  /* Remove bubble styling and fill width */
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* Place assistant copy action at bottom-left */
+.zorecto-message[data-role="assistant"] .zorecto-message-actions {
+  justify-content: flex-end; /* move to the right */
+  padding-right: var(--space-1); /* safe inset to avoid clipping */
+}
+
+.zorecto-message-role {
+  display: none !important;
+}
+
+.zorecto-message-content {
+  line-height: 1.5;
+  white-space: normal;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Empty placeholder when there are no messages */
+.zorecto-empty-placeholder {
+  color: var(--placeholder-text, #666);
+  text-align: left;
+  padding: var(--space-3) var(--space-2);
+  border: var(--border-width) dashed var(--border-dashed-color);
+  border-radius: var(--radius);
+}
+
+/* Welcome block shown when there are no messages */
+.zorecto-welcome { font-style: normal; color: var(--color-text); }
+.zorecto-welcome-title { font-weight: 600; margin: 0 0 var(--space-1); }
+.zorecto-welcome-subtitle { margin: 0 0 var(--space-2); color: var(--zotero-secondary-text-color, #444); }
+.zorecto-suggestions { display: flex; flex-direction: column; gap: var(--space-2); }
+.zorecto-suggestion {
+  text-align: center; /* center horizontally */
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3); /* match user bubble */
+  border-radius: var(--radius-lg); /* match user bubble */
+  border: var(--border-width) solid color-mix(in oklab, var(--accent) 25%, transparent);
+  background: var(--accent-weak); /* match user bubble */
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;               /* center vertically */
+  align-items: center;         /* vertical center */
+  justify-content: center;     /* horizontal center for flex */
+  transition: background-color var(--anim-fast) linear, box-shadow var(--anim-fast) linear, transform var(--anim-fast) var(--ease);
+}
+.zorecto-suggestion:hover { background: color-mix(in oklab, var(--accent-weak) 80%, white); box-shadow: var(--shadow-hover); }
+.zorecto-suggestion:active { transform: scale(0.99); box-shadow: var(--shadow-active); }
+.zorecto-suggestion:focus { outline: none; border-color: color-mix(in oklab, var(--accent) 60%, transparent); }
+
+.zorecto-message-content pre,
+.zorecto-message-content code {
+  font-family: var(--zotero-code-font, "SFMono-Regular", "Consolas", monospace);
+}
+
+.zorecto-message-content pre code[data-language="zotero-citations"] {
+  display: none !important;
+}
+
+.zorecto-message-content pre {
+  margin: var(--space-1) 0;
+  padding: var(--space-3);
+  background-color: var(--surface-2);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.zorecto-message-content ul,
+.zorecto-message-content ol {
+  padding-inline-start: var(--list-indent);
+  margin: var(--space-2) 0;
+}
+
+/* Normalize paragraph spacing and remove outer edge expansion */
+.zorecto-message-content p {
+  margin: var(--space-1) 0;
+}
+
+.zorecto-message-content > *:first-child { margin-top: 0 !important; }
+.zorecto-message-content > *:last-child { margin-bottom: 0 !important; }
+
+.zorecto-message-content h1,
+.zorecto-message-content h2,
+.zorecto-message-content h3 {
+  margin: var(--space-1) 0 var(--space-1);
+  font-weight: 600;
+}
+
+.zorecto-message-content h1 {
+  font-size: 1.2em;
+}
+
+.zorecto-message-content h2 {
+  font-size: 1.1em;
+}
+
+.zorecto-message-content h3 {
+  font-size: 1em;
+}
+
+.zorecto-message-content .math-inline {
+  font-size: 1em;
+  color: inherit;
+}
+
+.zorecto-message-content .math-block {
+  margin: var(--space-3) 0;
+  text-align: center;
+}
+
+.zorecto-message-content .math-block .katex-display {
+  margin: 0;
+}
+
+.zorecto-message-content .math-error {
+  font-size: 0.9em;
+  color: var(--zotero-error-color, #c71515);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.zorecto-message-content .math-error::before {
+  content: "⚠";
+  font-size: 0.9em;
+}
+
+.zorecto-message-math-error {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--zotero-error-color, #c71515);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.zorecto-message-math-error[hidden] {
+  display: none !important;
+}
+
+.zorecto-message-math-error::before {
+  content: "⚠";
+  font-size: var(--font-size-xs);
+}
+
+.zorecto-message-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* Input area */
+.zorecto-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-strong) solid color-mix(in oklab, var(--accent) 50%, transparent);
+  background: var(--accent-weakest);
+  flex: 0 0 auto;
+}
+
+.zorecto-button-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: flex-end;
+  margin-top: 0;
+  padding: 0;
+}
+
+/* Icon buttons: base + variants */
+.zorecto-icon-button,
+.zorecto-clear-button,
+.zorecto-send-button,
+.zorecto-copy-button,
+.zorecto-cite-ref {
+  width: var(--control-size-sm);
+  height: var(--control-size-sm);
+  min-width: var(--control-size-sm);
+  min-height: var(--control-size-sm);
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+  line-height: 1;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    background-color var(--anim-fast) linear,
+    color var(--anim-fast) linear,
+    box-shadow var(--anim-fast) linear,
+    transform var(--anim-fast) var(--ease);
+}
+.zorecto-clear-button { margin-right: auto; }
+.zorecto-icon-button svg,
+.zorecto-clear-button svg,
+.zorecto-send-button svg,
+.zorecto-copy-button svg {
+  pointer-events: none;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  display: block;
+  flex-shrink: 0;
+  transition: transform var(--anim-fast) var(--ease);
+}
+.zorecto-icon-button:hover,
+.zorecto-clear-button:hover,
+.zorecto-copy-button:hover {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-hover);
+}
+.zorecto-icon-button:active,
+.zorecto-clear-button:active,
+.zorecto-copy-button:active {
+  background: var(--surface-press);
+  box-shadow: var(--shadow-active);
+  transform: scale(0.95);
+}
+
+/* Send button: primary accent + stop variant */
+.zorecto-send-button { color: var(--accent); }
+.zorecto-send-button:hover {
+  background: var(--accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-accent-hover);
+}
+.zorecto-send-button:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: var(--shadow-accent-active);
+}
+.zorecto-send-button.zorecto-send-button--stop {
+  background: transparent;
+  color: var(--danger);
+  box-shadow: none;
+}
+.zorecto-send-button.zorecto-send-button--stop:hover {
+  background: var(--danger);
+  color: var(--color-on-danger);
+  box-shadow: var(--shadow-danger-hover);
+}
+
+/* Custom preset dropdown */
+.zorecto-preset-wrapper {
+  position: relative;
+  display: inline-block;
+  width: var(--preset-width); /* Fixed width for button and menu */
+}
+
+.zorecto-preset-button {
+  width: 100%;
+  height: var(--control-size-sm);
+  padding: 0 var(--preset-arrow-pad) 0 var(--preset-pad-left); /* left aligns with option; right reserves arrow */
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  border: var(--border-width) solid var(--border);
+  cursor: pointer;
+  transition: background-color var(--anim-fast) linear, border-color var(--anim-fast) linear, transform var(--anim-fast) var(--ease);
+  font-size: var(--font-size-sm);
+  line-height: 1.25; /* do not force; avoid clipping */
+  color: var(--color-text);
+  text-align: left; /* UA default; keep explicit */
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative; /* for absolute arrow */
+  display: flex;
+  align-items: center; /* vertically center text reliably */
+  justify-content: flex-start; /* keep content left-aligned */
+  gap: 0;
+  min-width: 0; /* allow ellipsis in flex item */
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.zorecto-preset-button:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.zorecto-preset-button:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+}
+
+.zorecto-preset-button::after {
+  content: "▼";
+  font-size: var(--font-size-caret);
+  opacity: 0.5;
+  transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.zorecto-preset-button[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+/* Label inside the preset button for correct ellipsis behavior */
+.zorecto-preset-button__label {
+  flex: 1 1 auto;
+  min-width: 0; /* required for ellipsis in flex children */
+  display: block; /* Gecko: ensure text-overflow works */
+  width: 100%;
+  text-align: left;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Remove Firefox inner focus padding that can shift text */
+.zorecto-preset-button::-moz-focus-inner { border: 0; padding: 0; }
+
+.zorecto-preset-menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  width: 100%; /* Match wrapper/button width */
+  background: var(--surface-menu);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1); /* left inset aligns with button label */
+  margin: 0;
+  list-style: none;
+  z-index: var(--z-menu);
+  max-height: var(--menu-max-height);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.zorecto-preset-menu[hidden] {
+  display: none;
+}
+
+.zorecto-preset-option {
+  padding: 0 var(--space-3); /* left inset provided by menu padding */
+  cursor: pointer;
+  transition: all var(--anim-fast) var(--ease);
+  font-size: var(--font-size-sm);
+  line-height: var(--control-size-sm); /* match trigger height */
+  color: var(--color-text);
+  user-select: none;
+  border-radius: var(--radius-md);
+  height: var(--control-size-sm); /* match trigger height */
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--space-1);
+}
+
+.zorecto-preset-option:last-child {
+  margin-bottom: 0;
+}
+
+.zorecto-preset-option:hover,
+.zorecto-preset-option:focus {
+  background: var(--accent-weak);
+  outline: none;
+}
+
+.zorecto-preset-option--selected {
+  background: var(--accent-weak);
+  color: var(--accent);
+  font-weight: 500;
+  padding-right: var(--control-size-sm);
+}
+
+.zorecto-preset-option--selected::after {
+  content: "✓";
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.zorecto-copy-button svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  display: block;
+  flex-shrink: 0;
+  transition: transform var(--anim-fast) var(--ease);
+}
+
+.zorecto-copy-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+.zorecto-copy-button:disabled:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Citation buttons */
+.zorecto-citations {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  vertical-align: baseline;
+  font-size: 0.85em;
+}
+
+/* Citation button specific overrides */
+.zorecto-cite-ref {
+  width: 1.4em;
+  height: 1.4em;
+  min-width: 1.4em;
+  min-height: 1.4em;
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  color: var(--accent);
+  background-color: var(--surface-1);
+}
+
+.zorecto-cite-ref:hover {
+  background-color: var(--accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-accent-hover);
+}
+
+.zorecto-cite-ref:active {
+  transform: scale(0.95);
+  box-shadow: var(--shadow-accent-active);
+}
+
+
+/* Utilities moved to global.css */
+.zorecto-settings-row,
+.zorecto-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Clear separation between conversation and controls */
+.zorecto-toolbar {
+  border-top: var(--border-width-strong) solid color-mix(in oklab, var(--accent) 45%, transparent);
+  padding-top: var(--space-2);
+}
+
+/* End of scoped styles */

@@ -6,9 +6,9 @@
 
 ## Active Technologies
 
-- TypeScript ^5.9.2 + zotero-plugin-toolkit, XUL/XHTML for UI (001-ai-chat-sidebar)
-- Zotero preferences system for settings; in-memory for session data. (001-ai-chat-sidebar)
+- TypeScript ^5.9.2 + zotero-plugin-toolkit, XUL/XHTML for UI (001-zorecto-sidebar)
+- Zotero preferences system for settings; in-memory for session data. (001-zorecto-sidebar)
 
 ## Recent Changes
 
-- 001-ai-chat-sidebar: Added TypeScript ^5.9.2 + zotero-plugin-toolkit, XUL/XHTML for UI
+- 001-zorecto-sidebar: Added TypeScript ^5.9.2 + zotero-plugin-toolkit, XUL/XHTML for UI

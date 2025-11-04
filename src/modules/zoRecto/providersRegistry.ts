@@ -13,7 +13,7 @@ export const PRESETS: ProviderPreset[] = [
   {
     id: "openai:gpt-4.1",
     provider: "openai",
-    labelKey: "ai-chat-preset-openai-gpt-4-1",
+    labelKey: "zorecto-preset-openai-gpt-4-1",
     label: "ChatGPT 4.1",
     endpoint: "https://api.openai.com",
     model: "gpt-4.1",
@@ -21,7 +21,7 @@ export const PRESETS: ProviderPreset[] = [
   {
     id: "deepseek:deepseek-chat",
     provider: "deepseek",
-    labelKey: "ai-chat-preset-deepseek-chat",
+    labelKey: "zorecto-preset-deepseek-chat",
     label: "deepseek chat",
     endpoint: "https://api.deepseek.com",
     model: "deepseek-chat",

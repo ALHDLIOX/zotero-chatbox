@@ -42,7 +42,7 @@ const ALLOWED_ATTRS = new Set([
 const SAFE_PROTOCOL = /^(https?:|mailto:)/i;
 const SAFE_STYLE = /^[a-z0-9\-:;.%()\s]+$/i;
 const ALLOWED_CLASS =
-  /^(?:ai-chat-|math-|katex|katex-|vlist|vlist-|m[a-z-]+|pstrut|rule|clap|llap|rlap|sizing|fontsize-|strut)/;
+  /^(?:zorecto-|math-|katex|katex-|vlist|vlist-|m[a-z-]+|pstrut|rule|clap|llap|rlap|sizing|fontsize-|strut)/;
 
 const NODE_COMMENT =
   typeof Node !== "undefined" ? Node.COMMENT_NODE : /* comment */ 8;

@@ -1,13 +1,13 @@
-# Implementation Plan: AI Chat Sidebar
+# Implementation Plan: zoRecto Sidebar
 
-**Branch**: `001-ai-chat-sidebar` | **Date**: 2025-10-29 | **Spec**: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-ai-chat-sidebar/spec.md
-**Input**: Feature specification from `/specs/001-ai-chat-sidebar/spec.md`
+**Branch**: `001-zorecto-sidebar` | **Date**: 2025-10-29 | **Spec**: /Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-zorecto-sidebar/spec.md
+**Input**: Feature specification from `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/001-zorecto-sidebar/spec.md`
 
 **Note**: Generated following the specified plan workflow. All outputs conform to the Zotero Plugin Template style in `README.md` and the project constitution.
 
 ## Summary
 
-Add an AI Chat sidebar as a new Reader Item Pane section in Zotero 7. When a PDF is opened, the sidebar shows document-context status based on the PDF’s full‑text index and page mapping. Users can chat with an OpenAI‑compatible provider, interrupt streaming with a Stop button, and clear the chat history while retaining the document context. Settings (provider endpoint, model, API key) are configurable in the Preferences panel. All user‑facing strings appear in Simplified Chinese via `.ftl` localization.
+Add an zoRecto sidebar as a new Reader Item Pane section in Zotero 7. When a PDF is opened, the sidebar shows document-context status based on the PDF’s full‑text index and page mapping. Users can chat with an OpenAI‑compatible provider, interrupt streaming with a Stop button, and clear the chat history while retaining the document context. Settings (provider endpoint, model, API key) are configurable in the Preferences panel. All user‑facing strings appear in Simplified Chinese via `.ftl` localization.
 
 ## Technical Context
 
@@ -39,7 +39,7 @@ GATE pre‑research assessment (to be re‑checked post‑design):
 ### Documentation (this feature)
 
 ```text
-specs/001-ai-chat-sidebar/
+specs/001-zorecto-sidebar/
 ├── plan.md              # This file (filled by current workflow)
 ├── research.md          # Phase 0 output
 ├── data-model.md        # Phase 1 output
@@ -52,7 +52,7 @@ specs/001-ai-chat-sidebar/
 ```text
 src/
 ├── modules/
-│   ├── aiChat/
+│   ├── zoRecto/
 │   │   ├── readerPane.ts      # Register Reader Item Pane section and wire UI events
 │   │   ├── provider.ts        # OpenAI‑compatible request wrapper (fetch + streaming)
 │   │   ├── session.ts         # In‑memory session state (messages, status, context)
@@ -70,7 +70,7 @@ test/
     └── reader.pane.smoke.test.ts
 ```
 
-**Structure Decision**: Single template plugin. New feature lives under `src/modules/aiChat/` with clear separation of UI registration, provider I/O, session state, and preferences. Tests follow existing Mocha/Chai setup under `test/`.
+**Structure Decision**: Single template plugin. New feature lives under `src/modules/zoRecto/` with clear separation of UI registration, provider I/O, session state, and preferences. Tests follow existing Mocha/Chai setup under `test/`.
 
 ## Complexity Tracking
 

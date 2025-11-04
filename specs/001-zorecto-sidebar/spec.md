@@ -1,15 +1,15 @@
-# Feature Specification: AI Chat Sidebar
+# Feature Specification: zoRecto Sidebar
 
-**Feature Branch**: `001-ai-chat-sidebar`
+**Feature Branch**: `001-zorecto-sidebar`
 **Created**: 2025-10-28
 **Status**: Draft
 **Input**: User description: "现在这个项目是一个插件模版，我要基于这个模版构建一个自己的插件..."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - View and Interact with AI Chat Sidebar (Priority: P1)
+### User Story 1 - View and Interact with zoRecto Sidebar (Priority: P1)
 
-As a user, I want to open a PDF in the Zotero reader and see a new AI chat sidebar in the item pane. The sidebar should indicate whether a document context is loaded, and I want to be able to send messages and receive responses.
+As a user, I want to open a PDF in the Zotero reader and see a new zoRecto sidebar in the item pane. The sidebar should indicate whether a document context is loaded, and I want to be able to send messages and receive responses.
 
 **Why this priority**: This is the core functionality of the plugin, enabling the main user interaction with the AI model.
 
@@ -17,9 +17,9 @@ As a user, I want to open a PDF in the Zotero reader and see a new AI chat sideb
 
 **Acceptance Scenarios**:
 
-1.  **Given** a PDF is open in the Zotero reader, **When** I navigate to the item pane, **Then** a new icon/tab for the AI chat sidebar is visible alongside existing panels.
-2.  **Given** the AI chat sidebar is open and the PDF has a full-text index with page mapping, **When** the panel loads, **Then** a status bar at the top displays "文档上下文：已载入".
-3.  **Given** the AI chat sidebar is open and the PDF does not have a full-text index or page mapping, **When** the panel loads, **Then** a status bar at the top displays "无文档上下文".
+1.  **Given** a PDF is open in the Zotero reader, **When** I navigate to the item pane, **Then** a new icon/tab for the zoRecto sidebar is visible alongside existing panels.
+2.  **Given** the zoRecto sidebar is open and the PDF has a full-text index with page mapping, **When** the panel loads, **Then** a status bar at the top displays "文档上下文：已载入".
+3.  **Given** the zoRecto sidebar is open and the PDF does not have a full-text index or page mapping, **When** the panel loads, **Then** a status bar at the top displays "无文档上下文".
 4.  **Given** I am in the chat sidebar, **When** I type a message and press Shift+Enter, **Then** the message is sent to the AI model and the response is displayed in the chat area.
 
 ---
@@ -37,7 +37,7 @@ As a user, I want to be able to stop a streaming response from the AI and clear 
 1.  **Given** a response is streaming from the AI, **When** I click the "Stop" button, **Then** the response generation is immediately aborted, and the button reverts to "Send".
 2.  **Given** there are messages in the chat history, **When** I click the "Clear" button, **Then** all messages are removed from the chat window, and only the PDF full-text index context (if loaded) is retained for the next interaction.
 3.  **Given** the chat is cleared, **When** I send a new message, **Then** the new message is sent along with the retained PDF index context.
-4.  **Given** I switch to another item or open a new Zotero window, **When** I view the AI chat sidebar there, **Then** the previous conversation does not persist across items or windows.
+4.  **Given** I switch to another item or open a new Zotero window, **When** I view the zoRecto sidebar there, **Then** the previous conversation does not persist across items or windows.
 
 ---
 
@@ -47,11 +47,11 @@ As a user, I want to configure the AI provider settings, such as the API endpoin
 
 **Why this priority**: Allows users to customize the plugin to work with their preferred AI provider and models, making the plugin flexible and adaptable.
 
-**Independent Test**: Can be tested by opening the Zotero preferences, navigating to the "zotero-chatbox" tab, modifying the settings, and verifying that the new settings are used for subsequent chat interactions without requiring a Zotero restart.
+**Independent Test**: Can be tested by opening the Zotero preferences, navigating to the "zorecto" tab, modifying the settings, and verifying that the new settings are used for subsequent chat interactions without requiring a Zotero restart.
 
 **Acceptance Scenarios**:
 
-1.  **Given** I navigate to Zotero Preferences, **When** I select the "zotero-chatbox" tab, **Then** I see fields for Provider, Endpoint URL, Model, and API Key (supporting OpenAI-compatible providers).
+1.  **Given** I navigate to Zotero Preferences, **When** I select the "zorecto" tab, **Then** I see fields for Provider, Endpoint URL, Model, and API Key (supporting OpenAI-compatible providers).
 2.  **Given** I have modified the settings, **When** I save them, **Then** the new settings are applied immediately without restarting Zotero.
 3.  **Given** required fields (Endpoint URL, Model, API Key) are empty, **When** I try to save, **Then** an error message is displayed, and the settings are not saved.
 
@@ -68,7 +68,7 @@ As a user, I want to configure the AI provider settings, such as the API endpoin
 
 -   **FR-001**: The system MUST add a new panel to the Zotero reader's item pane section.
 -   **FR-002**: The system MUST detect if the current PDF has a full-text index with page mapping.
--   **FR-003**: The system MUST load the full-text index as a document-level context for the AI chat when available.
+-   **FR-003**: The system MUST load the full-text index as a document-level context for the zoRecto when available.
 -   **FR-004**: The system MUST provide a chat interface with a message input area, send/stop button, and clear button.
 -   **FR-005**: Users MUST be able to send messages by pressing Shift+Enter.
 -   **FR-006**: The system MUST allow users to interrupt streaming responses.
@@ -90,7 +90,7 @@ As a user, I want to configure the AI provider settings, such as the API endpoin
 
 ### Measurable Outcomes
 
--   **SC-001**: The AI chat sidebar is successfully added to the reader's item pane and is visible to 100% of users who install the plugin.
+-   **SC-001**: The zoRecto sidebar is successfully added to the reader's item pane and is visible to 100% of users who install the plugin.
 -   **SC-002**: For documents with a valid full-text index, the document context is successfully loaded in over 99% of cases.
 -   **SC-003**: Users can successfully send and receive messages in the chat interface with a success rate of 99% (excluding network/provider errors).
 -   **SC-004**: The "Stop" button successfully interrupts a streaming response within 1 second of being clicked.

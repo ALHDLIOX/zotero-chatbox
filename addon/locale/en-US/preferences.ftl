@@ -1,15 +1,20 @@
-pref-title = AI Chat
+pref-title = zoRecto
 pref-help = { $name } Build { $version } { $time }
-ai-chat-pref-preset = Provider + Model
-ai-chat-pref-endpoint = Endpoint URL
-ai-chat-pref-api-key = API Key
-ai-chat-pref-test = Test Connection
-ai-chat-pref-test-success = Connection OK
-ai-chat-pref-test-failed = Connection failed
-ai-chat-pref-error-apikey-required = API key is required
-ai-chat-pref-error-endpoint = Endpoint URL must be a valid HTTPS link
-ai-chat-pref-error-generic = Settings were not saved. Please check your input.
+zorecto-pref-preset = Provider + Model
+zorecto-pref-endpoint = Endpoint URL
+zorecto-pref-api-key = API Key
+zorecto-pref-test = Test Connection
+zorecto-pref-test-success = Connection OK
+zorecto-pref-test-failed = Connection failed
+zorecto-pref-error-apikey-required = API key is required
+zorecto-pref-error-endpoint = Endpoint URL must be a valid HTTPS link
+zorecto-pref-error-generic = Settings were not saved. Please check your input.
+
+# Preferences navigation
+zorecto-pref-nav-profile = Profile
+zorecto-pref-nav-model = Model
+zorecto-pref-panel-profile-empty = No profile settings yet.
 
 # Preset option labels
-ai-chat-preset-openai-gpt-4-1 = ChatGPT 4.1
-ai-chat-preset-deepseek-chat = deepseek chat
+zorecto-preset-openai-gpt-4-1 = ChatGPT 4.1
+zorecto-preset-deepseek-chat = deepseek chat

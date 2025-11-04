@@ -1,0 +1,131 @@
+/* Two-column preferences layout styled with global design tokens */
+
+.pref-root {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.pref-sidebar {
+  width: 180px;
+  flex: 0 0 auto;
+}
+
+.pref-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pref-nav-button {
+  height: var(--control-size-sm);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  border: var(--border-width) solid var(--border);
+  cursor: pointer;
+  color: var(--color-text);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background-color var(--anim-fast) linear, border-color var(--anim-fast) linear, transform var(--anim-fast) var(--ease);
+}
+
+.pref-nav-button:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.pref-nav-button--active,
+.pref-nav-button[aria-selected="true"] {
+  background: var(--accent-weak);
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  font-weight: 500;
+}
+
+.pref-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pref-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Ensure hidden attribute actually hides panel even with display defaults */
+.pref-panel[hidden] {
+  display: none !important;
+}
+
+.pref-models {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.pref-model-list {
+  width: 260px;
+  flex: 0 0 auto;
+}
+
+#pref-model-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pref-model-item {
+  height: var(--control-size-sm);
+  line-height: var(--control-size-sm);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: var(--border-width) solid var(--border);
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color var(--anim-fast) linear, border-color var(--anim-fast) linear;
+}
+
+.pref-model-item:hover,
+.pref-model-item:focus {
+  background: var(--surface-2);
+}
+
+.pref-model-item--selected {
+  background: var(--accent-weak);
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.pref-model-form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-strong) solid color-mix(in oklab, var(--accent) 45%, transparent);
+  background: var(--accent-weakest);
+}
+
+.pref-field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pref-error {
+  margin-top: var(--space-1);
+  color: var(--zotero-error-color, #c71515);
+}

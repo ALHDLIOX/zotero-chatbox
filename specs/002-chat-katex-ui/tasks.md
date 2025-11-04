@@ -27,8 +27,8 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 
 **Purpose**: Prepare localization and assets referenced by later phases
 
-- [X] T001 Add new localization keys `ai-chat-input-label`, `ai-chat-math-render-error` in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/en-US/addon.ftl` and `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/zh-CN/addon.ftl`
-- [X] T002 [P] Create stylesheet stub for chat and math rendering in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/content/ai-chat.css`
+- [X] T001 Add new localization keys `zorecto-input-label`, `zorecto-math-render-error` in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/en-US/addon.ftl` and `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/zh-CN/addon.ftl`
+- [X] T002 [P] Create stylesheet stub for chat and math rendering in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/content/zorecto.css`
 
 ---
 
@@ -36,11 +36,11 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 
 **Purpose**: Core rendering utilities and safe HTML pipeline (blocks user stories)
 
-- [X] T003 Create Markdown parsing and math segmentation utility in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/markdown.ts` (recognize `$...`, `$$...$$`, `\(...\)`, `\[...\]`; ignore code blocks and inline-code)
-- [X] T004 [P] Create math typesetting utility in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/math.ts` (accept LaTeX string, return HTML; on failure return original with error flag)
-- [X] T005 [P] Create sanitizer in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/sanitize.ts` (allow headings, lists, paragraphs, code, strong/emphasis, links, math containers)
-- [X] T006 Implement renderer in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/render.ts` (compose markdown.ts + math.ts + sanitize.ts to return safe `DocumentFragment` or HTML)
-- [X] T007 [P] Load chat and KaTeX styles in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/readerPane.ts` (inject `<link>` to `addon/content/ai-chat.css` and KaTeX CSS if present)
+- [X] T003 Create Markdown parsing and math segmentation utility in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/markdown.ts` (recognize `$...`, `$$...$$`, `\(...\)`, `\[...\]`; ignore code blocks and inline-code)
+- [X] T004 [P] Create math typesetting utility in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/math.ts` (accept LaTeX string, return HTML; on failure return original with error flag)
+- [X] T005 [P] Create sanitizer in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/sanitize.ts` (allow headings, lists, paragraphs, code, strong/emphasis, links, math containers)
+- [X] T006 Implement renderer in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/render.ts` (compose markdown.ts + math.ts + sanitize.ts to return safe `DocumentFragment` or HTML)
+- [X] T007 [P] Load chat and KaTeX styles in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/readerPane.ts` (inject `<link>` to `addon/content/zorecto.css` and KaTeX CSS if present)
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -54,10 +54,10 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 
 ### Implementation for User Story 1
 
-- [X] T008 [US1] Replace plaintext rendering with renderer in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/readerPane.ts` (`updateMessageDom` uses render.ts output)
-- [X] T009 [US1] Integrate renderer in streaming path in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/readerPane.ts` (`onToken` updates message using render.ts)
-- [X] T010 [US1] Show subtle error indicator when typesetting fails in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/render.ts` (use `ai-chat-math-render-error` text)
-- [X] T011 [US1] Ensure code blocks and inline-code bypass math rendering in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/markdown.ts`
+- [X] T008 [US1] Replace plaintext rendering with renderer in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/readerPane.ts` (`updateMessageDom` uses render.ts output)
+- [X] T009 [US1] Integrate renderer in streaming path in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/readerPane.ts` (`onToken` updates message using render.ts)
+- [X] T010 [US1] Show subtle error indicator when typesetting fails in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/render.ts` (use `zorecto-math-render-error` text)
+- [X] T011 [US1] Ensure code blocks and inline-code bypass math rendering in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/markdown.ts`
 
 **Checkpoint**: US1 independently delivers readable, math-formatted answers
 
@@ -71,8 +71,8 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 
 ### Implementation for User Story 2
 
-- [X] T012 [US2] Add system prompt constant (Markdown + LaTeX delimiter rules) in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/provider.ts`
-- [X] T013 [US2] Inject system prompt as the first message in request body in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/provider.ts` (prepend to `messages` when sending)
+- [X] T012 [US2] Add system prompt constant (Markdown + LaTeX delimiter rules) in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/provider.ts`
+- [X] T013 [US2] Inject system prompt as the first message in request body in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/provider.ts` (prepend to `messages` when sending)
 
 **Checkpoint**: US1 and US2 both functional and independently verifiable
 
@@ -102,8 +102,8 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 
 ### Implementation for User Story 4
 
-- [X] T017 [US4] Add visible label element before textarea in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/readerPane.ts` (use `ai-chat-input-label`)
-- [X] T018 [US4] Add `aria-labelledby`/`aria-label` for textarea in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/readerPane.ts`
+- [X] T017 [US4] Add visible label element before textarea in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/readerPane.ts` (use `zorecto-input-label`)
+- [X] T018 [US4] Add `aria-labelledby`/`aria-label` for textarea in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/readerPane.ts`
 - [X] T019 [P] [US4] Refine placeholder microcopy in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/zh-CN/addon.ftl` and `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/en-US/addon.ftl`
 
 **Checkpoint**: US4 improves prompt composition clarity
@@ -130,7 +130,7 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 
 **Purpose**: Final improvements across stories
 
-- [X] T023 Review rendering performance and avoid reflow thrash in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/aiChat/readerPane.ts`
+- [X] T023 Review rendering performance and avoid reflow thrash in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/src/modules/zoRecto/readerPane.ts`
 - [X] T024 Align localized strings and punctuation across languages in `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/addon/locale/`
 - [ ] T025 Run quickstart validation from `/Users/epsaliox/Library/CloudStorage/GoogleDrive-alhdliox@gmail.com/My Drive/proj/zotero-chatbox/specs/002-chat-katex-ui/quickstart.md`
 
@@ -166,8 +166,8 @@ description: "Task list for Chat KaTeX & UI Cleanup"
 ## Parallel Example: User Story 1
 
 ```text
-Task: "Integrate renderer in streaming path in src/modules/aiChat/readerPane.ts"
-Task: "Ensure code blocks bypass math in src/modules/aiChat/markdown.ts"
+Task: "Integrate renderer in streaming path in src/modules/zoRecto/readerPane.ts"
+Task: "Ensure code blocks bypass math in src/modules/zoRecto/markdown.ts"
 ```
 
 ---
@@ -194,4 +194,3 @@ Summary metrics:
 - Parallel opportunities identified: 6 (T002, T004, T005, T007, T019, T022)
 - Independent test criteria per story: provided at the start of each story phase
 - Suggested MVP scope: Phase 3 (US1) only
-

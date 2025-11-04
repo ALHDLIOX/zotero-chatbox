@@ -1,14 +1,14 @@
 {
-  "name": "zotero-plugin-template",
+  "name": "zorecto",
   "type": "module",
-  "version": "3.1.0",
-  "description": "Zotero Plugin Template",
+  "version": "0.0.0",
+  "description": "Chatbox build in Zotero",
   "config": {
-    "addonName": "Zotero Plugin Template",
-    "addonID": "addontemplate@euclpts.com",
-    "addonRef": "addontemplate",
-    "addonInstance": "AddonTemplate",
-    "prefsPrefix": "extensions.zotero.addontemplate"
+    "addonName": "zoRecto",
+    "addonID": "zoRecto@gmail.com",
+    "addonRef": "zoRecto",
+    "addonInstance": "zoRecto",
+    "prefsPrefix": "extensions.zotero.zorecto"
   },
   "repository": {
     "type": "git",
@@ -23,7 +23,7 @@
   "scripts": {
     "start": "zotero-plugin serve",
     "prebuild": "node scripts/clean-dist.mjs && node scripts/copy-katex-assets.mjs",
-    "build": "zotero-plugin build && tsc --noEmit",
+    "build": "node scripts/build-tabler-icons.mjs && zotero-plugin build && tsc --noEmit",
     "lint:check": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
     "release": "zotero-plugin release",
@@ -31,7 +31,7 @@
     "update-deps": "npm update --save"
   },
   "dependencies": {
-    "zotero-plugin-toolkit": "^5.1.0-beta.4"
+    "zotero-plugin-toolkit": "^5.1.0-4.beta"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
