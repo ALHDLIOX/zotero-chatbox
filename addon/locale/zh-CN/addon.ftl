@@ -45,3 +45,6 @@ zorecto-math-render-error = 数学公式渲染失败，已显示原文
 zorecto-citation-aria = 跳转到第 { $page } 页
 zorecto-copy-button = 复制
 zorecto-model-label = 服务商 + 模型
+zorecto-note-button = 添加到笔记
+zorecto-note-added = 已添加到笔记
+zorecto-note-failed = 添加到笔记失败

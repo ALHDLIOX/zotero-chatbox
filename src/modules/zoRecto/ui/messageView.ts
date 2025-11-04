@@ -9,6 +9,7 @@ export interface MessageDom {
   mathError: HTMLDivElement;
   actions?: HTMLDivElement;
   copyButton?: HTMLButtonElement;
+  noteButton?: HTMLButtonElement;
   latestContent?: string;
 }
 
@@ -21,6 +22,7 @@ export interface CitationTarget {
 export class MessageView {
   private readonly doc: Document;
   private readonly onCopy: (messageId: string) => void;
+  private readonly onNote?: (messageId: string) => void;
   private readonly messageNodes = new Map<string, MessageDom>();
   private readonly citationTargets = new WeakMap<HTMLElement, CitationTarget>();
   private readonly renderQueue = new Map<
@@ -29,9 +31,14 @@ export class MessageView {
   >();
   private pendingRenderHandle?: number;
 
-  constructor(doc: Document, onCopy: (messageId: string) => void) {
+  constructor(
+    doc: Document,
+    onCopy: (messageId: string) => void,
+    onNote?: (messageId: string) => void,
+  ) {
     this.doc = doc;
     this.onCopy = onCopy;
+    this.onNote = onNote;
   }
 
   keys(): IterableIterator<string> {
@@ -77,6 +84,7 @@ export class MessageView {
     // Only render actions/copy button for assistant messages
     let actions: HTMLDivElement | undefined;
     let copyButton: HTMLButtonElement | undefined;
+    let noteButton: HTMLButtonElement | undefined;
     if (message.role === "assistant") {
       actions = ztoolkit.UI.createElement(this.doc, "div", {
         classList: ["zorecto-message-actions"],
@@ -119,6 +127,47 @@ export class MessageView {
       }
 
       actions.appendChild(copyButton);
+
+      // Note button: add to item notes
+      noteButton = ztoolkit.UI.createElement(this.doc, "button", {
+        classList: ["zorecto-note-button"],
+        properties: {
+          type: "button",
+          title: getString("zorecto-note-button"),
+        } as any,
+        listeners: [
+          {
+            type: "click",
+            listener: () => this.onNote && this.onNote(message.id),
+          },
+        ],
+      });
+
+      // Add official Ant Design FileTextOutlined icon (fallback to text on error)
+      try {
+        const noteIcon = this.doc.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        ) as unknown as SVGSVGElement;
+        noteIcon.setAttribute("viewBox", "64 64 896 896");
+        noteIcon.setAttribute("width", "14");
+        noteIcon.setAttribute("height", "14");
+        noteIcon.setAttribute("aria-hidden", "true");
+        noteIcon.setAttribute("fill", "currentColor");
+        noteIcon.style.display = "block";
+        const path = this.doc.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute(
+          "d",
+          "M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zm1.8 562H232V136h302v216a42 42 0 0042 42h216v494zM504 618H320c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM312 490v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H320c-4.4 0-8 3.6-8 8z",
+        );
+        path.setAttribute("fill", "currentColor");
+        noteIcon.appendChild(path);
+        noteButton.appendChild(noteIcon);
+      } catch (e) {
+        noteButton.textContent = getString("zorecto-note-button");
+      }
+
+      actions.appendChild(noteButton);
     }
 
     // Role label intentionally not shown in UI
@@ -133,6 +182,7 @@ export class MessageView {
       mathError,
       actions,
       copyButton,
+      noteButton,
     };
     this.messageNodes.set(message.id, entry);
     return entry;
@@ -150,6 +200,10 @@ export class MessageView {
     if (entry.copyButton) {
       const hasContent = Boolean(message.content && message.content.trim());
       entry.copyButton.disabled = !isAssistant || !hasContent;
+    }
+    if (entry.noteButton) {
+      const hasContent = Boolean(message.content && message.content.trim());
+      entry.noteButton.disabled = !isAssistant || !hasContent;
     }
 
     if (isAssistant && message.content) {
@@ -257,7 +311,8 @@ export class MessageView {
       if (!node) break;
       if (shouldSkipForCitations(node)) continue;
       const text = node.nodeValue || "";
-      const re = /(?:\(\(|（（)cite[:：]\s*([\s\S]*?)(?:\)\)|））)/g;
+      // Be lenient: allow spaces and case-insensitive "cite", support ASCII and full-width parens.
+      const re = /(?:\(\(|（（)\s*cite\s*[:：]\s*([\s\S]*?)(?:\)\)|））)/gi;
       let last = 0;
       let matched = false;
       const frag = this.doc.createDocumentFragment();
@@ -366,12 +421,20 @@ function parseInlineCitationsArray(
   if (l !== -1 && r !== -1 && r > l) {
     jsonSlice = trimmed.slice(l, r + 1);
   }
+
+  // Normalize common typographic variations to improve parse success
+  const normalized = jsonSlice
+    .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"') // fancy double quotes → "
+    .replace(/[\u2018\u2019\u201A\u2032]/g, "'") // fancy single quotes → '
+    .replace(/\s+/g, (m) => (m.indexOf("\n") >= 0 ? "\n" : " "));
+
+  // First, try strict JSON
   try {
-    const data = JSON.parse(jsonSlice);
+    const data = JSON.parse(normalized);
     const arr = Array.isArray(data) ? data : [data];
     const cites: CitationTarget[] = [];
     for (const c of arr) {
-      const a = Number((c as any)?.attachmentID);
+      const a = Number((c as any)?.attachmentID ?? (c as any)?.attachmentId);
       const p = Number((c as any)?.page);
       if (Number.isFinite(a) && Number.isFinite(p)) {
         cites.push({
@@ -382,10 +445,33 @@ function parseInlineCitationsArray(
         });
       }
     }
-    return cites.length > 0 ? cites : undefined;
+    if (cites.length > 0) return cites;
   } catch {
-    return undefined;
+    // fallthrough to lenient parsing
   }
+
+  // Lenient parsing: extract object-like chunks and pull numbers by key.
+  const candidates: CitationTarget[] = [];
+  const objectLike = normalized.match(/{[^{}]*}/g);
+  const scanTargets = objectLike && objectLike.length > 0 ? objectLike : [normalized];
+  for (const chunk of scanTargets) {
+    const idMatch = chunk.match(/attachment\s*id|attachmentID|attachmentId/i)
+      ? chunk.match(/(?:attachment\s*id|attachmentID|attachmentId)\s*[:=]\s*(\d+)/i)
+      : null;
+    const pageMatch = chunk.match(/page\s*[:=]\s*(\d+)/i);
+    if (!idMatch || !pageMatch) continue;
+    const attachmentID = Number(idMatch[1]);
+    const page = Number(pageMatch[1]);
+    if (!Number.isFinite(attachmentID) || !Number.isFinite(page)) continue;
+    const quoteMatch = chunk.match(/quote\s*[:=]\s*(["'`\u201C\u201D\u2018\u2019])([\s\S]*?)\1/);
+    candidates.push({
+      attachmentID,
+      page,
+      quote: quoteMatch ? quoteMatch[2] : undefined,
+    });
+  }
+
+  return candidates.length > 0 ? candidates : undefined;
 }
 
 function shouldSkipForCitations(node: Text): boolean {

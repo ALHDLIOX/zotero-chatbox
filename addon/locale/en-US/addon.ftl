@@ -45,3 +45,6 @@ zorecto-math-render-error = Could not typeset math. Showing original text.
 zorecto-citation-aria = Go to page { $page }
 zorecto-copy-button = Copy
 zorecto-model-label = Provider + Model
+zorecto-note-button = Add to Notes
+zorecto-note-added = Added to notes
+zorecto-note-failed = Failed to add to notes

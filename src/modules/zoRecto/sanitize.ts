@@ -21,6 +21,13 @@ const ALLOWED_TAGS = new Set([
   "span",
   "strong",
   "ul",
+  // Tables
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
 ]);
 
 const MATH_TAG_PATTERN = /^(math|m[a-z]*|semantics|annotation)$/;
@@ -41,8 +48,9 @@ const ALLOWED_ATTRS = new Set([
 
 const SAFE_PROTOCOL = /^(https?:|mailto:)/i;
 const SAFE_STYLE = /^[a-z0-9\-:;.%()\s]+$/i;
+// Allow essential KaTeX classes. Missing `frac-line` previously caused fraction bars to disappear.
 const ALLOWED_CLASS =
-  /^(?:zorecto-|math-|katex|katex-|vlist|vlist-|m[a-z-]+|pstrut|rule|clap|llap|rlap|sizing|fontsize-|strut)/;
+  /^(?:zorecto-|math-|katex|katex-|vlist|vlist-|m[a-z-]+|frac|frac-|pstrut|rule|clap|llap|rlap|sizing|fontsize-|strut)/;
 
 const NODE_COMMENT =
   typeof Node !== "undefined" ? Node.COMMENT_NODE : /* comment */ 8;

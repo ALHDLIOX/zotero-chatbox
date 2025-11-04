@@ -30,8 +30,8 @@ type SectionInitHookArgs =
 
 const PANE_ID = "zorecto";
 const PaneIcons = {
-  header: `chrome://${config.addonRef}/content/icons/favicon.png`,
-  sidenav: `chrome://${config.addonRef}/content/icons/favicon@0.5x.png`,
+  header: `chrome://${config.addonRef}/content/icons/favicon.svg`,
+  sidenav: `chrome://${config.addonRef}/content/icons/favicon.svg`,
 } as const;
 
 const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/zorecto.css`;
@@ -122,9 +122,15 @@ class zoRectoPaneController {
     const doc = this.getDocument();
     // Inject pane styles (scoped base + component) and KaTeX CSS
     ensurePaneStyles(doc, CHAT_STYLESHEET_HREF, KATEX_STYLESHEET_HREF);
-    this.messageView = new MessageView(doc, (messageId) => {
-      void this.copyAssistantMessage(messageId);
-    });
+    this.messageView = new MessageView(
+      doc,
+      (messageId) => {
+        void this.copyAssistantMessage(messageId);
+      },
+      (messageId) => {
+        void this.addAssistantMessageToNotes(messageId);
+      },
+    );
     // Root container + fixed-height dialog wrapper
     const container = ztoolkit.UI.createElement(doc, "div", {
       classList: ["zorecto-pane"],
@@ -693,6 +699,106 @@ class zoRectoPaneController {
       await copyText(this.getDocument(), content);
     } catch (error) {
       ztoolkit.log("[zorecto] 复制消息失败", { messageId, error });
+    }
+  }
+
+  private parseScopeForItemID(): { kind: "reader" | "attachment" | "item"; id: number } | undefined {
+    const key = this.currentScopeKey || "";
+    const parts = key.split(":");
+    if (parts.length >= 2) {
+      const kind = parts[0] as "reader" | "attachment" | "item";
+      const id = Number(parts[1]);
+      if ((kind === "reader" || kind === "attachment" || kind === "item") && Number.isFinite(id)) {
+        return { kind, id };
+      }
+    }
+    return undefined;
+  }
+
+  private async addAssistantMessageToNotes(messageId: string): Promise<void> {
+    try {
+      const entry = this.messageView.get(messageId);
+      if (!entry) return;
+      const html = ((entry.content as any)?.innerHTML as unknown as string) || "";
+      if (!html || !html.trim()) return;
+
+      // Determine target parent item based on current scope
+      const scope = this.parseScopeForItemID();
+      let parentItemID: number | undefined;
+
+      if (scope) {
+        if (scope.kind === "item") {
+          parentItemID = scope.id;
+        } else if (scope.kind === "reader" || scope.kind === "attachment") {
+          try {
+            const attachment = (await Zotero.Items.getAsync(scope.id)) as Zotero.Item;
+            const parent = (attachment && (attachment as any).parentItem) as Zotero.Item | undefined;
+            parentItemID = parent?.id;
+          } catch (e) {
+            void e;
+          }
+        }
+      }
+
+      // Fallbacks: active reader -> its parent; or selected item in pane
+      if (!parentItemID) {
+        try {
+          const reader = getActiveReader(this.getDocument());
+          if (reader) {
+            const attachment = (await Zotero.Items.getAsync(reader.itemID)) as Zotero.Item;
+            const parent = (attachment && (attachment as any).parentItem) as Zotero.Item | undefined;
+            parentItemID = parent?.id;
+          }
+        } catch (e) {
+          void e;
+        }
+      }
+      if (!parentItemID) {
+        try {
+          const win = (this.getDocument().defaultView || undefined) as any;
+          const pane = win?.ZoteroPane;
+          const sel = typeof pane?.getSelectedItems === "function" ? (pane.getSelectedItems(false) as Zotero.Item[]) : [];
+          const first = Array.isArray(sel) && sel.length > 0 ? sel[0] : undefined;
+          if (first) {
+            if (first.isAttachment?.()) {
+              const parent = (first as any).parentItem as Zotero.Item | undefined;
+              parentItemID = parent?.id;
+            } else if (first.isRegularItem?.()) {
+              parentItemID = first.id;
+            }
+          }
+        } catch (e) {
+          void e;
+        }
+      }
+
+      if (!parentItemID) {
+        const pw = new ztoolkit.ProgressWindow(config.addonName, { closeOnClick: true, closeTime: 2000 })
+          .createLine({ text: getString("zorecto-note-failed"), type: "error" })
+          .show();
+        pw.startCloseTimer(1800);
+        return;
+      }
+
+      const note = new Zotero.Item("note");
+      (note as any).parentID = parentItemID;
+      note.setNote(html as any);
+      await note.saveTx();
+
+      const pw = new ztoolkit.ProgressWindow(config.addonName, { closeOnClick: true, closeTime: 1500 })
+        .createLine({ text: getString("zorecto-note-added"), type: "default" })
+        .show();
+      pw.startCloseTimer(1200);
+    } catch (error) {
+      ztoolkit.log("[zorecto] 添加到笔记失败", { messageId, error });
+      try {
+        const pw = new ztoolkit.ProgressWindow(config.addonName, { closeOnClick: true, closeTime: 2000 })
+          .createLine({ text: getString("zorecto-note-failed"), type: "error" })
+          .show();
+        pw.startCloseTimer(1800);
+      } catch (e) {
+        void e;
+      }
     }
   }
 

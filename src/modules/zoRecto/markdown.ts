@@ -67,12 +67,22 @@ export interface MathBlock {
   endIndex: number;
 }
 
+export interface TableBlock {
+  type: "table";
+  header: InlineToken[][]; // per-cell tokens
+  aligns: Array<"left" | "center" | "right">;
+  rows: InlineToken[][][]; // rows -> cells -> tokens
+  startIndex: number;
+  endIndex: number;
+}
+
 export type MarkdownBlock =
   | ParagraphBlock
   | HeadingBlock
   | ListBlock
   | CodeBlock
-  | MathBlock;
+  | MathBlock
+  | TableBlock;
 
 export interface ParseResult {
   blocks: MarkdownBlock[];
@@ -157,6 +167,14 @@ export function parseMarkdownWithMath(source: string): ParseResult {
       const listBlock = consumeList(normalized, lineInfo, list, mathSegments);
       blocks.push(listBlock);
       index = listBlock.endIndex;
+      continue;
+    }
+
+    // GitHub-style pipe table
+    const table = tryParsePipeTable(normalized, lineInfo, mathSegments);
+    if (table) {
+      blocks.push(table);
+      index = table.endIndex;
       continue;
     }
 
@@ -248,6 +266,130 @@ function isClosingFence(
     `^(?: {0,3})${escapeRegex(marker)}{${minLength},}\\s*$`,
   );
   return pattern.test(line);
+}
+
+// ---------- Pipe Table Parsing ----------
+
+function tryParsePipeTable(
+  source: string,
+  headerLine: LineInfo,
+  mathSegments: MathSegment[],
+): TableBlock | null {
+  // Header row must contain at least one pipe
+  if (headerLine.line.indexOf("|") === -1) return null;
+  const next = getLine(source, headerLine.nextIndex);
+  // Second line must be a divider like |---|:--:|--:|
+  if (!isTableDivider(next.line)) return null;
+
+  const headerCells = splitPipeRow(headerLine.line);
+  if (!headerCells || headerCells.length < 1) return null;
+  const aligns = parseDividerAligns(next.line, headerCells.length);
+
+  const rows: string[][] = [];
+  let endIndex = next.nextIndex;
+  while (endIndex <= source.length) {
+    if (endIndex === source.length) break;
+    const probe = getLine(source, endIndex);
+    const trimmed = probe.line.trim();
+    if (trimmed.length === 0) {
+      endIndex = probe.nextIndex;
+      break;
+    }
+    const cells = splitPipeRow(probe.line);
+    if (!cells) break;
+    rows.push(cells);
+    endIndex = probe.nextIndex;
+  }
+
+  // Tokenize cells
+  const headerTokens: InlineToken[][] = headerCells.map((text, i) =>
+    parseInline(text.trim(), headerLine.startIndex + headerLine.line.indexOf(text), mathSegments, text.length),
+  );
+  const rowTokens: InlineToken[][][] = rows.map((row, r) =>
+    normalizeRow(row, headerCells.length).map((text, c) =>
+      parseInline(
+        text.trim(),
+        headerLine.startIndex + (r + 2),
+        mathSegments,
+        text.length,
+      ),
+    ),
+  );
+
+  return {
+    type: "table",
+    header: headerTokens,
+    aligns,
+    rows: rowTokens,
+    startIndex: headerLine.startIndex,
+    endIndex,
+  };
+}
+
+function splitPipeRow(line: string): string[] | null {
+  // Strip leading/trailing pipes if present
+  const raw = line.trim();
+  if (raw.length === 0) return null;
+  // require at least one unescaped pipe
+  let hasPipe = false;
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === "|" && raw[i - 1] !== "\\") {
+      hasPipe = true;
+      break;
+    }
+  }
+  if (!hasPipe) return null;
+
+  let s = raw;
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|")) s = s.slice(0, -1);
+
+  const cells: string[] = [];
+  let current = "";
+  let escaped = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escaped) {
+      current += ch;
+      escaped = false;
+    } else if (ch === "\\") {
+      escaped = true;
+    } else if (ch === "|") {
+      cells.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current);
+  return cells.map((c) => c.trim());
+}
+
+function isTableDivider(line: string): boolean {
+  const cells = splitPipeRow(line);
+  if (!cells || cells.length === 0) return false;
+  return cells.every((c) => /^:?\s*-{3,}\s*:?$/.test(c));
+}
+
+function parseDividerAligns(
+  line: string,
+  count: number,
+): Array<"left" | "center" | "right"> {
+  const cells = splitPipeRow(line) || [];
+  const aligns: Array<"left" | "center" | "right"> = [];
+  for (let i = 0; i < count; i++) {
+    const c = (cells[i] || "").trim();
+    const left = c.startsWith(":");
+    const right = c.endsWith(":");
+    aligns.push(left && right ? "center" : right ? "right" : "left");
+  }
+  return aligns;
+}
+
+function normalizeRow(row: string[], size: number): string[] {
+  const out = row.slice(0, size);
+  while (out.length < size) out.push("");
+  return out;
 }
 
 interface HeadingMatch {

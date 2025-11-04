@@ -34,16 +34,17 @@
     "zotero-plugin-toolkit": "^5.1.0-4.beta"
   },
   "devDependencies": {
+    "@ant-design/icons-svg": "^4.4.2",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.0",
     "@zotero-plugin/eslint-config": "^0.6.7",
     "chai": "^5.2.1",
     "eslint": "^9.32.0",
+    "katex": "^0.16.11",
     "mocha": "^11.7.1",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
-    "katex": "^0.16.11",
     "zotero-plugin-scaffold": "^0.8.0",
     "zotero-types": "^4.1.0-beta.1"
   },
