@@ -143,12 +143,35 @@
 /* Empty placeholder when there are no messages */
 .ai-chat-empty-placeholder {
   color: var(--placeholder-text, #666);
-  font-style: italic;
-  text-align: center;
+  text-align: left;
   padding: var(--ai-space-3) var(--ai-space-2);
   border: var(--ai-border-width) dashed var(--ai-border-dashed-color);
   border-radius: var(--ai-radius);
 }
+
+/* Welcome block shown when there are no messages */
+.ai-chat-welcome { font-style: normal; color: var(--ai-color-text); }
+.ai-chat-welcome-title { font-weight: 600; margin: 0 0 var(--ai-space-1); }
+.ai-chat-welcome-subtitle { margin: 0 0 var(--ai-space-2); color: var(--zotero-secondary-text-color, #444); }
+.ai-chat-suggestions { display: flex; flex-direction: column; gap: var(--ai-space-2); }
+.ai-chat-suggestion {
+  text-align: center; /* center horizontally */
+  width: 100%;
+  min-height: 40px;
+  padding: var(--ai-space-1) var(--ai-space-3); /* match user bubble */
+  border-radius: var(--ai-radius-lg); /* match user bubble */
+  border: var(--ai-border-width) solid color-mix(in oklab, var(--ai-accent) 25%, transparent);
+  background: var(--ai-accent-weak); /* match user bubble */
+  color: var(--ai-color-text);
+  cursor: pointer;
+  display: flex;               /* center vertically */
+  align-items: center;         /* vertical center */
+  justify-content: center;     /* horizontal center for flex */
+  transition: background-color var(--ai-anim-fast) linear, box-shadow var(--ai-anim-fast) linear, transform var(--ai-anim-fast) var(--ai-ease);
+}
+.ai-chat-suggestion:hover { background: color-mix(in oklab, var(--ai-accent-weak) 80%, white); box-shadow: var(--ai-shadow-hover); }
+.ai-chat-suggestion:active { transform: scale(0.99); box-shadow: var(--ai-shadow-active); }
+.ai-chat-suggestion:focus { outline: none; border-color: color-mix(in oklab, var(--ai-accent) 60%, transparent); }
 
 .ai-chat-message-content pre,
 .ai-chat-message-content code {

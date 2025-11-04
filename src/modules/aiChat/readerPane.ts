@@ -147,14 +147,47 @@ class AIChatPaneController {
       properties: { hidden: true },
     });
 
-    // Messages container + placeholder
+    // Messages container + placeholder (welcome with quick prompts)
     this.messagesEl = ztoolkit.UI.createElement(doc, "div", {
       classList: ["ai-chat-messages"],
     });
     this.placeholderEl = ztoolkit.UI.createElement(doc, "div", {
       classList: ["ai-chat-empty-placeholder"],
-      properties: { textContent: getString("ai-chat-empty-placeholder") },
     });
+    // Build welcome block with suggestion cards
+    const welcome = doc.createElement("div");
+    welcome.className = "ai-chat-welcome";
+    const welcomeTitle = doc.createElement("div");
+    welcomeTitle.className = "ai-chat-welcome-title";
+    welcomeTitle.textContent = getString("ai-chat-welcome-title");
+    const welcomeSub = doc.createElement("div");
+    welcomeSub.className = "ai-chat-welcome-subtitle";
+    welcomeSub.textContent = getString("ai-chat-welcome-subtitle");
+    const suggList = doc.createElement("div");
+    suggList.className = "ai-chat-suggestions";
+    const promptIds = [
+      "ai-chat-suggest-1",
+      "ai-chat-suggest-2",
+      "ai-chat-suggest-3",
+    ] as const; // show first 3 only
+    for (const id of promptIds) {
+      const label = getString(id as any);
+      const btn = ztoolkit.UI.createElement(doc, "button", {
+        classList: ["ai-chat-suggestion"],
+        properties: { type: "button", textContent: label } as any,
+        listeners: [
+          {
+            type: "click",
+            listener: () => this.handleQuickAsk(label),
+          },
+        ],
+      }) as unknown as HTMLButtonElement;
+      suggList.appendChild(btn);
+    }
+    welcome.appendChild(welcomeTitle);
+    welcome.appendChild(welcomeSub);
+    welcome.appendChild(suggList);
+    this.placeholderEl.appendChild(welcome);
     this.messagesEl.appendChild(this.placeholderEl);
 
     // Toolbar row (outside input wrapper): Model preset capsule
@@ -632,6 +665,17 @@ class AIChatPaneController {
     } catch (error) {
       ztoolkit.log("[ai-chat] 引用跳转失败", { error, target });
     }
+  }
+
+  private handleQuickAsk(question: string): void {
+    if (!this.sessionId) return;
+    const q = (question || "").trim();
+    if (!q) return;
+    this.inputEl.value = q;
+    this.autoResizeInput();
+    // Hide placeholder pre-emptively for immediate feedback
+    this.placeholderEl.hidden = true;
+    void this.handleSubmit();
   }
 
   // Reader navigation utilities moved to services/readerNav
