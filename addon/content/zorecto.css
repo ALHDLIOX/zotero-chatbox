@@ -233,8 +233,37 @@
   text-align: center;
 }
 
-.zorecto-message-content .math-block .katex-display {
-  margin: 0;
+.zorecto-message-content .math-block .katex-display { margin: 1em 0; }
+
+/* KaTeX rendering stability: avoid inherited line-heights and clipping */
+.zorecto-message-content .katex {
+  line-height: 1.2; /* KaTeX default; prevents superscripts from overlapping */
+}
+.zorecto-message-content .katex,
+.zorecto-message-content .katex * {
+  overflow: visible; /* don't clip stacked boxes, radicals, or accents */
+}
+
+/* Lists: slightly tighter spacing for display math inside list items */
+.zorecto-message-content li .katex-display {
+  margin: var(--space-1) 0;
+}
+
+/* Table styles (GFM) */
+.zorecto-message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: var(--space-2) 0;
+}
+.zorecto-message-content thead th {
+  font-weight: 600;
+}
+.zorecto-message-content th,
+.zorecto-message-content td {
+  border: var(--border-width) solid var(--border);
+  padding: 6px 8px;
+  vertical-align: top;
 }
 
 .zorecto-message-content .math-error {
@@ -301,6 +330,7 @@
 .zorecto-clear-button,
 .zorecto-send-button,
 .zorecto-copy-button,
+.zorecto-note-button,
 .zorecto-cite-ref {
   width: var(--control-size-sm);
   height: var(--control-size-sm);
@@ -330,7 +360,8 @@
 .zorecto-icon-button svg,
 .zorecto-clear-button svg,
 .zorecto-send-button svg,
-.zorecto-copy-button svg {
+.zorecto-copy-button svg,
+.zorecto-note-button svg {
   pointer-events: none;
   width: var(--icon-size);
   height: var(--icon-size);
@@ -340,13 +371,15 @@
 }
 .zorecto-icon-button:hover,
 .zorecto-clear-button:hover,
-.zorecto-copy-button:hover {
+.zorecto-copy-button:hover,
+.zorecto-note-button:hover {
   background: var(--surface-2);
   box-shadow: var(--shadow-hover);
 }
 .zorecto-icon-button:active,
 .zorecto-clear-button:active,
-.zorecto-copy-button:active {
+.zorecto-copy-button:active,
+.zorecto-note-button:active {
   background: var(--surface-press);
   box-shadow: var(--shadow-active);
   transform: scale(0.95);
@@ -517,7 +550,8 @@
   font-weight: 600;
 }
 
-.zorecto-copy-button svg {
+.zorecto-copy-button svg,
+.zorecto-note-button svg {
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
   display: block;
@@ -525,13 +559,15 @@
   transition: transform var(--anim-fast) var(--ease);
 }
 
-.zorecto-copy-button:disabled {
+.zorecto-copy-button:disabled,
+.zorecto-note-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   background: transparent;
 }
 
-.zorecto-copy-button:disabled:hover {
+.zorecto-copy-button:disabled:hover,
+.zorecto-note-button:disabled:hover {
   box-shadow: none;
   transform: none;
 }

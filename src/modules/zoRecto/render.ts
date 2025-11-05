@@ -54,6 +54,39 @@ export function renderMessage(
         fragment.appendChild(list);
         break;
       }
+      case "table": {
+        const table = doc.createElement("table");
+        table.className = "zorecto-table";
+        const thead = doc.createElement("thead");
+        const headTr = doc.createElement("tr");
+        for (let i = 0; i < block.header.length; i++) {
+          const th = doc.createElement("th");
+          th.style.textAlign = block.aligns[i] || "left";
+          if (appendInlineTokens(doc, th, block.header[i])) {
+            hasMathError = true;
+          }
+          headTr.appendChild(th);
+        }
+        thead.appendChild(headTr);
+        table.appendChild(thead);
+
+        const tbody = doc.createElement("tbody");
+        for (const row of block.rows) {
+          const tr = doc.createElement("tr");
+          for (let i = 0; i < row.length; i++) {
+            const td = doc.createElement("td");
+            td.style.textAlign = block.aligns[i] || "left";
+            if (appendInlineTokens(doc, td, row[i])) {
+              hasMathError = true;
+            }
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        fragment.appendChild(table);
+        break;
+      }
       case "code": {
         const pre = doc.createElement("pre");
         const code = doc.createElement("code");
