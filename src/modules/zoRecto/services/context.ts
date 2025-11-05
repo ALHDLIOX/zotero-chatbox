@@ -137,12 +137,70 @@ export function buildContextMessage(
 ): SessionMessage | undefined {
   const session = getSession(sessionId);
   const documentText = session?.context.documentText?.trim();
-  if (!documentText) return undefined;
-  const header = "Document context:";
+  const attachmentIDs = (session?.context.attachmentIDs || []).slice();
+
+  if (!documentText && attachmentIDs.length === 0) return undefined;
+
+  // Build an "Allowed Attachments" list so the model only uses valid IDs in ((cite)) markers
+  let allowedSection = "";
+  try {
+    const lines: string[] = [];
+    const items: Array<{ attachmentID: number; title: string; parentKey: string; startPage?: number }> = [];
+
+    for (const id of attachmentIDs) {
+      try {
+        const Items: any = (Zotero as any)?.Items;
+        const attachment = Items?.get?.(id);
+        if (!attachment) continue;
+        const parent = attachment.isAttachment?.() ? (attachment as any).parentItem : attachment;
+        if (!parent) continue;
+        const title =
+          (parent as any).getField?.("title") ||
+          (parent as any).getDisplayTitle?.() ||
+          `Item ${parent.id}`;
+        const parentKey = (parent as any).key || (parent as any).getField?.("key") || String(parent.id || "");
+        let startPage: number | undefined;
+        try {
+          const pages: string = (parent as any).getField?.("pages") || "";
+          const m = String(pages).match(/\d+/);
+          if (m) startPage = Number(m[0]);
+        } catch (e) {
+          void e;
+        }
+        items.push({ attachmentID: id, title: String(title), parentKey: String(parentKey), startPage });
+      } catch (e) {
+        void e;
+      }
+    }
+
+    if (items.length > 0) {
+      const json = JSON.stringify(items);
+      lines.push(
+        "# Allowed Attachments",
+        "",
+        "- Use ONLY these attachmentIDs in ((cite: {...})) markers.",
+        "- If not listed here, do not cite the attachment.",
+        "",
+        "```json",
+        json,
+        "```",
+        "",
+      );
+      allowedSection = lines.join("\n");
+    }
+  } catch (e) {
+    void e;
+  }
+
+  const header = "# Document Context";
+  const contextSection = documentText ? `${header}\n${documentText}` : "";
+  const parts = [allowedSection, contextSection].filter(Boolean);
+  if (parts.length === 0) return undefined;
+
   return {
     id: `${sessionId}-context-${Date.now()}`,
     role: "system",
-    content: `${header}\n${documentText}`,
+    content: parts.join("\n\n"),
     timestamp: Date.now(),
   };
 }

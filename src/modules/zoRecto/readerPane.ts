@@ -23,6 +23,7 @@ import { copyText } from "./services/clipboard";
 import { buildContextMessage, loadContextForProps } from "./services/context";
 import { getActiveReader, openReaderAndNavigate } from "./services/readerNav";
 import { resolveSessionAndScope } from "./services/sessionOps";
+import { renderNoteHtml } from "./noteRender";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =
@@ -667,7 +668,27 @@ class zoRectoPaneController {
       return;
     }
     try {
-      await openReaderAndNavigate(this.getDocument(), target.attachmentID!, target.page!, target.quote);
+      // Convert journal page to PDF page if possible using item's start page
+      let pdfPage = Number(target.page);
+      try {
+        const attachment = (await Zotero.Items.getAsync(target.attachmentID!)) as Zotero.Item;
+        const parent = attachment?.isAttachment?.() ? (attachment as any).parentItem : attachment;
+        if (parent && typeof (parent as any).getField === "function") {
+          const pages: string = (parent as any).getField("pages") || "";
+          const m = String(pages).match(/\d+/);
+          if (m) {
+            const start = Number(m[0]);
+            const candidate = Math.round(Number(target.page) - start + 1);
+            if (Number.isFinite(candidate) && candidate >= 1) {
+              pdfPage = candidate;
+            }
+          }
+        }
+      } catch (e) {
+        void e;
+      }
+
+      await openReaderAndNavigate(this.getDocument(), target.attachmentID!, pdfPage, target.quote);
     } catch (error) {
       ztoolkit.log("[zorecto] 引用跳转失败", { error, target });
     }
@@ -719,8 +740,12 @@ class zoRectoPaneController {
     try {
       const entry = this.messageView.get(messageId);
       if (!entry) return;
-      const html = ((entry.content as any)?.innerHTML as unknown as string) || "";
-      if (!html || !html.trim()) return;
+      // Use original Markdown content (not DOM) to build strict note HTML
+      const session = this.sessionId ? getSession(this.sessionId) : undefined;
+      const message = session?.messages.find((item) => item.id === messageId);
+      const raw = message?.content ?? entry?.latestContent ?? "";
+      if (!raw || !raw.trim()) return;
+      const html = renderNoteHtml(raw, this.getDocument());
 
       // Determine target parent item based on current scope
       const scope = this.parseScopeForItemID();

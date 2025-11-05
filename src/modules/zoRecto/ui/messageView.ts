@@ -17,6 +17,7 @@ export interface CitationTarget {
   attachmentID: number;
   page: number;
   quote?: string;
+  locate?: string;
 }
 
 export class MessageView {
@@ -311,8 +312,9 @@ export class MessageView {
       if (!node) break;
       if (shouldSkipForCitations(node)) continue;
       const text = node.nodeValue || "";
-      // Be lenient: allow spaces and case-insensitive "cite", support ASCII and full-width parens.
-      const re = /(?:\(\(|（（)\s*cite\s*[:：]\s*([\s\S]*?)(?:\)\)|））)/gi;
+      // Be lenient: allow spaces (incl. NBSP/ZWSP) and case-insensitive "cite", support ASCII and full-width parens.
+      // Allow optional spaces between the closing parentheses as well.
+      const re = /(?:\(\(|（（)[\s\u00A0\u200B\u200C\u200D]*cite[\s\u00A0\u200B\u200C\u200D]*[:：][\s\u00A0\u200B\u200C\u200D]*([\s\S]*?)[\s\u00A0\u200B\u200C\u200D]*(?:\)\s*\)|）\s*）)/gi;
       let last = 0;
       let matched = false;
       const frag = this.doc.createDocumentFragment();
@@ -322,19 +324,29 @@ export class MessageView {
         const before = text.slice(last, start);
         if (before) frag.appendChild(this.doc.createTextNode(before));
         const payload = m[1] || "";
-        const cites = parseInlineCitationsArray(payload);
-        if (!cites || cites.length === 0) {
+        const parsed = parseInlineCitationsArray(payload);
+        if (!parsed || parsed.cites.length === 0) {
           frag.appendChild(
             this.doc.createTextNode(
               text.slice(start, start + (m[0]?.length || 0)),
             ),
           );
         } else {
+          try {
+            // Log all parsed citation objects (raw if available, otherwise the normalized cites)
+            ztoolkit.log("[zorecto] 内联引用解析", {
+              payload,
+              count: parsed.cites.length,
+              rawObjects: parsed.rawObjects ?? parsed.cites,
+            });
+          } catch (e) {
+            void e;
+          }
           const group = ztoolkit.UI.createElement(this.doc, "span", {
             classList: ["zorecto-citations"],
             attributes: { role: "group" },
           });
-          for (const c of cites) {
+          for (const c of parsed.cites) {
             const ref = ztoolkit.UI.createElement(this.doc, "span", {
               classList: ["zorecto-cite-ref"],
               attributes: {
@@ -343,6 +355,9 @@ export class MessageView {
                 "aria-label": getString("zorecto-citation-aria", {
                   args: { page: Number(c.page) || 1 },
                 } as any),
+                title: c && (typeof c.locate === "string" && c.locate.trim())
+                  ? `page ${Number(c.page) || 1} · ${String(c.locate).trim()}`
+                  : `page ${Number(c.page) || 1}`,
               },
               properties: { textContent: String(serial++) },
             });
@@ -351,6 +366,8 @@ export class MessageView {
               page: Number(c.page),
               quote:
                 typeof c.quote === "string" ? (c.quote as string) : undefined,
+              locate:
+                typeof c.locate === "string" ? (c.locate as string) : undefined,
             });
             group.appendChild(ref);
           }
@@ -410,9 +427,14 @@ function looksLikeCitationsJson(text: string): boolean {
   }
 }
 
+interface ParsedCitations {
+  cites: CitationTarget[];
+  rawObjects?: Array<Record<string, unknown>>;
+}
+
 function parseInlineCitationsArray(
   text: string,
-): CitationTarget[] | undefined {
+): ParsedCitations | undefined {
   if (!text) return undefined;
   const trimmed = text.trim();
   let jsonSlice = trimmed;
@@ -442,16 +464,21 @@ function parseInlineCitationsArray(
           page: p,
           quote:
             typeof (c as any)?.quote === "string" ? (c as any).quote : undefined,
+          locate:
+            typeof (c as any)?.locate === "string"
+              ? ((c as any).locate as string)
+              : undefined,
         });
       }
     }
-    if (cites.length > 0) return cites;
+    if (cites.length > 0) return { cites, rawObjects: arr as Array<Record<string, unknown>> };
   } catch {
     // fallthrough to lenient parsing
   }
 
   // Lenient parsing: extract object-like chunks and pull numbers by key.
   const candidates: CitationTarget[] = [];
+  const rawObjects: Array<Record<string, unknown>> = [];
   const objectLike = normalized.match(/{[^{}]*}/g);
   const scanTargets = objectLike && objectLike.length > 0 ? objectLike : [normalized];
   for (const chunk of scanTargets) {
@@ -464,14 +491,22 @@ function parseInlineCitationsArray(
     const page = Number(pageMatch[1]);
     if (!Number.isFinite(attachmentID) || !Number.isFinite(page)) continue;
     const quoteMatch = chunk.match(/quote\s*[:=]\s*(["'`\u201C\u201D\u2018\u2019])([\s\S]*?)\1/);
+    const locateMatch = chunk.match(/locate\s*[:=]\s*(["'`\u201C\u201D\u2018\u2019])([\s\S]*?)\1/i);
     candidates.push({
       attachmentID,
       page,
       quote: quoteMatch ? quoteMatch[2] : undefined,
+      locate: locateMatch ? locateMatch[2] : undefined,
+    });
+    rawObjects.push({
+      attachmentID,
+      page,
+      quote: quoteMatch ? quoteMatch[2] : undefined,
+      locate: locateMatch ? locateMatch[2] : undefined,
     });
   }
 
-  return candidates.length > 0 ? candidates : undefined;
+  return candidates.length > 0 ? { cites: candidates, rawObjects } : undefined;
 }
 
 function shouldSkipForCitations(node: Text): boolean {
