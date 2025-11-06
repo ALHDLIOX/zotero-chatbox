@@ -19,6 +19,9 @@ import { ProviderError, sendChat, PRESETS, getPresetById } from "../providers";
 import { getSelectedPresetId, setSelectedPresetId } from "../prefs";
 import { ensurePaneStyles } from "./paneStyles";
 import { MessageView } from "./messageView";
+import { createSendIcon, createStopIcon } from "./icons";
+import { buildPresetMenu } from "./presetMenu";
+import { createStatusBar } from "./statusBar";
 import { copyText } from "../services/clipboard";
 import { buildContextMessage, loadContextForProps } from "../services/documentContext";
 import { getActiveReader, openReaderAndNavigate } from "../services/readerNavigation";
@@ -143,10 +146,7 @@ class zoRectoPaneController {
     this.dialogEl = dialog as HTMLDivElement;
 
     // Status bar
-    this.statusEl = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["zorecto-status"],
-      properties: { textContent: getString("zorecto-status-loading") },
-    });
+    this.statusEl = createStatusBar(doc, getString("zorecto-status-loading"));
 
     // Error banner (plain div)
     this.errorEl = ztoolkit.UI.createElement(doc, "div", {
@@ -205,94 +205,11 @@ class zoRectoPaneController {
       classList: ["zorecto-toolbar"],
     });
     // Preset dropdown: custom button + menu to keep styling consistent
-    this.presetWrapper = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["zorecto-preset-wrapper"],
-    });
-    this.presetButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["zorecto-preset-button"],
-      properties: { type: "button" } as any,
-      attributes: {
-        "aria-haspopup": "listbox",
-        "aria-expanded": "false",
-      },
-    }) as unknown as HTMLButtonElement;
-    // Inner label span for ellipsis control
-    const presetLabel = doc.createElement("span");
-    presetLabel.className = "zorecto-preset-button__label";
-    this.presetButton.appendChild(presetLabel);
-    this.presetMenu = ztoolkit.UI.createElement(doc, "ul", {
-      classList: ["zorecto-preset-menu"],
-      properties: { hidden: true },
-      attributes: { role: "listbox" },
-    }) as unknown as HTMLUListElement;
-    this.presetWrapper.appendChild(this.presetButton);
-    this.presetWrapper.appendChild(this.presetMenu);
-
-    // Populate menu items
     const currentId = getPresetById(getSelectedPresetId())?.id ?? PRESETS[0].id;
-    for (const p of PRESETS) {
-      const li = ztoolkit.UI.createElement(doc, "li", {
-        classList: [
-          "zorecto-preset-option",
-          p.id === currentId ? "zorecto-preset-option--selected" : undefined,
-        ].filter(Boolean) as string[],
-        attributes: { role: "option", "data-id": p.id },
-        properties: { textContent: p.label },
-        listeners: [
-          {
-            type: "click",
-            listener: () => this.selectPreset(p.id),
-          },
-        ],
-      });
-      this.presetMenu.appendChild(li);
-    }
-    this.updatePresetButtonLabel(currentId);
-    this.presetButton.addEventListener("click", () => this.togglePresetMenu());
-    // Dismiss when clicking outside
-    doc.addEventListener("click", (ev) => {
-      const target = ev.target as HTMLElement | null;
-      if (!target) return;
-      if (target.closest && target.closest(".zorecto-preset-wrapper")) return;
-      this.closePresetMenu();
-    });
-    // Keyboard support
-    this.presetButton.addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        this.openPresetMenu();
-        const first = this.presetMenu.querySelector(
-          ".zorecto-preset-option",
-        ) as HTMLElement | null;
-        first?.focus?.();
-      }
-    });
-    this.presetMenu.addEventListener("keydown", (e: KeyboardEvent) => {
-      const items = Array.from(
-        this.presetMenu.querySelectorAll<HTMLElement>(".zorecto-preset-option"),
-      );
-      const active = this.getDocument().activeElement as HTMLElement | null;
-      const idx = Math.max(0, items.indexOf(active || items[0]!));
-      if (e.key === "Escape") {
-        this.closePresetMenu();
-        this.presetButton.focus();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const nextIdx = Math.min(items.length - 1, idx + 1);
-        const next = items[nextIdx];
-        if (next) (next as any)?.focus?.();
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        const prevIdx = Math.max(0, idx - 1);
-        const prev = items[prevIdx];
-        if (prev) (prev as any)?.focus?.();
-      } else if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        const el = this.getDocument().activeElement as HTMLElement | null;
-        const id = el?.getAttribute("data-id");
-        if (id) this.selectPreset(id);
-      }
-    });
+    const preset = buildPresetMenu(doc, currentId, (id) => this.selectPreset(id));
+    this.presetWrapper = preset.wrapper;
+    this.presetButton = preset.button;
+    this.presetMenu = preset.menu;
     toolbarRow.appendChild(this.presetWrapper);
 
     // Input textarea (no visible label)
@@ -325,44 +242,11 @@ class zoRectoPaneController {
     buttonRow.appendChild(this.sendButton);
     // Icons (SVG inline): Ant Design style icons
     try {
-      // Send icon (Ant Design SendOutlined style - paper plane)
-      const plane = doc.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg",
-      ) as unknown as SVGSVGElement;
-      plane.setAttribute("viewBox", "0 0 1024 1024");
-      plane.setAttribute("width", "16");
-      plane.setAttribute("height", "16");
-      plane.setAttribute("aria-hidden", "true");
-      plane.setAttribute("fill", "currentColor");
-      plane.style.display = "block";
-      const p = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("d", "M931.4 498.9L94.9 79.5c-3.4-1.7-7.3-2.1-11-1.2-8.5 2.1-13.8 10.7-11.7 19.3l86.2 352.2c1.3 5.3 5.2 9.6 10.4 11.3l147.7 50.7-147.6 50.7c-5.2 1.8-9.1 6.1-10.4 11.3L72.2 926.5c-.9 3.7-.5 7.6 1.2 10.9 3.9 7.9 13.5 11.1 21.5 7.2l836.5-417c3.1-1.5 5.6-4.1 7.2-7.1 3.9-8 .7-17.6-7.2-21.6zM170.8 826.3l50.3-205.6 295.2-101.3c2.3-.8 4.2-2.6 5-5 1.4-4.2-.8-8.7-5-10.2L221.1 403.3l-50.3-205.6L845.2 512 170.8 826.3z");
-      p.setAttribute("fill", "currentColor");
-      plane.appendChild(p);
-      this.sendIconPlane = plane;
+      // Send icon
+      this.sendIconPlane = createSendIcon(doc);
 
-      // Stop icon (rounded square)
-      const stop = doc.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg",
-      ) as unknown as SVGSVGElement;
-      stop.setAttribute("viewBox", "0 0 1024 1024");
-      stop.setAttribute("width", "16");
-      stop.setAttribute("height", "16");
-      stop.setAttribute("aria-hidden", "true");
-      stop.setAttribute("fill", "currentColor");
-      stop.style.display = "block";
-      const stopRect = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
-      stopRect.setAttribute("x", "256");
-      stopRect.setAttribute("y", "256");
-      stopRect.setAttribute("width", "512");
-      stopRect.setAttribute("height", "512");
-      stopRect.setAttribute("rx", "64");
-      stopRect.setAttribute("ry", "64");
-      stopRect.setAttribute("fill", "currentColor");
-      stop.appendChild(stopRect);
-      this.sendIconStop = stop;
+      // Stop icon
+      this.sendIconStop = createStopIcon(doc);
 
       // Delete icon (Ant Design DeleteOutlined style - trash can)
       const deleteIcon = doc.createElementNS(
