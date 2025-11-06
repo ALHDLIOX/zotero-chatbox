@@ -24,17 +24,23 @@ interactions of the main modules after the refactor to a feature domain named
       - `readerNavigation.ts` – open Reader and navigate to page / highlight quote
       - `sessionScope.ts` – derive session id + scope based on UI context
     - `render/`
-      - `markdown.ts` – Markdown + math tokenization (no DOM side effects)
-      - `mathKatex.ts` – KaTeX rendering (bundled module or global fallback)
-      - `chatInlineSanitizer.ts` – sanitizer for chat inline HTML fragments
-      - `inlineUtils.ts` – shared inline helpers (escape, attributes)
-      - `chatInline.ts` – inline renderer for chat (tokens → DOM; uses KaTeX + sanitizer)
-      - `noteInlineSanitizer.ts` – strict inline sanitizer utilities for notes
-      - `noteInline.ts` – inline renderer for notes (tokens → DOM; no KaTeX)
-      - `chatBlocks.ts` – block renderer for chat (blocks → DOM fragment)
-      - `noteBlocks.ts` – block renderer for notes (blocks → DOM fragment, with citations)
-      - `messageHtml.ts` – orchestrates chat render (parse → blocks → sanitize)
-      - `noteHtml.ts` – orchestrates note render (parse → blocks) (no KaTeX)
+      - `shared/`
+        - `markdown.ts` – Markdown + math tokenization (no DOM side effects)
+        - `mathKatex.ts` – KaTeX rendering (bundled module or global fallback)
+        - `inlineUtils.ts` – shared inline helpers (escape, attributes)
+        - `index.ts` – re‑exports shared utilities
+      - `chat/`
+        - `blocks.ts` – block renderer for chat (blocks → DOM fragment)
+        - `inline.ts` – inline renderer for chat (KaTeX + sanitizer)
+        - `sanitizer.ts` – sanitizer for chat inline HTML fragments
+        - `html.ts` – orchestrates chat render (parse → blocks → sanitize)
+        - `index.ts` – facade for chat rendering
+      - `note/`
+        - `blocks.ts` – block renderer for notes (with citations)
+        - `inline.ts` – inline renderer for notes (no KaTeX)
+        - `sanitizer.ts` – strict inline sanitizer utilities for notes
+        - `html.ts` – orchestrates note render (parse → blocks)
+        - `index.ts` – facade for note rendering
     - `providers/`
       - `chatClient.ts` – LLM request/streaming + error model
       - `providerPresets.ts` – built‑in provider presets (endpoint/model/labels)
@@ -81,10 +87,11 @@ injects links to these shipped assets.
 
 ## Rendering Pipeline (Chat)
 
-1. `markdown.ts` tokenizes Markdown blocks and inline tokens with math support
-   (inline `$...$`, block `$$...$$`, `\(\)`, `\[\]`).
-2. `chatBlocks.ts` converts blocks into DOM nodes (uses `chatInline.ts`), then
-   `messageHtml.ts` sanitizes fragments via `chatInlineSanitizer.ts`.
+1. `render/shared/markdown.ts` tokenizes Markdown blocks and inline tokens with
+   math support (inline `$...$`, block `$$...$$`, `\(\)`, `\[\]`).
+2. `render/chat/blocks.ts` converts blocks into DOM nodes (uses
+   `render/chat/inline.ts`), then `render/chat/html.ts` sanitizes fragments via
+   `render/chat/sanitizer.ts`.
 3. The result is a `DocumentFragment` plus HTML string; math errors are surfaced
    as a hint to UI.
 
@@ -95,7 +102,7 @@ Security notes:
 
 ## Rendering Pipeline (Notes)
 
-- `noteHtml.ts` outputs Zotero‑note‑compatible HTML without KaTeX. It:
+- `render/note/html.ts` outputs Zotero‑note‑compatible HTML without KaTeX. It:
   - Restricts headings to H1–H3.
   - Inlines bold/emphasis and turns newlines into `<br>`.
   - Extracts inline `((cite: {...}))` markers into block citation nodes with
@@ -163,7 +170,8 @@ Security notes:
 ## Testing Guidance
 
 - Prefer unit tests for pure modules:
-  - `chat/render/*` (markdown, sanitize, math → deterministic)
+  - `chat/render/shared/*`, `chat/render/chat/*`, `chat/render/note/*`
+    (markdown, sanitize, math → deterministic)
   - `chat/state/session.ts` (pure state transitions)
 - Services and UI depend on Zotero/runtime; prefer integration or manual tests.
 

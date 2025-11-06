@@ -1,7 +1,7 @@
 /** Note block renderer: blocks → HTML nodes (no KaTeX, strict inline rules). */
-import type { InlineToken, MarkdownBlock } from "./markdown";
-import { appendInlineTokensTo, } from "./noteInline";
-import { appendSanitizedInlineHtml, convertMarkdownLinksToHtml, appendTextWithBreaks } from "./noteInlineSanitizer";
+import type { InlineToken, MarkdownBlock } from "../shared/markdown";
+import { appendInlineTokensTo, } from "./inline";
+import { appendSanitizedInlineHtml, convertMarkdownLinksToHtml, appendTextWithBreaks } from "./sanitizer";
 
 export function renderBlocks(doc: Document, blocks: MarkdownBlock[]): DocumentFragment {
   const fragment = doc.createDocumentFragment();
@@ -224,4 +224,3 @@ function isNodeEmpty(el: HTMLElement): boolean {
 function clampHeadingLevel(level: number): number {
   return Math.max(1, Math.min(3, Math.floor(level)));
 }
-

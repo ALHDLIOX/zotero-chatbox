@@ -1,13 +1,13 @@
 /** Render Zotero note-compatible HTML (no KaTeX). */
-import { parseMarkdownWithMath, type InlineToken } from "./markdown";
-import { appendInlineTokensTo } from "./noteInline";
-import { renderBlocks } from "./noteBlocks";
+import { parseMarkdownWithMath, type InlineToken } from "../shared/markdown";
+import { appendInlineTokensTo } from "./inline";
+import { renderBlocks } from "./blocks";
 import {
   appendSanitizedInlineHtml,
   appendSanitizedNode,
   appendTextWithBreaks,
   convertMarkdownLinksToHtml,
-} from "./noteInlineSanitizer";
+} from "./sanitizer";
 
 interface CiteTarget {
   attachmentID: number;
@@ -259,9 +259,9 @@ function buildItemData(item: any): any {
   };
 }
 
-// inline rendering moved to noteInline.ts
+// inline rendering moved to note/inline.ts
 
-// inline helpers moved to noteInlineSanitizer.ts
+// inline helpers moved to note/sanitizer.ts
 
 function isNodeEmpty(el: HTMLElement): boolean {
   const text = (el.textContent || "").replace(/\s+/g, "");

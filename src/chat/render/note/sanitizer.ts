@@ -142,4 +142,3 @@ export function isSafeHref(href: string): boolean {
     return false;
   }
 }
-

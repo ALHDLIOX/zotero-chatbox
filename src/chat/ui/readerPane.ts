@@ -30,7 +30,7 @@ import { copyText } from "../services/clipboard";
 import { buildContextMessage, loadContextForProps } from "../services/documentContext";
 import { getActiveReader, openReaderAndNavigate } from "../services/readerNavigation";
 import { resolveSessionAndScope } from "../services/sessionScope";
-import { renderNoteHtml } from "../render/noteHtml";
+import { renderNoteHtml } from "../render/note";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =

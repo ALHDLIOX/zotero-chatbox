@@ -1,8 +1,8 @@
 /** Chat inline renderer: tokens → DOM nodes (with KaTeX + sanitizer). */
-import { renderMath } from "./mathKatex";
-import { sanitizeHtml } from "./chatInlineSanitizer";
-import type { InlineToken } from "./markdown";
-import { escapeHtml, escapeAttribute } from "./inlineUtils";
+import { renderMath } from "../shared/mathKatex";
+import { sanitizeHtml } from "./sanitizer";
+import type { InlineToken } from "../shared/markdown";
+import { escapeHtml, escapeAttribute } from "../shared/inlineUtils";
 
 export function appendInlineTokens(
   doc: Document,
@@ -66,4 +66,3 @@ function transformInlineText(text: string): string {
   );
   return html;
 }
-

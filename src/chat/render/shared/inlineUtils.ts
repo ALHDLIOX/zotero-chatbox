@@ -17,4 +17,3 @@ export function escapeAttribute(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-

@@ -1,6 +1,6 @@
 /** DOM view helper for chat messages and actions. */
 import { getString } from "../../shared/locale";
-import { renderMessage } from "../render/messageHtml";
+import { renderMessage } from "../render/chat";
 import type { SessionMessage } from "../state/sessionStore";
 
 export interface MessageDom {

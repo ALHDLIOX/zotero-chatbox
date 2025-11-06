@@ -2,7 +2,7 @@
 import { getSession, type SessionState } from "../state/sessionStore";
 import { copyText } from "../services/clipboard";
 import { getActiveReader } from "../services/readerNavigation";
-import { renderNoteHtml } from "../render/noteHtml";
+import { renderNoteHtml } from "../render/note";
 import { getString } from "../../shared/locale";
 import { config } from "../../../package.json";
 
@@ -107,4 +107,3 @@ function parseScopeForItemID(currentScopeKey?: string): { kind: "reader" | "atta
   }
   return undefined;
 }
-

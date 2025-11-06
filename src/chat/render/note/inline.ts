@@ -1,9 +1,9 @@
 /** Note inline renderer: tokens → DOM/HTML (no KaTeX). */
-import type { InlineToken } from "./markdown";
+import type { InlineToken } from "../shared/markdown";
 import {
   appendSanitizedInlineHtml,
   appendTextWithBreaks,
-} from "./noteInlineSanitizer";
+} from "./sanitizer";
 
 export function appendInlineTokensTo(
   doc: Document,
@@ -30,4 +30,3 @@ export function appendInlineTokensTo(
     }
   }
 }
-

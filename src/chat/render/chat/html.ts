@@ -1,7 +1,7 @@
 /** Render chat message Markdown to sanitized HTML and fragments. */
-import { parseMarkdownWithMath } from "./markdown";
-import { sanitizeFragment, sanitizeHtml } from "./chatInlineSanitizer";
-import { renderBlocks } from "./chatBlocks";
+import { parseMarkdownWithMath } from "../shared/markdown";
+import { sanitizeFragment, sanitizeHtml } from "./sanitizer";
+import { renderBlocks } from "./blocks";
 
 export interface RenderResult {
   fragment: DocumentFragment;
@@ -29,4 +29,4 @@ export function renderMessage(
   };
 }
 
-// inline rendering moved to chatInline.ts
+// inline rendering moved to chat/inline.ts

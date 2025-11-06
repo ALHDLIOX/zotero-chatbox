@@ -1,8 +1,8 @@
 /** Chat block renderer: blocks → DOM fragment (uses chatInline). */
-import type { MarkdownBlock } from "./markdown";
-import { appendInlineTokens } from "./chatInline";
-import { renderMath } from "./mathKatex";
-import { sanitizeHtml } from "./chatInlineSanitizer";
+import type { MarkdownBlock } from "../shared/markdown";
+import { appendInlineTokens } from "./inline";
+import { renderMath } from "../shared/mathKatex";
+import { sanitizeHtml } from "./sanitizer";
 
 export function renderBlocks(
   doc: Document,
@@ -94,4 +94,3 @@ export function renderBlocks(
 
   return { fragment, hasMathError };
 }
-
