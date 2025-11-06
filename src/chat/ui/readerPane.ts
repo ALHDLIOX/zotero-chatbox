@@ -22,6 +22,10 @@ import { MessageView } from "./messageView";
 import { createSendIcon, createStopIcon } from "./icons";
 import { buildPresetMenu } from "./presetMenu";
 import { createStatusBar } from "./statusBar";
+import { buildWelcomeBlock } from "./welcomeBlock";
+import { buildActionButtons } from "./actionButtons";
+import { attachAutoResize } from "./inputAutoResize";
+import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./messageActions";
 import { copyText } from "../services/clipboard";
 import { buildContextMessage, loadContextForProps } from "../services/documentContext";
 import { getActiveReader, openReaderAndNavigate } from "../services/readerNavigation";
@@ -103,6 +107,7 @@ class zoRectoPaneController {
   private readonly dialogDefaultHeight = 360; // px
   private inputMinHeight = 0;
   private readonly inputMaxHeight = 200; // px
+  private _inputAuto?: { detach: () => void; resizeNow: () => void };
   private readonly sendButton: HTMLButtonElement;
   private readonly clearButton: HTMLButtonElement;
   private readonly presetWrapper: HTMLDivElement;
@@ -126,15 +131,11 @@ class zoRectoPaneController {
     const doc = this.getDocument();
     // Inject pane styles (scoped base + component) and KaTeX CSS
     ensurePaneStyles(doc, CHAT_STYLESHEET_HREF, KATEX_STYLESHEET_HREF);
-    this.messageView = new MessageView(
-      doc,
-      (messageId) => {
-        void this.copyAssistantMessage(messageId);
-      },
-      (messageId) => {
-        void this.addAssistantMessageToNotes(messageId);
-      },
-    );
+    this.messageView = new MessageView(doc, (messageId) => {
+      void copyAssistantMessageById(this.getDocument(), this.sessionId, (id) => this.messageView.get(id), messageId);
+    }, (messageId) => {
+      void addAssistantMessageToNotesById(this.getDocument(), this.sessionId, this.currentScopeKey, (id) => this.messageView.get(id), messageId);
+    });
     // Root container + fixed-height dialog wrapper
     const container = ztoolkit.UI.createElement(doc, "div", {
       classList: ["zorecto-pane"],
@@ -162,39 +163,16 @@ class zoRectoPaneController {
       classList: ["zorecto-empty-placeholder"],
     });
     // Build welcome block with suggestion cards
-    const welcome = doc.createElement("div");
-    welcome.className = "zorecto-welcome";
-    const welcomeTitle = doc.createElement("div");
-    welcomeTitle.className = "zorecto-welcome-title";
-    welcomeTitle.textContent = getString("zorecto-welcome-title");
-    const welcomeSub = doc.createElement("div");
-    welcomeSub.className = "zorecto-welcome-subtitle";
-    welcomeSub.textContent = getString("zorecto-welcome-subtitle");
-    const suggList = doc.createElement("div");
-    suggList.className = "zorecto-suggestions";
-    const promptIds = [
-      "zorecto-suggest-1",
-      "zorecto-suggest-2",
-      "zorecto-suggest-3",
-    ] as const; // show first 3 only
-    for (const id of promptIds) {
-      const label = getString(id as any);
-      const btn = ztoolkit.UI.createElement(doc, "button", {
-        classList: ["zorecto-suggestion"],
-        properties: { type: "button", textContent: label } as any,
-        listeners: [
-          {
-            type: "click",
-            listener: () => this.handleQuickAsk(label),
-          },
-        ],
-      }) as unknown as HTMLButtonElement;
-      suggList.appendChild(btn);
+    // Welcome placeholder with quick suggestions
+    try {
+      const welcome = buildWelcomeBlock(doc, (q) => this.handleQuickAsk(q));
+      this.placeholderEl.appendChild(welcome);
+    } catch {
+      const w = doc.createElement("div");
+      w.className = "zorecto-welcome";
+      w.textContent = getString("zorecto-welcome-title");
+      this.placeholderEl.appendChild(w);
     }
-    welcome.appendChild(welcomeTitle);
-    welcome.appendChild(welcomeSub);
-    welcome.appendChild(suggList);
-    this.placeholderEl.appendChild(welcome);
     this.messagesEl.appendChild(this.placeholderEl);
 
     // Toolbar row (outside input wrapper): Model preset capsule
@@ -227,56 +205,29 @@ class zoRectoPaneController {
     }) as unknown as HTMLTextAreaElement;
 
     // Buttons
-    this.sendButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["zorecto-send-button"],
-      properties: { type: "button", title: "Send" } as any,
+    const actions = buildActionButtons(doc, {
+      onSend: () => {
+        // Hide placeholder pre-emptively for immediate feedback
+        this.placeholderEl.hidden = true;
+        void this.handleSubmit();
+      },
+      onStop: () => this.handleAbort(),
+      onClear: () => {
+        if (!this.sessionId) return;
+        const session = ensureSession(this.sessionId);
+        if (!session || session.messages.length === 0) return;
+        const ok = true; // keep simple; confirmation handled elsewhere if needed
+        if (ok) {
+          void this.handleClear();
+        }
+      },
     });
-    this.clearButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["zorecto-clear-button"],
-      properties: { type: "button", title: "Clear" } as any,
-    });
-    const buttonRow = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["zorecto-button-row"],
-    });
-    buttonRow.appendChild(this.clearButton);
-    buttonRow.appendChild(this.sendButton);
-    // Icons (SVG inline): Ant Design style icons
-    try {
-      // Send icon
-      this.sendIconPlane = createSendIcon(doc);
-
-      // Stop icon
-      this.sendIconStop = createStopIcon(doc);
-
-      // Delete icon (Ant Design DeleteOutlined style - trash can)
-      const deleteIcon = doc.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg",
-      ) as unknown as SVGSVGElement;
-      deleteIcon.setAttribute("viewBox", "0 0 1024 1024");
-      deleteIcon.setAttribute("width", "16");
-      deleteIcon.setAttribute("height", "16");
-      deleteIcon.setAttribute("aria-hidden", "true");
-      deleteIcon.setAttribute("fill", "currentColor");
-      deleteIcon.style.display = "block";
-      const deletePath = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-      deletePath.setAttribute("d", "M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.4l24.7 523c1.6 34.1 29.8 61 63.9 61h454c34.2 0 62.3-26.8 63.9-61l24.7-523H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM731.3 840H292.7l-24.2-512h487l-24.2 512z");
-      deletePath.setAttribute("fill", "currentColor");
-      deleteIcon.appendChild(deletePath);
-      this.clearButton.replaceChildren(deleteIcon);
-
-      // mount send icons: keep both and toggle hidden
-      if (this.sendIconPlane) this.sendButton.appendChild(this.sendIconPlane);
-      if (this.sendIconStop) this.sendButton.appendChild(this.sendIconStop);
-      if (this.sendIconStop) (this.sendIconStop.style as any).display = "none";
-    } catch (e) {
-      this.sendButton.textContent = "✈";
-      this.clearButton.textContent = "🗑";
-    }
+    this.sendButton = actions.sendButton;
+    this.clearButton = actions.clearButton;
 
     // Compose input wrapper
     inputWrapper.appendChild(this.inputEl);
-    inputWrapper.appendChild(buttonRow);
+    inputWrapper.appendChild(actions.row);
 
     // Mount fixed-height dialog and resizer
     dialog.appendChild(this.messagesEl);
@@ -301,15 +252,6 @@ class zoRectoPaneController {
     // Initial height
     this.dialogEl.style.height = `${this.dialogDefaultHeight}px`;
     this.initResizeHandle();
-
-    this.sendButton.addEventListener("click", (event: MouseEvent) => {
-      event.preventDefault();
-      if (this.isSending) {
-        this.handleAbort();
-      } else {
-        void this.handleSubmit();
-      }
-    });
 
     // Delegated handlers for citation buttons
     this.messagesEl.addEventListener("click", (event: MouseEvent) => {
@@ -343,10 +285,10 @@ class zoRectoPaneController {
       }
     });
 
-    // Auto-resize textarea on input
-    this.inputEl.addEventListener("input", () => this.autoResizeInput());
-    // Initialize size after DOM mount
-    setTimeout(() => this.initInputAutoSize(), 0);
+    // Attach textarea auto-resize
+    try {
+      this._inputAuto = attachAutoResize(this.inputEl, { maxHeight: this.inputMaxHeight });
+    } catch {}
 
     this.setSendingState(false);
   }
@@ -796,13 +738,20 @@ class zoRectoPaneController {
   }
 
   private autoResizeInput(): void {
-    const el = this.inputEl;
-    el.style.resize = "none"; // disable manual resize
-    el.style.overflowY = "auto";
-    el.style.maxHeight = `${this.inputMaxHeight}px`;
-    el.style.height = "auto";
-    const target = Math.min(this.inputMaxHeight, Math.max(this.inputMinHeight, el.scrollHeight));
-    el.style.height = `${target}px`;
+    if (this._inputAuto) {
+      this._inputAuto.resizeNow();
+      return;
+    }
+    // Fallback simple resize without helper
+    try {
+      const el = this.inputEl;
+      el.style.resize = "none";
+      el.style.overflowY = "auto";
+      el.style.maxHeight = `${this.inputMaxHeight}px`;
+      el.style.height = "auto";
+      const target = Math.min(this.inputMaxHeight, Math.max(this.inputMinHeight, el.scrollHeight));
+      el.style.height = `${target}px`;
+    } catch {}
   }
 
   private setSendingState(sending: boolean): void {
