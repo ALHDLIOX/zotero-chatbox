@@ -1,15 +1,26 @@
-/** DOM view helper for chat messages and actions. */
-import type { SessionMessage } from "../../state/sessionStore";
-import type { CitationTarget } from "../../render/shared";
+/**
+ * MessageView – lightweight view adapter for chat messages inside the pane.
+ *
+ * Purpose
+ * - Maintain a stable mapping: message.id → MessageDom
+ * - Create/update DOM for each message and batch incremental re-renders
+ * - Toggle assistant-only actions and math error banner
+ * - Integrate inline citations rendering and lookups
+ *
+ * Non-goals
+ * - Business logic (copy, notes) – handled by controllers
+ * - Data/state management – handled by sessionStore and chatPaneController
+ */
+import type { SessionMessage } from "../../../state/sessionStore";
+import type { CitationTarget } from "../../../render/shared";
 import type { MessageDom, RenderOptions } from "./types";
-import { createMessageDom } from "./dom/messageDom";
-import { renderMessageContent as renderContent } from "./render/messageRenderer";
-import { getCitationTarget as getCitation, applyCitations } from "./citations/citations";
-import { RafBatcher } from "./util/rafBatcher";
+import { createMessageDom, renderMessageContent as renderContent } from "./messageRenderer";
+import { getCitationTarget as getCitation, makeCitations } from "./makeCitations";
+import { RafBatcher } from "../../utils/rafBatcher";
 
 export type { MessageDom } from "./types";
 
-// MessageDom moved to src/chat/ui/messages/types.ts
+// MessageDom is defined at src/chat/ui/pane/messages/types.ts
 
 
 export class MessageView {
@@ -23,6 +34,12 @@ export class MessageView {
     options?: RenderOptions;
   }>;
 
+  /**
+   * Construct the view adapter.
+   * @param doc - Pane document used for DOM operations
+   * @param onCopy - Handler for assistant Copy button
+   * @param onNote - Handler for assistant Add-to-Notes button
+   */
   constructor(
     doc: Document,
     onCopy: (messageId: string) => void,
@@ -38,23 +55,28 @@ export class MessageView {
     });
   }
 
+  /** All currently tracked message ids (in insertion order). */
   keys(): IterableIterator<string> {
     return this.messageNodes.keys();
   }
 
+  /** Resolve the cached DOM entry for a message id (if any). */
   get(messageId: string): MessageDom | undefined {
     return this.messageNodes.get(messageId);
   }
 
+  /** Drop a message id → DOM mapping (does not detach DOM from tree). */
   delete(messageId: string): void {
     this.messageNodes.delete(messageId);
   }
 
+  /** Clear all mappings and any pending rAF-batched renders. */
   clear(): void {
     this.messageNodes.clear();
     this.clearPendingRenders();
   }
 
+  /** Ensure a DOM entry exists for the message; returns the cached/created entry. */
   ensureMessageDom(message: SessionMessage): MessageDom {
     const existing = this.messageNodes.get(message.id);
     if (existing) return existing;
@@ -63,6 +85,10 @@ export class MessageView {
     return entry;
   }
 
+  /**
+   * Update the DOM entry content and assistant-only UI for a message.
+   * Invokes inline citations decoration for assistant messages with content.
+   */
   updateMessageDom(entry: MessageDom, message: SessionMessage): void {
     // Hide role label in bubbles
     entry.roleLabel.textContent = "";
@@ -83,13 +109,14 @@ export class MessageView {
 
     if (isAssistant && message.content) {
       try {
-        this.applyCitations(entry, message.content);
+        this.makeCitations(entry, message.content);
       } catch (e) {
         void e;
       }
     }
   }
 
+  /** Queue a content diff to be rendered on next animation frame (dedup by messageId). */
   scheduleMessageRender(
     messageId: string,
     entry: MessageDom,
@@ -100,18 +127,22 @@ export class MessageView {
     this.batcher.schedule();
   }
 
+  /** Force-flush any queued renders now. */
   flushRenderQueue(): void {
     this.batcher.flush();
   }
 
+  /** Cancel any queued renders and clear the batcher. */
   clearPendingRenders(): void {
     this.batcher.clear();
   }
 
+  /** Public helper used by controllers to resolve the target of a citation badge element. */
   getCitationTarget(refEl: HTMLElement): CitationTarget | undefined {
     return getCitation(refEl);
   }
 
+  /** Render content and propagate options to the renderer. */
   private renderMessageContent(
     entry: MessageDom,
     content: string,
@@ -122,8 +153,8 @@ export class MessageView {
 
   // applyMathErrorState moved to renderer; retained here only via import for API locality.
 
-  // Parse inline citation markers and render small numeric buttons in-place
-  private applyCitations(entry: MessageDom, content: string): void {
-    applyCitations(this.doc, entry, content);
+  // Parse inline citation markers and render small numeric buttons in-place.
+  private makeCitations(entry: MessageDom, content: string): void {
+    makeCitations(this.doc, entry, content);
   }
 }

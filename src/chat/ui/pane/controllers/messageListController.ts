@@ -1,4 +1,4 @@
-import { MessageView, type MessageDom } from "../../messages/messageView";
+import { MessageView, type MessageDom } from "../messages/messageView";
 import type { SessionMessage, SessionState } from "../../../state/sessionStore";
 
 export class MessageListController {

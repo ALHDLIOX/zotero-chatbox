@@ -1,3 +1,7 @@
+/**
+ * DOM handles associated with a single chat message bubble.
+ * These are created once per message id and reused for updates.
+ */
 export interface MessageDom {
   container: HTMLDivElement;
   content: HTMLDivElement;
@@ -9,7 +13,7 @@ export interface MessageDom {
   latestContent?: string;
 }
 
+/** Options to tweak content rendering behavior for a message. */
 export interface RenderOptions {
   suppressMathError?: boolean;
 }
-

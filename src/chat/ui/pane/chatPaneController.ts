@@ -22,7 +22,7 @@ import { PresetController } from "./controllers/presetController";
 import { createStatusBar } from "../controls/statusBar";
 import { buildWelcomeBlock } from "../controls/welcomeBlock";
 import { InputController } from "./controllers/inputController";
-import { copyAssistantMessageById, addAssistantMessageToNotesById } from "../messages/messageActions";
+import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./controllers/messageActions";
 import { copyText } from "../../services/clipboard";
 import { buildContextMessage, loadContextForProps } from "../../services/documentContext";
 import { getActiveReader, openReaderAndNavigate } from "../../services/readerNavigation";

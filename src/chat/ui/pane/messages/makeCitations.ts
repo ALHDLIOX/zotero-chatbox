@@ -1,15 +1,37 @@
+/**
+ * Inline citations decorator for message content.
+ *
+ * Purpose
+ * - Scan message content DOM for inline markers like `((cite: ...))` (ASCII or full-width parens)
+ * - Replace matched text with a compact sequence of clickable numeric badges
+ * - Map each badge element to a CitationTarget for navigation (via WeakMap)
+ * - Hide auxiliary code blocks that embed machine-readable citation JSON
+ *
+ * Safety
+ * - Skips code/pre, KaTeX/math nodes, and already-inserted citation wrappers
+ * - Tolerates extra whitespace, NBSP/ZWSP, and minor JSON formatting deviations
+ */
 import { getString } from "../../../../shared/locale";
 import { looksLikeCitationsJson, parseInlineCitationsArray } from "../../../render/shared";
 import type { CitationTarget } from "../../../render/shared";
-import type { MessageDom } from "../types";
+import type { MessageDom } from "./types";
 
+// Badge element → navigation target mapping. WeakMap avoids leaks when DOM nodes are GC'ed.
 const citationTargets = new WeakMap<HTMLElement, CitationTarget>();
 
+/** Resolve the CitationTarget previously associated with a badge element. */
 export function getCitationTarget(refEl: HTMLElement): CitationTarget | undefined {
   return citationTargets.get(refEl);
 }
 
-export function applyCitations(doc: Document, entry: MessageDom, content: string): void {
+/**
+ * Transform inline citation markers to numeric badges within the given message entry.
+ *
+ * @param doc - Pane document
+ * @param entry - MessageDom handles (content root is used as the scan scope)
+ * @param content - Latest raw text content (used only for context/logs; scanning is DOM-based)
+ */
+export function makeCitations(doc: Document, entry: MessageDom, content: string): void {
   const existing = entry.content.querySelectorAll(".zorecto-citations");
   for (let i = 0; i < existing.length; i++) {
     const el = existing[i] as HTMLElement;
@@ -110,6 +132,7 @@ export function applyCitations(doc: Document, entry: MessageDom, content: string
   }
 }
 
+/** Decide whether a text node is inside a region we must not mutate (code, pre, KaTeX, or existing citations). */
 function shouldSkipForCitations(node: Text): boolean {
   let el: Node | null = node.parentNode;
   while (el && (el as any).nodeType === 1) {
@@ -121,4 +144,3 @@ function shouldSkipForCitations(node: Text): boolean {
   }
   return false;
 }
-

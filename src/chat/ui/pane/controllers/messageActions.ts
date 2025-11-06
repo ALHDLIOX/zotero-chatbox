@@ -1,8 +1,8 @@
 /** Message actions for assistant messages. */
-import { getSession, type SessionState } from "../../state/sessionStore";
-import { copyText } from "../../services/clipboard";
-import { renderNoteHtml } from "../../render/note";
-import { createNotes } from "../../services/createNotes";
+import { getSession, type SessionState } from "../../../state/sessionStore";
+import { copyText } from "../../../services/clipboard";
+import { renderNoteHtml } from "../../../render/note";
+import { createNotes } from "../../../services/createNotes";
 
 export interface MessageDomLike { latestContent?: string }
 
