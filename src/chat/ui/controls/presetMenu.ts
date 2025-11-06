@@ -1,5 +1,5 @@
 /** Preset menu widget for selecting chat provider/model. */
-import { PRESETS, getPresetById } from "../providers";
+import { PRESETS, getPresetById } from "../../providers";
 
 export interface PresetMenuWidget {
   wrapper: HTMLDivElement;
@@ -119,3 +119,4 @@ export function buildPresetMenu(
 
   return { wrapper: wrapper as HTMLDivElement, button: button as HTMLButtonElement, menu: menu as HTMLUListElement, getValue, setValue: setSelected, open, close, toggle, updateLabel };
 }
+

@@ -1,5 +1,5 @@
 /** Action buttons (Send/Stop, Clear) with mode control and icons. */
-import { createSendIcon, createStopIcon } from "./icons";
+import { createSendIcon, createStopIcon } from "../utils/icons";
 
 export interface ActionButtons {
   row: HTMLDivElement;
@@ -85,3 +85,4 @@ export function buildActionButtons(
 
   return { row: row as HTMLDivElement, sendButton, clearButton, setMode };
 }
+

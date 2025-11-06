@@ -1,5 +1,5 @@
 /** Registers the preferences pane entry (about:addons). */
-import { getString } from "../shared/locale";
+import { getString } from "../../../shared/locale";
 
 export const BasicExampleFactory = {
   registerPrefs(): void {
@@ -11,3 +11,4 @@ export const BasicExampleFactory = {
     });
   },
 };
+

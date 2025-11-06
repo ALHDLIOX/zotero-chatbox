@@ -1,7 +1,7 @@
 /** Reader pane controller for the chat panel in Zotero. */
-import { config } from "../../../package.json";
-import type { FluentMessageId } from "../../../typings/i10n";
-import { getLocaleID, getString } from "../../shared/locale";
+import { config } from "../../../../package.json";
+import type { FluentMessageId } from "../../../../typings/i10n";
+import { getLocaleID, getString } from "../../../shared/locale";
 import {
   appendMessage,
   clearMessages,
@@ -14,23 +14,23 @@ import {
   type SessionMessage,
   type SessionState,
   updateMessage,
-} from "../state/sessionStore";
-import { ProviderError, sendChat, PRESETS, getPresetById } from "../providers";
-import { getSelectedPresetId, setSelectedPresetId } from "../prefs";
+} from "../../state/sessionStore";
+import { ProviderError, sendChat, PRESETS, getPresetById } from "../../providers";
+import { getSelectedPresetId, setSelectedPresetId } from "../prefs/prefs";
 import { ensurePaneStyles } from "./paneStyles";
-import { MessageView } from "./messageView";
-import { createSendIcon, createStopIcon } from "./icons";
-import { buildPresetMenu } from "./presetMenu";
-import { createStatusBar } from "./statusBar";
-import { buildWelcomeBlock } from "./welcomeBlock";
-import { buildActionButtons } from "./actionButtons";
-import { attachAutoResize } from "./inputAutoResize";
-import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./messageActions";
-import { copyText } from "../services/clipboard";
-import { buildContextMessage, loadContextForProps } from "../services/documentContext";
-import { getActiveReader, openReaderAndNavigate } from "../services/readerNavigation";
-import { resolveSessionAndScope } from "../services/sessionScope";
-import { renderNoteHtml } from "../render/note";
+import { MessageView } from "../messages/messageView";
+import { createSendIcon, createStopIcon } from "../utils/icons";
+import { buildPresetMenu } from "../controls/presetMenu";
+import { createStatusBar } from "../controls/statusBar";
+import { buildWelcomeBlock } from "../controls/welcomeBlock";
+import { buildActionButtons } from "../controls/actionButtons";
+import { attachAutoResize } from "../utils/inputAutoResize";
+import { copyAssistantMessageById, addAssistantMessageToNotesById } from "../messages/messageActions";
+import { copyText } from "../../services/clipboard";
+import { buildContextMessage, loadContextForProps } from "../../services/documentContext";
+import { getActiveReader, openReaderAndNavigate } from "../../services/readerNavigation";
+import { resolveSessionAndScope } from "../../services/sessionScope";
+import { renderNoteHtml } from "../../render/note";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =
@@ -52,7 +52,7 @@ const ROLE_LABELS: Record<SessionMessage["role"], string> = {
   system: "系统",
 };
 
-import type { MessageDom } from "./messageView";
+import type { MessageDom } from "../messages/messageView";
 
 const paneControllers = new WeakMap<HTMLDivElement, zoRectoPaneController>();
 

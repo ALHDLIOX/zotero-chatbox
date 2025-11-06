@@ -1,11 +1,11 @@
-import { config } from "../../package.json";
+import { config } from "../../../../package.json";
 import {
   PRESETS,
   getDefaultPresetId,
   getPresetById,
   findPresetIdByProviderModel,
   type ProviderId,
-} from "./providers";
+} from "../../providers";
 
 export interface ProviderSettings {
   provider: string;

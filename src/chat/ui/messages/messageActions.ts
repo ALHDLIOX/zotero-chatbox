@@ -1,10 +1,10 @@
 /** Message actions for assistant messages. */
-import { getSession, type SessionState } from "../state/sessionStore";
-import { copyText } from "../services/clipboard";
-import { getActiveReader } from "../services/readerNavigation";
-import { renderNoteHtml } from "../render/note";
-import { getString } from "../../shared/locale";
-import { config } from "../../../package.json";
+import { getSession, type SessionState } from "../../state/sessionStore";
+import { copyText } from "../../services/clipboard";
+import { getActiveReader } from "../../services/readerNavigation";
+import { renderNoteHtml } from "../../render/note";
+import { getString } from "../../../shared/locale";
+import { config } from "../../../../package.json";
 
 export interface MessageDomLike { latestContent?: string }
 

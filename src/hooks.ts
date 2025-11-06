@@ -1,7 +1,7 @@
-import { BasicExampleFactory } from "./settings/preferencesPane";
-import { registerzoRectoReaderPane } from "./chat/ui/readerPane";
+import { BasicExampleFactory } from "./chat/ui/prefs/preferencesPane";
+import { registerzoRectoReaderPane } from "./chat/ui/pane/readerPane";
 import { getString, initLocale } from "./shared/locale";
-import { registerPrefsScripts } from "./settings/preferencesUi";
+import { registerPrefsScripts } from "./chat/ui/prefs/preferencesUi";
 import { createZToolkit } from "./shared/ztoolkit";
 
 async function onStartup() {

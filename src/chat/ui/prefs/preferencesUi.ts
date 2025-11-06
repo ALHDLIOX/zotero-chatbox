@@ -1,13 +1,13 @@
 /** Preferences UI logic for model preset select and API key test. */
-import { config } from "../../package.json";
+import { config } from "../../../../package.json";
 import {
   validateProviderSettings,
   getSelectedPresetId,
   setSelectedPresetId,
   getApiKeyForProvider,
   setApiKeyForProvider,
-} from "../chat/prefs";
-import { getPresetById, PRESETS, type ProviderPreset } from "../chat/providers";
+} from "./prefs";
+import { getPresetById, PRESETS, type ProviderPreset } from "../../providers";
 
 interface PrefsState {
   window: Window;
@@ -127,27 +127,23 @@ function bindEvents(state: PrefsState) {
   }
 
   state.preset.addEventListener("change", () => {
-    const preset = getCurrentPreset(state);
-    state.endpoint.value = preset.endpoint;
-    state.apiKey.value = getApiKeyForProvider(preset.provider);
-    // Save selection immediately
-    setSelectedPresetId(preset.id);
-    clearMessage(state);
+    const selected = getCurrentPreset(state);
+    state.endpoint.value = selected.endpoint;
+    state.apiKey.value = getApiKeyForProvider(selected.provider);
+    setSelectedPresetId(selected.id);
     syncModelListSelection(state);
   });
 
-  state.apiKey.addEventListener("input", () => clearMessage(state));
   state.apiKey.addEventListener("change", () => {
     const preset = getCurrentPreset(state);
     setApiKeyForProvider(preset.provider, state.apiKey.value.trim());
   });
-  state.testBtn.addEventListener("click", () => void testConnection(state));
+
+  state.testBtn.addEventListener("click", () => testConnection(state));
 }
 
 function getCurrentPreset(state: PrefsState): ProviderPreset {
-  return (
-    getPresetById(state.preset.value) ?? getPresetById(PRESETS[0].id)!
-  );
+  return getPresetById(state.preset.value) ?? PRESETS[0];
 }
 
 function showValidationError(state: PrefsState, invalidEndpoint: boolean) {

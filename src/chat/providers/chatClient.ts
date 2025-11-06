@@ -5,7 +5,7 @@ import {
   getProviderSettings,
   type ProviderSettings,
   validateProviderSettings,
-} from "../prefs";
+} from "../ui/prefs/prefs";
 
 interface AbortControllerLike {
   signal?: AbortSignal;

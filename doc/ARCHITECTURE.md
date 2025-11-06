@@ -13,9 +13,18 @@ interactions of the main modules after the refactor to a feature domain named
     preferences UI events)
   - `chat/` – Chat feature domain (high cohesion)
     - `ui/` – DOM, panel wiring, and user interactions
-      - `readerPane.ts` – registers the Reader side pane and controls the view
-      - `messageView.ts` – message DOM nodes and incremental rendering
-      - `paneStyles.ts` – stylesheet injection (`zorecto.css`, KaTeX CSS)
+      - `pane/` – Reader pane registration and styles
+        - `readerPane.ts` – registers the Reader side pane and controls the view
+        - `paneStyles.ts` – stylesheet injection (`zorecto.css`, KaTeX CSS)
+      - `messages/` – message DOM and interactions
+        - `messageView.ts` – message DOM nodes and incremental rendering
+        - `messageActions.ts` – copy/note actions for assistant messages
+      - `controls/` – reusable UI parts (buttons, menus, status, welcome)
+        - `actionButtons.ts`, `presetMenu.ts`, `statusBar.ts`, `welcomeBlock.ts`
+      - `utils/` – small UI helpers
+        - `inputAutoResize.ts`, `icons.ts`
+      - `prefs/` – Preferences pane UI
+        - `preferencesPane.ts`, `preferencesUi.ts`, `prefs.ts`
     - `state/`
       - `sessionStore.ts` – in‑memory session state (messages/context/status)
     - `services/`
@@ -46,9 +55,6 @@ interactions of the main modules after the refactor to a feature domain named
       - `providerPresets.ts` – built‑in provider presets (endpoint/model/labels)
       - `index.ts` – public facade for provider APIs
     - `prefs.ts` – preset selection + API key storage + validation
-  - `settings/`
-    - `preferencesPane.ts` – register preferences pane entry
-    - `preferencesUi.ts` – preferences UI script (model/preset, key test)
   - `shared/`
     - `locale.ts` – Fluent helper (init/lookup)
     - `ztoolkit.ts` – Zotero Toolkit setup and defaults
@@ -74,9 +80,9 @@ logic portable and unit‑test‑friendly.
 
 ## UI and Styling
 
-- The Reader pane is registered from `chat/ui/readerPane.ts`.
-- The message list and interactions live in `chat/ui/messageView.ts`.
-- Stylesheets are injected by `chat/ui/paneStyles.ts`:
+- The Reader pane is registered from `chat/ui/pane/readerPane.ts`.
+- The message list and interactions live in `chat/ui/messages/messageView.ts`.
+- Stylesheets are injected by `chat/ui/pane/paneStyles.ts`:
   - Chat stylesheet: `chrome://<addonRef>/content/zorecto.css`
   - KaTeX stylesheet: `chrome://<addonRef>/content/vendor/katex.min.css`
 - Global tokens (`global.css`) are derived by path (`zorecto.css` → `global.css`) and
@@ -137,14 +143,14 @@ Security notes:
   - Supports streaming via `text/event-stream` (SSE‑style) with `onToken` callback.
   - Timeouts/abort are supported with an AbortController or a safe noop fallback.
 - `providers/providerPresets.ts` enumerates built‑in presets (provider, endpoint, model).
-- `chat/prefs.ts` persists preset choice and provider API keys in Zotero prefs.
+- `chat/ui/prefs/prefs.ts` persists preset choice and provider API keys in Zotero prefs.
 
 ### Adding a New Provider (Overview)
 
 1. Add a preset entry to `chat/providers/providerPresets.ts`.
 2. If the API differs from OpenAI‑style endpoints, adapt `chatClient.ts`
    (request/response parsing); keep the error mapping consistent.
-3. Ensure the settings UI (`settings/preferencesUi.ts`) covers your provider
+3. Ensure the settings UI (`chat/ui/prefs/preferencesUi.ts`) covers your provider
    (label localization, endpoint visibility if needed).
 
 ## Internationalization (Fluent)
