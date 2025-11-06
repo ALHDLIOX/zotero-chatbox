@@ -1,0 +1,40 @@
+import { getSelectedPresetId, setSelectedPresetId } from "../../prefs/prefs";
+import { buildPresetMenu } from "../../controls/presetMenu";
+
+export class PresetController {
+  private widget: ReturnType<typeof buildPresetMenu>;
+
+  constructor(
+    doc: Document,
+    toolbarRow: HTMLDivElement,
+    onSelect: (id: string) => void,
+  ) {
+    const currentId = getSelectedPresetId();
+    this.widget = buildPresetMenu(doc, currentId, (id) => {
+      setSelectedPresetId(id);
+      try {
+        this.widget.setValue(id);
+        this.widget.updateLabel(id);
+      } catch {}
+      onSelect(id);
+    });
+    toolbarRow.appendChild(this.widget.wrapper);
+  }
+
+  set(id: string): void {
+    setSelectedPresetId(id);
+    try {
+      this.widget.setValue(id);
+      this.widget.updateLabel(id);
+    } catch {}
+  }
+
+  get(): string {
+    return this.widget.getValue();
+  }
+
+  toggle(): void {
+    this.widget.toggle();
+  }
+}
+
