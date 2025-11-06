@@ -1,5 +1,13 @@
 /** Render Zotero note-compatible HTML (no KaTeX). */
 import { parseMarkdownWithMath, type InlineToken } from "./markdown";
+import { appendInlineTokensTo } from "./noteInline";
+import { renderBlocks } from "./noteBlocks";
+import {
+  appendSanitizedInlineHtml,
+  appendSanitizedNode,
+  appendTextWithBreaks,
+  convertMarkdownLinksToHtml,
+} from "./noteInlineSanitizer";
 
 interface CiteTarget {
   attachmentID: number;
@@ -14,70 +22,8 @@ export function renderNoteHtml(markdown: string, doc: Document): string {
   const wrapper = doc.createElement("div");
   wrapper.setAttribute("data-schema-version", "9");
 
-  for (const block of blocks) {
-    switch (block.type) {
-      case "heading": {
-        const level = clampHeadingLevel(block.level);
-        const h = doc.createElement(`h${level}`);
-        appendInlineTokensTo(doc, h, block.tokens);
-        if (!isNodeEmpty(h)) wrapper.appendChild(h);
-        break;
-      }
-      case "paragraph": {
-        appendParagraphWithCitations(doc, wrapper, block.tokens);
-        break;
-      }
-      case "list": {
-        const list = doc.createElement(block.ordered ? "ol" : "ul");
-        for (const itemTokens of block.items) {
-          const li = doc.createElement("li");
-          appendInlineTokensTo(doc, li, itemTokens);
-          list.appendChild(li);
-        }
-        wrapper.appendChild(list);
-        break;
-      }
-      case "code": {
-        const pre = doc.createElement("pre");
-        pre.textContent = block.content || "";
-        wrapper.appendChild(pre);
-        break;
-      }
-      case "math": {
-        const pre = doc.createElement("pre");
-        pre.className = "math";
-        pre.textContent = `$$${block.token.content}$$`;
-        wrapper.appendChild(pre);
-        break;
-      }
-      case "table": {
-        const table = doc.createElement("table");
-        const thead = doc.createElement("thead");
-        const headTr = doc.createElement("tr");
-        for (let i = 0; i < block.header.length; i++) {
-          const th = doc.createElement("th");
-          appendInlineTokensTo(doc, th, block.header[i]);
-          headTr.appendChild(th);
-        }
-        thead.appendChild(headTr);
-        table.appendChild(thead);
-
-        const tbody = doc.createElement("tbody");
-        for (const row of block.rows) {
-          const tr = doc.createElement("tr");
-          for (let i = 0; i < row.length; i++) {
-            const td = doc.createElement("td");
-            appendInlineTokensTo(doc, td, row[i]);
-            tr.appendChild(td);
-          }
-          tbody.appendChild(tr);
-        }
-        table.appendChild(tbody);
-        wrapper.appendChild(table);
-        break;
-      }
-    }
-  }
+  const frag = renderBlocks(doc, blocks);
+  wrapper.appendChild(frag);
 
   return String(wrapper.outerHTML);
 }
@@ -313,150 +259,9 @@ function buildItemData(item: any): any {
   };
 }
 
-function appendInlineTokensTo(doc: Document, parent: HTMLElement, tokens: InlineToken[]): void {
-  for (const token of tokens) {
-    switch (token.type) {
-      case "text": {
-        appendSanitizedInlineHtml(doc, parent, convertMarkdownLinksToHtml(token.content || ""));
-        break;
-      }
-      case "code": {
-        appendTextWithBreaks(doc, parent, token.content || "");
-        break;
-      }
-      case "math": {
-        const span = doc.createElement("span");
-        span.className = "math";
-        span.textContent = `$${token.content}$`;
-        parent.appendChild(span);
-        break;
-      }
-    }
-  }
-}
+// inline rendering moved to noteInline.ts
 
-function appendTextWithBreaks(doc: Document, parent: HTMLElement, text: string): void {
-  if (!text) return;
-  const parts = text.split(/\n/g);
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i]) parent.appendChild(doc.createTextNode(parts[i]));
-    if (i < parts.length - 1) parent.appendChild(doc.createElement("br"));
-  }
-}
-
-function convertMarkdownLinksToHtml(text: string): string {
-  if (!text) return "";
-  const esc = (s: string) => s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-  const renderBoldSafe = (input: string): string => {
-    if (!input) return "";
-    const re = /(\*\*|__)([\s\S]+?)\1/g;
-    let out = "";
-    let last = 0;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(input)) !== null) {
-      const start = m.index || 0;
-      if (start > last) out += esc(input.slice(last, start));
-      out += `<strong>${esc(m[2])}</strong>`;
-      last = start + m[0].length;
-    }
-    if (last < input.length) out += esc(input.slice(last));
-    return out;
-  };
-
-  const placeholders: string[] = [];
-  const PLACEHOLDER_RE = /\u0001L(\d+)\u0002/g;
-  const withPlaceholders = text.replace(
-    /(!?)\[([^\]]+)\]\(([^)]+)\)/g,
-    (_m, bang: string, label: string, href: string) => {
-      if (bang) return _m;
-      const safeHref = (href || "").trim();
-      const labelHtml = renderBoldSafe(label || "");
-      const anchor = `<a href="${esc(safeHref)}">${labelHtml}</a>`;
-      placeholders.push(anchor);
-      return `\u0001L${placeholders.length - 1}\u0002`;
-    },
-  );
-
-  const rendered = renderBoldSafe(withPlaceholders);
-  const restored = rendered.replace(PLACEHOLDER_RE, (_m, idx: string) => {
-    const i = Number(idx);
-    return Number.isFinite(i) && placeholders[i] != null ? placeholders[i] : "";
-  });
-  return restored;
-}
-
-function appendSanitizedInlineHtml(doc: Document, parent: HTMLElement, html: string): void {
-  if (!html) return appendTextWithBreaks(doc, parent, html);
-  const tpl = doc.createElement("template");
-  tpl.innerHTML = html;
-  const frag = tpl.content;
-  for (let child = frag.firstChild; child; child = child.nextSibling) {
-    appendSanitizedNode(doc, parent, child);
-  }
-}
-
-function appendSanitizedNode(doc: Document, parent: HTMLElement, node: Node): void {
-  const ELEMENT = 1;
-  const TEXT = 3;
-  if (!node) return;
-  if ((node as any).nodeType === TEXT) {
-    appendTextWithBreaks(doc, parent, (node.textContent || ""));
-    return;
-  }
-  if ((node as any).nodeType !== ELEMENT) {
-    return;
-  }
-  const el = node as HTMLElement;
-  const tag = (el.tagName || "").toLowerCase();
-  if (tag === "br") {
-    parent.appendChild(doc.createElement("br"));
-    return;
-  }
-  if (tag === "a") {
-    const href = (el.getAttribute("href") || "").trim();
-    if (!isSafeHref(href)) {
-      appendTextWithBreaks(doc, parent, el.textContent || "");
-      return;
-    }
-    const a = doc.createElement("a");
-    a.setAttribute("href", href);
-    a.setAttribute("rel", "noopener noreferrer nofollow");
-    for (let c = el.firstChild; c; c = c.nextSibling) {
-      appendSanitizedNode(doc, a, c);
-    }
-    parent.appendChild(a);
-    return;
-  }
-  if (tag === "span") {
-    const span = doc.createElement("span");
-    span.textContent = el.textContent || "";
-    const style = (el.getAttribute("style") || "").toLowerCase();
-    if (/^\s*color\s*:\s*#[0-9a-f]{3,8}\s*;?\s*$/.test(style)) {
-      span.setAttribute("style", style);
-    } else if (/^\s*background-color\s*:\s*#[0-9a-f]{3,8}\s*;?\s*$/.test(style)) {
-      span.setAttribute("style", style);
-    }
-    parent.appendChild(span);
-    return;
-  }
-  appendTextWithBreaks(doc, parent, el.textContent || "");
-}
-
-function isSafeHref(href: string): boolean {
-  if (!href) return false;
-  try {
-    const url = new URL(href, "https://example.com");
-    return /^(https?:|mailto:)/i.test(url.protocol) || href.startsWith("mailto:");
-  } catch {
-    return false;
-  }
-}
+// inline helpers moved to noteInlineSanitizer.ts
 
 function isNodeEmpty(el: HTMLElement): boolean {
   const text = (el.textContent || "").replace(/\s+/g, "");

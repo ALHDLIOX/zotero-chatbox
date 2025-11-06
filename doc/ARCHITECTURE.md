@@ -26,9 +26,15 @@ interactions of the main modules after the refactor to a feature domain named
     - `render/`
       - `markdown.ts` – Markdown + math tokenization (no DOM side effects)
       - `mathKatex.ts` – KaTeX rendering (bundled module or global fallback)
-      - `htmlSanitizer.ts` – strict HTML sanitizer and link policy
-      - `messageHtml.ts` – chat message HTML (Markdown → sanitized HTML)
-      - `noteHtml.ts` – Zotero note‑compatible HTML (no KaTeX)
+      - `chatInlineSanitizer.ts` – sanitizer for chat inline HTML fragments
+      - `inlineUtils.ts` – shared inline helpers (escape, attributes)
+      - `chatInline.ts` – inline renderer for chat (tokens → DOM; uses KaTeX + sanitizer)
+      - `noteInlineSanitizer.ts` – strict inline sanitizer utilities for notes
+      - `noteInline.ts` – inline renderer for notes (tokens → DOM; no KaTeX)
+      - `chatBlocks.ts` – block renderer for chat (blocks → DOM fragment)
+      - `noteBlocks.ts` – block renderer for notes (blocks → DOM fragment, with citations)
+      - `messageHtml.ts` – orchestrates chat render (parse → blocks → sanitize)
+      - `noteHtml.ts` – orchestrates note render (parse → blocks) (no KaTeX)
     - `providers/`
       - `chatClient.ts` – LLM request/streaming + error model
       - `providerPresets.ts` – built‑in provider presets (endpoint/model/labels)
@@ -77,8 +83,8 @@ injects links to these shipped assets.
 
 1. `markdown.ts` tokenizes Markdown blocks and inline tokens with math support
    (inline `$...$`, block `$$...$$`, `\(\)`, `\[\]`).
-2. `messageHtml.ts` converts tokens into DOM nodes, calls `mathKatex.ts` for KaTeX, and
-   sanitizes HTML fragments via `htmlSanitizer.ts` (strict tag/attr/URL policy).
+2. `chatBlocks.ts` converts blocks into DOM nodes (uses `chatInline.ts`), then
+   `messageHtml.ts` sanitizes fragments via `chatInlineSanitizer.ts`.
 3. The result is a `DocumentFragment` plus HTML string; math errors are surfaced
    as a hint to UI.
 
