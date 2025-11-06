@@ -1,3 +1,4 @@
+/** KaTeX-based LaTeX rendering to HTML. */
 // Prefer the bundled KaTeX module; fall back to globals if needed
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import katexModule from "katex";

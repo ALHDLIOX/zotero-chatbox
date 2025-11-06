@@ -1,3 +1,4 @@
+/** Injects chat and KaTeX stylesheets into document or shadow root. */
 export function ensurePaneStyles(
   doc: Document,
   chatHref: string,

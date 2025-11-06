@@ -1,3 +1,4 @@
+/** Markdown + math tokenizer (no DOM side effects). */
 export type MathDelimiter =
   | "inline-$"
   | "block-$$"
@@ -366,63 +367,42 @@ function splitPipeRow(line: string): string[] | null {
 }
 
 function isTableDivider(line: string): boolean {
-  const cells = splitPipeRow(line);
-  if (!cells || cells.length === 0) return false;
-  return cells.every((c) => /^:?\s*-{3,}\s*:?$/.test(c));
+  const raw = line.trim();
+  if (raw.indexOf("|") === -1) return false;
+  const cells = splitPipeRow(raw);
+  if (!cells) return false;
+  return (
+    cells.length >= 1 &&
+    cells.every((cell) => /:?-{3,}:?/.test(cell))
+  );
 }
 
-function parseDividerAligns(
-  line: string,
-  count: number,
-): Array<"left" | "center" | "right"> {
+function parseDividerAligns(line: string, count: number): Array<"left" | "center" | "right"> {
   const cells = splitPipeRow(line) || [];
   const aligns: Array<"left" | "center" | "right"> = [];
   for (let i = 0; i < count; i++) {
-    const c = (cells[i] || "").trim();
-    const left = c.startsWith(":");
-    const right = c.endsWith(":");
+    const cell = (cells[i] || "").trim();
+    const left = cell.startsWith(":");
+    const right = cell.endsWith(":");
     aligns.push(left && right ? "center" : right ? "right" : "left");
   }
   return aligns;
 }
 
-function normalizeRow(row: string[], size: number): string[] {
-  const out = row.slice(0, size);
-  while (out.length < size) out.push("");
-  return out;
-}
-
-interface HeadingMatch {
-  level: number;
-  content: string;
-  prefixLength: number;
-}
-
-function matchHeading(line: string): HeadingMatch | null {
-  const match = line.match(/^(?: {0,3})(#{1,6})\s+(.*)$/);
-  if (!match) {
-    return null;
-  }
-  const level = match[1].length;
-  const content = match[2];
-  const prefixLength = line.length - content.length;
-  return { level, content, prefixLength };
+function normalizeRow(row: string[], targetLength: number): string[] {
+  const cells = row.slice(0, targetLength);
+  while (cells.length < targetLength) cells.push("");
+  return cells;
 }
 
 function consumeHeading(
   source: string,
   lineInfo: LineInfo,
-  heading: HeadingMatch,
+  heading: { level: number; content: string },
   mathSegments: MathSegment[],
 ): HeadingBlock {
-  const baseIndex = lineInfo.startIndex + heading.prefixLength;
-  const tokens = parseInline(
-    heading.content,
-    baseIndex,
-    mathSegments,
-    heading.content.length,
-  );
-
+  const text = heading.content.trim();
+  const tokens = parseInline(text, lineInfo.startIndex + lineInfo.line.indexOf(text), mathSegments, text.length);
   return {
     type: "heading",
     level: heading.level,
@@ -432,163 +412,181 @@ function consumeHeading(
   };
 }
 
-interface ListMatch {
-  ordered: boolean;
-  content: string;
-  prefixLength: number;
+function matchHeading(line: string): { level: number; content: string } | null {
+  const match = line.match(/^(?: {0,3})(#{1,6})\s+(.*)$/);
+  if (!match) return null;
+  return { level: match[1].length, content: match[2] ?? "" };
 }
 
-function matchList(line: string): ListMatch | null {
-  const unordered = line.match(/^ {0,3}([*+-])\s+(.*)$/);
-  if (unordered) {
-    const content = unordered[2];
-    const prefixLength = line.length - content.length;
-    return { ordered: false, content, prefixLength };
-  }
-
-  const ordered = line.match(/^ {0,3}(\d+)[.)]\s+(.*)$/);
-  if (ordered) {
-    const content = ordered[2];
-    const prefixLength = line.length - content.length;
-    return { ordered: true, content, prefixLength };
-  }
-
+function matchList(line: string): { ordered: boolean; marker: string } | null {
+  const bullet = /^(?: {0,3})([*+-])\s+/.exec(line);
+  if (bullet) return { ordered: false, marker: bullet[1] };
+  const ordered = /^(?: {0,3})(\d+)\.[\t| ]+/.exec(line);
+  if (ordered) return { ordered: true, marker: ordered[1] };
   return null;
 }
 
 function consumeList(
   source: string,
-  firstLine: LineInfo,
-  initialMatch: ListMatch,
+  lineInfo: LineInfo,
+  list: { ordered: boolean; marker: string },
   mathSegments: MathSegment[],
 ): ListBlock {
   const items: InlineToken[][] = [];
-  let endIndex = firstLine.nextIndex;
-  let currentLine = firstLine;
-  let expectedOrdered = initialMatch.ordered;
+  let nextIndex = lineInfo.startIndex;
+  let endIndex = lineInfo.nextIndex;
+  const pattern = list.ordered
+    ? new RegExp(`^(?: {0,3})${escapeRegex(list.marker)}\\.[\t| ]+(.*)$`)
+    : /^(?: {0,3})([*+-])\s+(.*)$/;
 
+  let i = 0;
   while (true) {
-    const match = matchList(currentLine.line);
-    if (!match || match.ordered !== expectedOrdered) {
+    const line = getLine(source, nextIndex);
+    const m = pattern.exec(line.line);
+    if (!m) {
+      endIndex = line.startIndex;
       break;
     }
-
-    const contentStart =
-      currentLine.startIndex + (currentLine.line.length - match.content.length);
-    const tokens = parseInline(
-      match.content,
-      contentStart,
-      mathSegments,
-      match.content.length,
-    );
+    const content = (m[2] ?? m[1] ?? "").trim();
+    const tokens = parseInline(content, line.startIndex + line.line.indexOf(content), mathSegments, content.length);
     items.push(tokens);
-
-    endIndex = currentLine.nextIndex;
-    if (endIndex >= source.length) {
+    i += 1;
+    nextIndex = line.nextIndex;
+    if (nextIndex >= source.length) {
+      endIndex = source.length;
       break;
     }
-
-    const probe = getLine(source, endIndex);
-    if (probe.line.trim().length === 0) {
-      endIndex = probe.nextIndex;
-      break;
-    }
-
-    if (!matchList(probe.line)) {
-      break;
-    }
-    currentLine = probe;
   }
 
   return {
     type: "list",
-    ordered: expectedOrdered,
+    ordered: list.ordered,
     items,
-    startIndex: firstLine.startIndex,
+    startIndex: lineInfo.startIndex,
     endIndex,
   };
 }
 
 function consumeParagraph(
   source: string,
-  firstLine: LineInfo,
+  lineInfo: LineInfo,
   mathSegments: MathSegment[],
 ): ParagraphBlock {
-  const startIndex = firstLine.startIndex;
-  let endIndex = firstLine.nextIndex;
-
-  while (endIndex < source.length) {
-    const probe = getLine(source, endIndex);
-    const trimmed = probe.line.trim();
-    if (trimmed.length === 0) {
-      endIndex = probe.nextIndex;
+  let nextIndex = lineInfo.nextIndex;
+  while (nextIndex <= source.length) {
+    if (nextIndex === source.length) break;
+    const probe = getLine(source, nextIndex);
+    if (probe.line.trim().length === 0) {
+      nextIndex = probe.nextIndex;
       break;
     }
-    if (
-      matchCodeFence(probe.line) ||
-      matchHeading(probe.line) ||
-      matchList(probe.line) ||
-      trimmed === "$$" ||
-      trimmed === "\\["
-    ) {
+    if (matchHeading(probe.line) || matchCodeFence(probe.line) || matchList(probe.line)) {
       break;
     }
-    endIndex = probe.nextIndex;
+    const maybeDivider = getLine(source, nextIndex);
+    if (isTableDivider(maybeDivider.line)) {
+      break;
+    }
+    nextIndex = probe.nextIndex;
   }
-
-  const content = source.slice(startIndex, endIndex);
-  const tokens = parseInline(
-    content,
-    startIndex,
-    mathSegments,
-    content.length,
-  );
-
+  const content = source.slice(lineInfo.startIndex, nextIndex);
+  const text = content.replace(/\s+$/g, "");
+  const tokens = parseInline(text, lineInfo.startIndex, mathSegments, text.length);
   return {
     type: "paragraph",
     tokens,
-    startIndex,
-    endIndex,
+    startIndex: lineInfo.startIndex,
+    endIndex: nextIndex,
   };
 }
 
-interface MathBlockResult extends MathBlock {}
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+interface MathMatchResult {
+  delimiter: MathDelimiter;
+  contentStart: number;
+  contentEnd: number;
+  endIndex: number;
+  inline: boolean;
+}
+
+function matchMath(text: string, start: number): MathMatchResult | null {
+  const char = text[start];
+
+  if (char === "$") {
+    const run = countRun(text, start, "$");
+    if (run >= 2) {
+      const closing = text.indexOf("$$", start + 2);
+      if (closing !== -1) {
+        return {
+          delimiter: "block-$$",
+          contentStart: start + 2,
+          contentEnd: closing,
+          endIndex: closing + 2,
+          inline: false,
+        };
+      }
+    } else {
+      const closing = findInlineFence(text, start + 1, "$", 1);
+      if (closing !== -1) {
+        return {
+          delimiter: "inline-$",
+          contentStart: start + 1,
+          contentEnd: closing,
+          endIndex: closing + 1,
+          inline: true,
+        };
+      }
+    }
+  }
+
+  if (char === "\\") {
+    if (text.slice(start, start + 2) === "\\[") {
+      const closing = text.indexOf("\\]", start + 2);
+      if (closing !== -1) {
+        return {
+          delimiter: "block-\\[\\]",
+          contentStart: start + 2,
+          contentEnd: closing,
+          endIndex: closing + 2,
+          inline: false,
+        };
+      }
+    }
+    if (text.slice(start, start + 2) === "\\(") {
+      const closing = text.indexOf("\\)", start + 2);
+      if (closing !== -1) {
+        return {
+          delimiter: "inline-\\(\\)",
+          contentStart: start + 2,
+          contentEnd: closing,
+          endIndex: closing + 2,
+          inline: true,
+        };
+      }
+    }
+  }
+
+  return null;
+}
 
 function tryParseDelimitedMathBlock(
   source: string,
   lineInfo: LineInfo,
-  delimiter: string,
+  delimiter: "$$" | "\\[",
   kind: MathDelimiter,
   inline: boolean,
-): MathBlockResult | null {
+): MathBlock | null {
   const trimmed = lineInfo.line.trim();
-  if (trimmed !== delimiter) {
-    return null;
-  }
-
-  const contentStart = lineInfo.nextIndex;
-  let searchIndex = contentStart;
-  let closingLine: LineInfo | null = null;
-
-  while (searchIndex <= source.length) {
-    if (searchIndex === source.length) {
-      break;
-    }
-    const probe = getLine(source, searchIndex);
-    if (probe.line.trim() === delimiter) {
-      closingLine = probe;
-      break;
-    }
-    searchIndex = probe.nextIndex;
-  }
-
-  if (!closingLine) {
-    return null;
-  }
+  if (!trimmed.startsWith(delimiter)) return null;
+  const closing = findClosingLine(source, lineInfo.nextIndex, delimiter);
+  if (!closing) return null;
 
   const content = source
-    .slice(contentStart, Math.max(contentStart, closingLine.startIndex))
-    .replace(/\n+$/, "");
+    .slice(lineInfo.nextIndex, closing.startIndex)
+    .replace(/\n$/, "");
 
   const token: MathSegment = {
     type: "math",
@@ -596,14 +594,14 @@ function tryParseDelimitedMathBlock(
     content,
     inline,
     startIndex: lineInfo.startIndex + lineInfo.line.indexOf(delimiter),
-    endIndex: closingLine.startIndex + closingLine.line.indexOf(delimiter) + delimiter.length,
+    endIndex: closing.startIndex + closing.line.indexOf(delimiter) + delimiter.length,
   };
 
   return {
     type: "math",
     token,
     startIndex: lineInfo.startIndex,
-    endIndex: closingLine.nextIndex,
+    endIndex: closing.nextIndex,
   };
 }
 
@@ -719,118 +717,28 @@ function findInlineFence(
   fenceChar: string,
   length: number,
 ): number {
-  const fence = fenceChar.repeat(length);
-  let searchIndex = start;
-  while (searchIndex < text.length) {
-    const index = text.indexOf(fence, searchIndex);
-    if (index === -1) {
-      return -1;
-    }
-    if (!isEscaped(text, index)) {
-      return index;
-    }
-    searchIndex = index + 1;
+  const end = text.length;
+  for (let i = start; i < end; i++) {
+    if (text[i] !== fenceChar) continue;
+    const runLength = countRun(text, i, fenceChar);
+    if (runLength >= length) return i;
   }
   return -1;
 }
 
-interface MathMatch {
-  contentStart: number;
-  contentEnd: number;
-  endIndex: number;
-  delimiter: MathDelimiter;
-  inline: boolean;
-}
-
-function matchMath(text: string, index: number): MathMatch | null {
-  const char = text[index];
-
-  if (char === "$") {
-    if (isEscaped(text, index)) {
-      return null;
-    }
-    const run = countRun(text, index, "$");
-    if (run > 2) {
-      return null;
-    }
-    const delimiter = run === 2 ? "block-$$" : "inline-$";
-    const closeSeq = "$".repeat(run);
-    const contentStart = index + run;
-    const contentEnd = findClosingDelimiter(text, contentStart, closeSeq);
-    if (contentEnd === -1 || contentEnd === contentStart) {
-      return null;
-    }
-    return {
-      contentStart,
-      contentEnd,
-      endIndex: contentEnd + run,
-      delimiter,
-      inline: run === 1,
-    };
-  }
-
-  if (char === "\\" && index + 1 < text.length) {
-    const next = text[index + 1];
-    if (next === "(") {
-      const closeIndex = text.indexOf("\\)", index + 2);
-      if (closeIndex === -1 || closeIndex === index + 2) {
-        return null;
-      }
-      return {
-        contentStart: index + 2,
-        contentEnd: closeIndex,
-        endIndex: closeIndex + 2,
-        delimiter: "inline-\\(\\)",
-        inline: true,
-      };
-    }
-    if (next === "[") {
-      const closeIndex = text.indexOf("\\]", index + 2);
-      if (closeIndex === -1 || closeIndex === index + 2) {
-        return null;
-      }
-      return {
-        contentStart: index + 2,
-        contentEnd: closeIndex,
-        endIndex: closeIndex + 2,
-        delimiter: "block-\\[\\]",
-        inline: false,
-      };
-    }
-  }
-
-  return null;
-}
-
-function findClosingDelimiter(
-  text: string,
+function findClosingLine(
+  source: string,
   start: number,
   delimiter: string,
-): number {
-  let searchIndex = start;
-  while (searchIndex < text.length) {
-    const index = text.indexOf(delimiter, searchIndex);
-    if (index === -1) {
-      return -1;
+): LineInfo | null {
+  let nextIndex = start;
+  while (nextIndex <= source.length) {
+    if (nextIndex === source.length) return null;
+    const probe = getLine(source, nextIndex);
+    if (probe.line.trim().endsWith(delimiter)) {
+      return probe;
     }
-    if (!isEscaped(text, index)) {
-      return index;
-    }
-    searchIndex = index + 1;
+    nextIndex = probe.nextIndex;
   }
-  return -1;
-}
-
-function isEscaped(text: string, index: number): boolean {
-  let backslashCount = 0;
-  let pointer = index - 1;
-  while (pointer >= 0 && text[pointer] === "\\") {
-    backslashCount += 1;
-    pointer -= 1;
-  }
-  return backslashCount % 2 === 1;
-}
-
-function escapeRegex(char: string): string {
-  return char.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+  return null;
 }

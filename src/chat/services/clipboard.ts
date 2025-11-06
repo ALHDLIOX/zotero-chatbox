@@ -1,3 +1,4 @@
+/** Copy plain text to clipboard with progressive fallbacks. */
 export async function copyText(doc: Document, text: string): Promise<void> {
   const win = doc.defaultView as (Window & { navigator?: any }) | null;
   const clipboardApi = win && (win.navigator as any)?.clipboard;

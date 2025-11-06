@@ -1,3 +1,4 @@
+/** Zotero Toolkit initialization and defaults (logging, UI, icons). */
 import { ZoteroToolkit } from "zotero-plugin-toolkit";
 import { config } from "../../package.json";
 

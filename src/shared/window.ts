@@ -1,3 +1,4 @@
+/** Lightweight utility to check if a window is alive in Zotero runtime. */
 export { isWindowAlive };
 
 /**

@@ -1,7 +1,8 @@
-import { getSession, type SessionMessage } from "../session";
-import { getActiveReader } from "./readerNav";
-import { ensureSession } from "../session";
-import { setSessionContext, type SessionState } from "../session";
+/** Gather PDF context and build system context messages for chat. */
+import { getSession, type SessionMessage } from "../state/sessionStore";
+import { getActiveReader } from "./readerNavigation";
+import { ensureSession } from "../state/sessionStore";
+import { setSessionContext, type SessionState } from "../state/sessionStore";
 
 export async function collectRelevantAttachments(
   props: _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs,

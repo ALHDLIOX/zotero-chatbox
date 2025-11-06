@@ -1,3 +1,4 @@
+/** Render Zotero note-compatible HTML (no KaTeX). */
 import { parseMarkdownWithMath, type InlineToken } from "./markdown";
 
 interface CiteTarget {
@@ -7,20 +8,6 @@ interface CiteTarget {
   locate?: string; // section/equation/figure, written into suffix
 }
 
-/**
- * Render note HTML from raw Markdown (no KaTeX), following strict rules:
- * - Wrap with <div data-schema-version="9"> ... </div>
- * - Only h1–h3 for headings
- * - Paragraphs use <p> with inline <br> for line breaks; drop empty paragraphs
- * - Block code uses <pre> (no <code>)
- * - No inline code (<code>)
- * - Math: block -> <pre class="math">$$...$$</pre>; inline -> <span class="math">$...$</span>
- * - Bold: **...** or __...__ -> <strong>...</strong>
- * - Links: only <a href="..." rel="noopener noreferrer nofollow"> ... </a> (no target)
- * - Colors: allow only <span style="color:#hex"> or <span style="background-color:#hex[aa]">
- * - Tables: output standard <table>/<thead>/<tbody>/<tr>/<th>/<td> without extra classes/styles
- * - Any other tags/styles are stripped (treated as plain text)
- */
 export function renderNoteHtml(markdown: string, doc: Document): string {
   const { blocks } = parseMarkdownWithMath(markdown || "");
 
@@ -37,7 +24,6 @@ export function renderNoteHtml(markdown: string, doc: Document): string {
         break;
       }
       case "paragraph": {
-        // Render paragraph but extract ((cite: {...})) into standalone citation div blocks
         appendParagraphWithCitations(doc, wrapper, block.tokens);
         break;
       }
@@ -46,7 +32,6 @@ export function renderNoteHtml(markdown: string, doc: Document): string {
         for (const itemTokens of block.items) {
           const li = doc.createElement("li");
           appendInlineTokensTo(doc, li, itemTokens);
-          // Keep empty <li> if present to match Markdown semantics
           list.appendChild(li);
         }
         wrapper.appendChild(list);
@@ -59,7 +44,6 @@ export function renderNoteHtml(markdown: string, doc: Document): string {
         break;
       }
       case "math": {
-        // Block math only
         const pre = doc.createElement("pre");
         pre.className = "math";
         pre.textContent = `$$${block.token.content}$$`;
@@ -98,8 +82,6 @@ export function renderNoteHtml(markdown: string, doc: Document): string {
   return String(wrapper.outerHTML);
 }
 
-// Append a paragraph to wrapper, splitting out inline ((cite:{...})) markers into
-// sibling <div data-citation-items> blocks per Zotero's expected schema.
 function appendParagraphWithCitations(
   doc: Document,
   wrapper: HTMLElement,
@@ -115,19 +97,16 @@ function appendParagraphWithCitations(
   };
 
   for (const token of tokens) {
-    // Treat block math (e.g., $$...$$ or \[...\]) as standalone blocks inside paragraphs
     if (token.type === "math" && token.inline === false) {
       flushP();
       const pre = doc.createElement("pre");
       pre.className = "math";
-      // Preserve delimiters per requirement
       const content = token.content || "";
       if (token.delimiter === "block-$$") {
         pre.textContent = `$$${content}$$`;
       } else if (token.delimiter === "block-\\[\\]") {
         pre.textContent = `\\[${content}\\]`;
       } else {
-        // Fallback: keep as inline if an unexpected delimiter appears
         appendInlineTokensTo(doc, p, [token]);
         continue;
       }
@@ -136,7 +115,6 @@ function appendParagraphWithCitations(
     }
 
     if (token.type !== "text") {
-      // Non-text tokens (including inline math): append as-is into current paragraph
       appendInlineTokensTo(doc, p, [token]);
       continue;
     }
@@ -157,29 +135,17 @@ function appendParagraphWithCitations(
       const payload = m[1] || "";
       const parsed = parseInlineCitationsForNotes(payload);
       if (!parsed || parsed.length === 0) {
-        // Keep raw text if parse failed
         appendSanitizedInlineHtml(
           doc,
           p,
           convertMarkdownLinksToHtml(text.slice(start, start + (m[0]?.length || 0))),
         );
       } else {
-        // Flush current paragraph before inserting block-level citation
         flushP();
         try {
           const citationDiv = buildCitationBlock(doc, parsed);
           wrapper.appendChild(citationDiv);
-          // Log built citation for debugging
-          try {
-            (ztoolkit as any)?.log?.("[zorecto] 笔记引用生成", {
-              payload,
-              cites: parsed,
-            });
-          } catch (e) {
-            void e;
-          }
         } catch (e) {
-          // If building fails, degrade to raw text
           appendSanitizedInlineHtml(
             doc,
             p,
@@ -200,7 +166,6 @@ function appendParagraphWithCitations(
     }
   }
 
-  // Append the final paragraph if it has content
   if (!isNodeEmpty(p)) {
     wrapper.appendChild(p);
   }
@@ -240,9 +205,7 @@ function parseInlineCitationsForNotes(text: string): CiteTarget[] | undefined {
       }
     }
     return cites.length > 0 ? cites : undefined;
-  } catch {
-    // lenient parsing: scan object-like chunks
-  }
+  } catch {}
 
   const candidates: CiteTarget[] = [];
   const objectLike = normalized.match(/{[^{}]*}/g);
@@ -270,7 +233,6 @@ function parseInlineCitationsForNotes(text: string): CiteTarget[] | undefined {
 }
 
 function buildCitationBlock(doc: Document, cites: CiteTarget[]): HTMLDivElement {
-  // Build data-citation-items (with itemData) and data-citation (with per-citation options)
   const itemsPayload: Array<{ uris: string[]; itemData: any }> = [];
   const citationItems: Array<{
     uris: string[];
@@ -285,14 +247,10 @@ function buildCitationBlock(doc: Document, cites: CiteTarget[]): HTMLDivElement 
     const resolved = resolveItemForAttachment(c.attachmentID);
     if (!resolved) continue;
     const { uri, itemData } = resolved;
-
     itemsPayload.push({ uris: [uri], itemData });
-
-    // Use page provided by the model directly (no journal start-page conversion)
     const locatorStr = typeof c.page === "number" && Number.isFinite(c.page)
       ? String(c.page)
       : undefined;
-
     citationItems.push({
       uris: [uri],
       'suppress-author': true,
@@ -309,14 +267,12 @@ function buildCitationBlock(doc: Document, cites: CiteTarget[]): HTMLDivElement 
       encodeURIComponent(JSON.stringify(itemsPayload)),
     );
   } catch (e) {
-    // keep empty attribute on failure
     div.setAttribute("data-citation-items", "");
   }
 
   const p = doc.createElement("p");
   const span = doc.createElement("span");
   span.className = "citation";
-
   try {
     span.setAttribute(
       "data-citation",
@@ -327,159 +283,37 @@ function buildCitationBlock(doc: Document, cites: CiteTarget[]): HTMLDivElement 
   } catch (e) {
     span.setAttribute("data-citation", "");
   }
-
-  // Minimal visible text: (page X[, locate]) - from the first citation only
-  let visible = "(citation)";
-  if (citationItems.length > 0) {
-    const first = citationItems[0];
-    const parts: string[] = [];
-    if (first.locator) parts.push(`page ${first.locator}`);
-    if (first.suffix) parts.push(first.suffix);
-    visible = `(${parts.join(", ") || "citation"})`;
-  }
-  span.textContent = visible;
   p.appendChild(span);
   div.appendChild(p);
   return div;
 }
 
-function resolveItemForAttachment(
-  attachmentID: number,
-): { uri: string; itemData: any; startPage?: number } | undefined {
+function resolveItemForAttachment(attachmentID: number): { uri: string; itemData: any } | undefined {
   try {
     const Items: any = (Zotero as any)?.Items;
     const attachment = Items?.get?.(attachmentID);
-    if (!attachment) return undefined;
-    const parent = attachment.isAttachment?.() ? (attachment as any).parentItem : attachment;
+    const parent = attachment?.isAttachment?.() ? attachment.parentItem : attachment;
     if (!parent) return undefined;
-
-    // Build users/<userID> uri
-    let userID: number | string | undefined;
-    try {
-      const Users: any = (Zotero as any)?.Users;
-      userID = Users?.getCurrentUserID?.();
-      if (!userID) {
-        // Attempt to derive from library info
-        const Libraries: any = (Zotero as any)?.Libraries;
-        const lib = Libraries?.get?.(parent.libraryID);
-        userID = lib?.accountID ?? lib?.userID ?? "0";
-      }
-    } catch (e) {
-      userID = "0";
-    }
-
-    const key = (parent as any).key || (parent as any).getField?.("key") || String(parent.id || "");
-    const uri = `http://zotero.org/users/${userID}/items/${key}`;
-
-    // itemData via internal API if available; fallback to minimal fields
-    let itemData: any;
-    try {
-      const Utilities: any = (Zotero as any)?.Utilities;
-      itemData = Utilities?.itemToCSLJSON?.(parent);
-    } catch (e) {
-      itemData = undefined;
-    }
-    if (!itemData) {
-      // Fallback minimal CSL-like data
-      itemData = buildMinimalCSLFromItem(parent, uri);
-    } else {
-      // Ensure id equals uri
-      try {
-        itemData.id = uri;
-      } catch (e) {
-        void e;
-      }
-    }
-
-    // Extract start page for locator computation
-    let startPage: number | undefined;
-    try {
-      const pages: string = parent.getField?.("pages") || "";
-      const m = String(pages).match(/\d+/);
-      if (m) startPage = Number(m[0]);
-    } catch (e) {
-      void e;
-    }
-
-    return { uri, itemData, startPage };
+    const uri = String((parent as any).getLibraryLink?.() || (parent as any).getURI?.() || "");
+    const itemData = (parent as any).getField ? buildItemData(parent) : undefined;
+    return { uri, itemData };
   } catch (e) {
-    try {
-      (ztoolkit as any)?.log?.("[zorecto] 解析附件引用失败", {
-        attachmentID,
-        error: String(e),
-      });
-    } catch (ee) {
-      void ee;
-    }
+    void e;
     return undefined;
   }
 }
 
-function buildMinimalCSLFromItem(item: any, uri: string): any {
-  const safeGet = (f: string) => {
-    try {
-      return item.getField?.(f) ?? "";
-    } catch {
-      return "";
-    }
-  };
-
-  const type = (() => {
-    try {
-      return item.itemType || item.type || "article-journal";
-    } catch {
-      return "article-journal";
-    }
-  })();
-
-  const title = safeGet("title");
-  const DOI = safeGet("DOI");
-  const ISSN = safeGet("ISSN");
-  const URL = safeGet("url") || safeGet("URL");
-  const container = safeGet("publicationTitle") || safeGet("journalAbbreviation") || safeGet("journalTitle") || safeGet("container-title");
-  const volume = safeGet("volume");
-  const issue = safeGet("issue");
-  const language = safeGet("language");
-  const page = safeGet("pages");
-  const authors: Array<{ family: string; given?: string }> = [];
-  try {
-    const creators = (item as any).getCreators?.() || (item as any).creators || [];
-    for (const c of creators) {
-      const family = (c.lastName || c.family || c.name || "").toString();
-      const given = (c.firstName || c.given || "").toString();
-      if (family || given) authors.push({ family, given: given || undefined });
-    }
-  } catch {
-    // ignore
-  }
-
+function buildItemData(item: any): any {
   return {
-    id: uri,
-    type,
-    title,
-    DOI,
-    ISSN,
-    URL,
-    volume,
-    issue,
-    language,
-    page,
-    'container-title': container,
-    author: authors,
+    id: String(item?.key || item?.id || ""),
+    title: String(item?.getField?.("title") || ""),
+    issued: undefined,
+    author: undefined,
+    type: undefined,
   };
 }
 
-function clampHeadingLevel(level: number): 1 | 2 | 3 {
-  if (level <= 1) return 1;
-  if (level === 2) return 2;
-  return 3;
-}
-
-function appendInlineTokensTo(
-  doc: Document,
-  parent: HTMLElement,
-  tokens: InlineToken[],
-): void {
+function appendInlineTokensTo(doc: Document, parent: HTMLElement, tokens: InlineToken[]): void {
   for (const token of tokens) {
     switch (token.type) {
       case "text": {
@@ -487,7 +321,6 @@ function appendInlineTokensTo(
         break;
       }
       case "code": {
-        // Inline code not needed per spec: include plain text
         appendTextWithBreaks(doc, parent, token.content || "");
         break;
       }
@@ -511,19 +344,15 @@ function appendTextWithBreaks(doc: Document, parent: HTMLElement, text: string):
   }
 }
 
-// Convert simple Markdown links [label](href) to <a> tags before inline sanitizer
 function convertMarkdownLinksToHtml(text: string): string {
   if (!text) return "";
+  const esc = (s: string) => s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
-  const esc = (s: string) =>
-    s
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-
-  // Render bold markers to <strong>, escaping non-marked text
   const renderBoldSafe = (input: string): string => {
     if (!input) return "";
     const re = /(\*\*|__)([\s\S]+?)\1/g;
@@ -540,44 +369,33 @@ function convertMarkdownLinksToHtml(text: string): string {
     return out;
   };
 
-  // Replace links with placeholders to avoid interfering with bold rendering outside
   const placeholders: string[] = [];
   const PLACEHOLDER_RE = /\u0001L(\d+)\u0002/g;
   const withPlaceholders = text.replace(
     /(!?)\[([^\]]+)\]\(([^)]+)\)/g,
     (_m, bang: string, label: string, href: string) => {
-      if (bang) {
-        // image syntax -> leave as plain text
-        return _m;
-      }
+      if (bang) return _m;
       const safeHref = (href || "").trim();
       const labelHtml = renderBoldSafe(label || "");
-      // No target; rel later enforced by sanitizer
       const anchor = `<a href="${esc(safeHref)}">${labelHtml}</a>`;
       placeholders.push(anchor);
       return `\u0001L${placeholders.length - 1}\u0002`;
     },
   );
 
-  // Render bold for the rest of the string (outside links), with HTML escaping
   const rendered = renderBoldSafe(withPlaceholders);
-
-  // Restore placeholders
   const restored = rendered.replace(PLACEHOLDER_RE, (_m, idx: string) => {
     const i = Number(idx);
     return Number.isFinite(i) && placeholders[i] != null ? placeholders[i] : "";
   });
-
   return restored;
 }
 
-// Allow only <a>, <span style=color|background-color>, and <br> in inline HTML; others are flattened to text
 function appendSanitizedInlineHtml(doc: Document, parent: HTMLElement, html: string): void {
   if (!html) return appendTextWithBreaks(doc, parent, html);
   const tpl = doc.createElement("template");
   tpl.innerHTML = html;
   const frag = tpl.content;
-  // Shallow iterate children and append sanitizing
   for (let child = frag.firstChild; child; child = child.nextSibling) {
     appendSanitizedNode(doc, parent, child);
   }
@@ -592,7 +410,7 @@ function appendSanitizedNode(doc: Document, parent: HTMLElement, node: Node): vo
     return;
   }
   if ((node as any).nodeType !== ELEMENT) {
-    return; // drop comments and others
+    return;
   }
   const el = node as HTMLElement;
   const tag = (el.tagName || "").toLowerCase();
@@ -603,85 +421,49 @@ function appendSanitizedNode(doc: Document, parent: HTMLElement, node: Node): vo
   if (tag === "a") {
     const href = (el.getAttribute("href") || "").trim();
     if (!isSafeHref(href)) {
-      // degrade to text
       appendTextWithBreaks(doc, parent, el.textContent || "");
       return;
     }
     const a = doc.createElement("a");
     a.setAttribute("href", href);
     a.setAttribute("rel", "noopener noreferrer nofollow");
-    // No target attribute per spec
-    // Recurse children
     for (let c = el.firstChild; c; c = c.nextSibling) {
       appendSanitizedNode(doc, a, c);
     }
     parent.appendChild(a);
     return;
   }
-  if (tag === "strong") {
-    const strong = doc.createElement("strong");
-    for (let c = el.firstChild; c; c = c.nextSibling) {
-      appendSanitizedNode(doc, strong, c);
-    }
-    parent.appendChild(strong);
-    return;
-  }
   if (tag === "span") {
     const span = doc.createElement("span");
-    const style = (el.getAttribute("style") || "").trim();
-    const nextStyle = sanitizeSpanStyle(style);
-    if (nextStyle) span.setAttribute("style", nextStyle);
-    for (let c = el.firstChild; c; c = c.nextSibling) {
-      appendSanitizedNode(doc, span, c);
+    span.textContent = el.textContent || "";
+    const style = (el.getAttribute("style") || "").toLowerCase();
+    if (/^\s*color\s*:\s*#[0-9a-f]{3,8}\s*;?\s*$/.test(style)) {
+      span.setAttribute("style", style);
+    } else if (/^\s*background-color\s*:\s*#[0-9a-f]{3,8}\s*;?\s*$/.test(style)) {
+      span.setAttribute("style", style);
     }
     parent.appendChild(span);
     return;
   }
-  // Unknown inline tag: flatten to text
   appendTextWithBreaks(doc, parent, el.textContent || "");
 }
 
 function isSafeHref(href: string): boolean {
   if (!href) return false;
-  const SAFE = /^(https?:|mailto:)/i;
-  return SAFE.test(href);
-}
-
-function sanitizeSpanStyle(style: string): string | undefined {
-  if (!style) return undefined;
-  const entries = style.split(";").map((s) => s.trim()).filter(Boolean);
-  const result: string[] = [];
-  for (const e of entries) {
-    const [rawKey, rawVal] = e.split(":");
-    if (!rawKey || !rawVal) continue;
-    const key = rawKey.trim().toLowerCase();
-    const val = rawVal.trim();
-    if (key === "color" && isHexColor(val)) {
-      result.push(`color: ${normalizeHex(val)}`);
-      continue;
-    }
-    if (key === "background-color" && isHexColor(val)) {
-      result.push(`background-color: ${normalizeHex(val)}`);
-      continue;
-    }
+  try {
+    const url = new URL(href, "https://example.com");
+    return /^(https?:|mailto:)/i.test(url.protocol) || href.startsWith("mailto:");
+  } catch {
+    return false;
   }
-  return result.length > 0 ? result.join("; ") : undefined;
-}
-
-function isHexColor(value: string): boolean {
-  const v = value.trim();
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v);
-}
-
-function normalizeHex(value: string): string {
-  return value.trim().toLowerCase();
 }
 
 function isNodeEmpty(el: HTMLElement): boolean {
-  // Consider empty if no meaningful text and no inline math or links/spans with text
-  const text = (el.textContent || "").replace(/\u00A0/g, " ").trim();
-  if (text.length > 0) return false;
-  // Allow that math wrappers contain text (the LaTeX), so if present, not empty
-  if (el.querySelector("span.math, pre.math, a, span[style]")) return false;
-  return true;
+  const text = (el.textContent || "").replace(/\s+/g, "");
+  return text.length === 0;
+}
+
+function clampHeadingLevel(level: number): number {
+  const n = Math.max(1, Math.min(3, Math.floor(level)));
+  return n;
 }

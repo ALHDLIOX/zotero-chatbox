@@ -1,3 +1,4 @@
+/** Preferences UI logic for model preset select and API key test. */
 import { config } from "../../package.json";
 import {
   validateProviderSettings,
@@ -5,8 +6,8 @@ import {
   setSelectedPresetId,
   getApiKeyForProvider,
   setApiKeyForProvider,
-} from "./zoRecto/prefs";
-import { getPresetById, PRESETS, type ProviderPreset } from "./zoRecto/providersRegistry";
+} from "../chat/prefs";
+import { getPresetById, PRESETS, type ProviderPreset } from "../chat/providers";
 
 interface PrefsState {
   window: Window;

@@ -1,3 +1,4 @@
+/** Built-in provider presets (endpoint, model, labels). */
 export type ProviderId = "openai" | "deepseek";
 
 export interface ProviderPreset {

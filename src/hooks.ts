@@ -1,8 +1,8 @@
-import { BasicExampleFactory } from "./modules/examples";
-import { registerzoRectoReaderPane } from "./modules/zoRecto/readerPane";
-import { getString, initLocale } from "./utils/locale";
-import { registerPrefsScripts } from "./modules/preferenceScript";
-import { createZToolkit } from "./utils/ztoolkit";
+import { BasicExampleFactory } from "./settings/preferencesPane";
+import { registerzoRectoReaderPane } from "./chat/ui/readerPane";
+import { getString, initLocale } from "./shared/locale";
+import { registerPrefsScripts } from "./settings/preferencesUi";
+import { createZToolkit } from "./shared/ztoolkit";
 
 async function onStartup() {
   await Promise.all([

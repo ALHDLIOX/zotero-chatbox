@@ -1,4 +1,5 @@
-import { getString } from "../utils/locale";
+/** Registers the preferences pane entry (about:addons). */
+import { getString } from "../shared/locale";
 
 export const BasicExampleFactory = {
   registerPrefs(): void {

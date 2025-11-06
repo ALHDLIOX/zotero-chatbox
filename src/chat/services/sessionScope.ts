@@ -1,5 +1,6 @@
-import { ensureSessionScope, type SessionState } from "../session";
-import { getActiveReader } from "./readerNav";
+/** Compute sessionId/scopeKey and ensure a scoped session. */
+import { ensureSessionScope, type SessionState } from "../state/sessionStore";
+import { getActiveReader } from "./readerNavigation";
 
 export function computeSessionId(
   props: _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs,
@@ -80,4 +81,3 @@ export function resolveSessionAndScope(
 
   return { sessionId, scopeKey, isNewSessionId, isScopeChanged, session };
 }
-

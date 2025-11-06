@@ -1,3 +1,4 @@
+/** Strict sanitizer for chat-rendered HTML fragments. */
 export interface SanitizeOptions {
   treatAsInline?: boolean;
 }

@@ -1,6 +1,7 @@
+/** Reader pane controller for the chat panel in Zotero. */
 import { config } from "../../../package.json";
 import type { FluentMessageId } from "../../../typings/i10n";
-import { getLocaleID, getString } from "../../utils/locale";
+import { getLocaleID, getString } from "../../shared/locale";
 import {
   appendMessage,
   clearMessages,
@@ -13,17 +14,16 @@ import {
   type SessionMessage,
   type SessionState,
   updateMessage,
-} from "./session";
-import { ProviderError, sendChat } from "./provider";
-import { getSelectedPresetId, setSelectedPresetId } from "./prefs";
-import { PRESETS, getPresetById } from "./providersRegistry";
-import { ensurePaneStyles } from "./ui/styles";
-import { MessageView } from "./ui/messageView";
-import { copyText } from "./services/clipboard";
-import { buildContextMessage, loadContextForProps } from "./services/context";
-import { getActiveReader, openReaderAndNavigate } from "./services/readerNav";
-import { resolveSessionAndScope } from "./services/sessionOps";
-import { renderNoteHtml } from "./noteRender";
+} from "../state/sessionStore";
+import { ProviderError, sendChat, PRESETS, getPresetById } from "../providers";
+import { getSelectedPresetId, setSelectedPresetId } from "../prefs";
+import { ensurePaneStyles } from "./paneStyles";
+import { MessageView } from "./messageView";
+import { copyText } from "../services/clipboard";
+import { buildContextMessage, loadContextForProps } from "../services/documentContext";
+import { getActiveReader, openReaderAndNavigate } from "../services/readerNavigation";
+import { resolveSessionAndScope } from "../services/sessionScope";
+import { renderNoteHtml } from "../render/noteHtml";
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs =
@@ -45,7 +45,7 @@ const ROLE_LABELS: Record<SessionMessage["role"], string> = {
   system: "系统",
 };
 
-import type { MessageDom } from "./ui/messageView";
+import type { MessageDom } from "./messageView";
 
 const paneControllers = new WeakMap<HTMLDivElement, zoRectoPaneController>();
 
@@ -633,7 +633,7 @@ class zoRectoPaneController {
     }
   }
 
-  // computeSessionId/computeScopeKey moved to services/sessionOps
+  // computeSessionId/computeScopeKey moved to services/sessionScope
 
   private refreshMessages(): void {
     if (!this.sessionId) {
@@ -705,7 +705,7 @@ class zoRectoPaneController {
     void this.handleSubmit();
   }
 
-  // Reader navigation utilities moved to services/readerNav
+  // Reader navigation utilities moved to services/readerNavigation
 
   private async copyAssistantMessage(messageId: string): Promise<void> {
     try {

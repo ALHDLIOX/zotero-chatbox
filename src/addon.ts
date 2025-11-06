@@ -1,7 +1,7 @@
 import { config } from "../package.json";
 import { ColumnOptions, DialogHelper } from "zotero-plugin-toolkit";
 import hooks from "./hooks";
-import { createZToolkit } from "./utils/ztoolkit";
+import { createZToolkit } from "./shared/ztoolkit";
 
 class Addon {
   public data: {

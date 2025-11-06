@@ -1,3 +1,4 @@
+/** In-memory session state store (messages, context, status). */
 export type ChatRole = "system" | "user" | "assistant";
 
 export interface SessionMessage {

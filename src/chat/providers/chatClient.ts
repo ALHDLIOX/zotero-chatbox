@@ -1,10 +1,11 @@
-import { getString } from "../../utils/locale";
-import type { SessionMessage } from "./session";
+/** OpenAI-style chat client with streaming and error mapping. */
+import { getString } from "../../shared/locale";
+import type { SessionMessage } from "../state/sessionStore";
 import {
   getProviderSettings,
   type ProviderSettings,
   validateProviderSettings,
-} from "./prefs";
+} from "../prefs";
 
 interface AbortControllerLike {
   signal?: AbortSignal;

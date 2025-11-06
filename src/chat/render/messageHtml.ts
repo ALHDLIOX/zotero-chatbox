@@ -1,10 +1,11 @@
+/** Render chat message Markdown to sanitized HTML and fragments. */
 import {
   type InlineToken,
   type MarkdownBlock,
   parseMarkdownWithMath,
 } from "./markdown";
-import { renderMath } from "./math";
-import { sanitizeFragment, sanitizeHtml } from "./sanitize";
+import { renderMath } from "./mathKatex";
+import { sanitizeFragment, sanitizeHtml } from "./htmlSanitizer";
 
 export interface RenderResult {
   fragment: DocumentFragment;
@@ -218,5 +219,10 @@ function escapeHtml(value: string): string {
 }
 
 function escapeAttribute(value: string): string {
-  return value.replace(/"/g, "&quot;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

@@ -1,3 +1,4 @@
+/** Typed helpers to get/set/clear Zotero plugin preferences. */
 import { config } from "../../package.json";
 
 type PluginPrefsMap = _ZoteroTypes.Prefs["PluginPrefsMap"];
