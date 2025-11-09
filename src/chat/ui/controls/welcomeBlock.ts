@@ -10,33 +10,16 @@ export function buildWelcomeBlock(
   doc: Document,
   onAsk: (question: string) => void,
 ): HTMLElement {
-  const wrap = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-welcome"],
-    enableElementRecord: true,
-  }) as HTMLDivElement;
-
-  const title = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-welcome-title"],
-    properties: { textContent: getString("zorecto-welcome-title") },
-  });
-
-  const sub = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-welcome-subtitle"],
-    properties: { textContent: getString("zorecto-welcome-subtitle") },
-  });
-
-  const list = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-suggestions"],
-  });
-
   const promptIds = [
     "zorecto-suggest-1",
     "zorecto-suggest-2",
     "zorecto-suggest-3",
   ] as const;
-  for (const id of promptIds) {
+
+  const listChildren = promptIds.map((id) => {
     const label = getString(id as any);
-    const btn = ztoolkit.UI.createElement(doc, "button", {
+    return {
+      tag: "button",
       classList: ["zorecto-suggestion"],
       properties: { type: "button", textContent: label },
       listeners: [
@@ -45,10 +28,30 @@ export function buildWelcomeBlock(
           listener: () => onAsk(label),
         },
       ],
-    }) as HTMLButtonElement;
-    list.appendChild(btn);
-  }
+    } as const;
+  });
 
-  wrap.append(title, sub, list);
+  const wrap = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-welcome"],
+    enableElementRecord: true,
+    children: [
+      {
+        tag: "div",
+        classList: ["zorecto-welcome-title"],
+        properties: { textContent: getString("zorecto-welcome-title") },
+      },
+      {
+        tag: "div",
+        classList: ["zorecto-welcome-subtitle"],
+        properties: { textContent: getString("zorecto-welcome-subtitle") },
+      },
+      {
+        tag: "div",
+        classList: ["zorecto-suggestions"],
+        children: listChildren as any,
+      },
+    ],
+  }) as HTMLDivElement;
+
   return wrap;
 }

@@ -189,7 +189,12 @@ export class chatPaneController {
   private refreshMessages(): void {
     const session = this.sessionId ? ensureSession(this.sessionId) : undefined;
     if (!session) {
-      this.messagesEl.replaceChildren(this.placeholderEl);
+      // Use view adapter to reset to placeholder state
+      try {
+        this.messageList.clear();
+      } catch {
+        this.messagesEl.replaceChildren(this.placeholderEl);
+      }
       return;
     }
     this.messageList.renderAll(session);

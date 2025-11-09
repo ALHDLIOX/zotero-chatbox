@@ -100,10 +100,11 @@ src
 
 以上建议以最小侵入为原则，优先拆分复用与测试覆盖，逐步演进而非一次性重构。
 
-## Cancellation
+## 取消（Cancellation）
 
-The chat flow uses a single-owner cancellation model:
-- Ownership: `ChatFlow` creates one internal `AbortController` per run and is the sole owner of cancellation. UI controllers never create their own controllers; they only call `chatFlow.abort()`.
-- Upstream signals: `ChatFlow.start({ signal })` combines the upstream signal with its internal signal using `shared/abort.combineSignals`. Either source cancels the provider request.
-- Reason propagation: `ChatFlow.abort(reason?)` forwards the reason to the internal controller when the host supports `AbortController.abort(reason)`. Providers receive a combined `AbortSignal`; where supported, `signal.reason` can differentiate user cancel vs. other causes.
-- Utilities: `shared/abort` resolves `AbortSignal` from the host, offers `combineSignals` (with native `AbortSignal.any` or a polyfill), and `startTimeout(ms)` if a timeout signal is needed. No default timeout is applied at present.
+聊天流程采用“单一所有者”的取消模型：
+- 所有权：`ChatFlow` 在每次运行时创建且仅创建一个内部 `AbortController`，独占取消控制。UI 控制器不再自建控制器，只调用 `chatFlow.abort()`。
+- 上游信号：`ChatFlow.start({ signal })` 使用 `shared/abort.combineSignals` 将上游信号与内部信号合并，任一来源触发中止都会传递到 Provider 请求。
+- 原因透传：`ChatFlow.abort(reason?)` 在宿主支持时向内部控制器透传 `reason`；Provider 端接收合并后的 `AbortSignal`，在支持时可通过 `signal.reason` 区分“用户取消/超时”等来源。
+- 工具：`shared/abort` 负责解析宿主环境中的 `AbortSignal/AbortController`，提供 `combineSignals`（优先用原生 `AbortSignal.any`，否则回退到 polyfill）与 `startTimeout(ms)` 等能力；当前未启用默认超时。
+- 表现：当请求被取消（`ABORTED`）时，`ChatFlow` 保留已流式生成的助手内容并静默结束，不用错误文案覆盖消息，同时记录详细日志以便排查。

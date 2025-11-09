@@ -32,17 +32,42 @@ export class InputController {
     this.wrapper = mount;
 
     const inputId = `zorecto-input-${Math.random().toString(36).slice(2, 10)}`;
-    this.inputEl = ztoolkit.UI.createElement(doc, "textarea", {
-      classList: ["zorecto-input"],
-      properties: {
-        id: inputId,
-        placeholder: getString("zorecto-input-placeholder"),
-        rows: 1,
-      } as any,
-      attributes: {
-        "aria-label": getString("zorecto-input-label"),
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Enter" && event.shiftKey) {
+        event.preventDefault();
+        const target = event.currentTarget as HTMLTextAreaElement | null;
+        const input = target ?? this.inputEl;
+        const content = (input?.value || "").trim();
+        if (!content) return;
+        if (input) input.value = "";
+        try { this._auto?.resizeNow(); } catch {}
+        callbacks.onSubmit(content);
+      }
+    };
+    const maxH = opts.maxHeight ?? 200;
+    this.inputEl = ztoolkit.UI.appendElement(
+      {
+        tag: "textarea",
+        classList: ["zorecto-input"],
+        properties: {
+          id: inputId,
+          placeholder: getString("zorecto-input-placeholder"),
+          rows: 1,
+        } as any,
+        attributes: {
+          "aria-label": getString("zorecto-input-label"),
+        },
+        styles: {
+          resize: "none",
+          overflowY: "auto",
+          maxHeight: `${maxH}px`,
+        } as any,
+        listeners: [
+          { type: "keydown", listener: onKey },
+        ],
       },
-    }) as unknown as HTMLTextAreaElement;
+      mount,
+    ) as unknown as HTMLTextAreaElement;
 
     const actions = buildActionButtons(doc, {
       onSend: () => {
@@ -57,23 +82,13 @@ export class InputController {
     });
     this._setMode = actions.setMode;
 
-    mount.appendChild(this.inputEl);
+    // input 已通过 UITool 挂载；actions 行暂保留原生挂载
     mount.appendChild(actions.row);
 
     try { this._auto = attachAutoResize(this.inputEl, { maxHeight: opts.maxHeight ?? 200 }); } catch {}
 
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Enter" && event.shiftKey) {
-        event.preventDefault();
-        const content = (this.inputEl.value || "").trim();
-        if (!content) return;
-        this.inputEl.value = "";
-        try { this._auto?.resizeNow(); } catch {}
-        callbacks.onSubmit(content);
-      }
-    };
-    this.inputEl.addEventListener("keydown", onKey);
-    this._disposeKey = () => this.inputEl.removeEventListener("keydown", onKey);
+    // keydown 监听已通过 UITool 注册
+    this._disposeKey = undefined;
   }
 
   setMode(m: "send" | "stop"): void {

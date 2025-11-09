@@ -43,70 +43,68 @@ export function createMessageDom(
     properties: { hidden: true },
   });
 
-  const content = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-message-content"],
-  });
+  const content = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-message-content"] },
+    container as unknown as HTMLElement,
+  ) as HTMLDivElement;
 
-  const mathError = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-message-math-error"],
-    properties: { hidden: true },
-  });
+  const mathError = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-message-math-error"], properties: { hidden: true } },
+    container as unknown as HTMLElement,
+  ) as HTMLDivElement;
 
   let actions: HTMLDivElement | undefined;
   let copyButton!: HTMLButtonElement;
   let noteButton!: HTMLButtonElement;
 
   if (message.role === "assistant") {
-    actions = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["zorecto-message-actions"],
-      properties: { hidden: true },
-    });
+    actions = ztoolkit.UI.appendElement(
+      { tag: "div", classList: ["zorecto-message-actions"], properties: { hidden: true } },
+      container as unknown as HTMLElement,
+    ) as HTMLDivElement;
 
-    copyButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["zorecto-copy-button"],
-      properties: {
-        type: "button",
-        title: getString("zorecto-copy-button"),
-      } as any,
-      listeners: [
-        {
-          type: "click",
-          listener: () => onCopy(message.id),
-        },
-      ],
-    });
+    copyButton = ztoolkit.UI.appendElement(
+      {
+        tag: "button",
+        classList: ["zorecto-copy-button"],
+        properties: {
+          type: "button",
+          title: getString("zorecto-copy-button"),
+        } as any,
+        listeners: [
+          { type: "click", listener: () => onCopy(message.id) },
+        ],
+      },
+      actions,
+    ) as HTMLButtonElement;
     {
       const icon = createCopyIcon(doc);
       if (icon) copyButton!.appendChild(icon);
       else copyButton!.textContent = getString("zorecto-copy-button");
     }
-    if (actions && copyButton) actions.appendChild(copyButton);
-
-    noteButton = ztoolkit.UI.createElement(doc, "button", {
-      classList: ["zorecto-note-button"],
-      properties: {
-        type: "button",
-        title: getString("zorecto-note-button"),
-      } as any,
-      listeners: [
-        {
-          type: "click",
-          listener: () => onNote && onNote(message.id),
-        },
-      ],
-    });
+    noteButton = ztoolkit.UI.appendElement(
+      {
+        tag: "button",
+        classList: ["zorecto-note-button"],
+        properties: {
+          type: "button",
+          title: getString("zorecto-note-button"),
+        } as any,
+        listeners: [
+          { type: "click", listener: () => onNote && onNote(message.id) },
+        ],
+      },
+      actions,
+    ) as HTMLButtonElement;
     {
       const icon = createNoteIcon(doc);
       if (icon) noteButton!.appendChild(icon);
       else noteButton!.textContent = getString("zorecto-note-button");
     }
-    if (actions && noteButton) actions.appendChild(noteButton);
   }
 
   // Role label is kept for potential accessibility/localization, but not shown in bubbles.
-  container.appendChild(content);
-  container.appendChild(mathError);
-  if (actions) container.appendChild(actions);
+  // content/mathError/actions 已通过 UITool 挂载
 
   return {
     container,

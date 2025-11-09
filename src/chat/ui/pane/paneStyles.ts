@@ -20,12 +20,19 @@ export function ensurePaneStyles(
 
   const scope: Document | ShadowRoot = (mount as any) || doc;
   const appendStyleLink = (styleKey: string, href: string): void => {
-    const link = ztoolkit.UI.createElement(doc, "link", {
+    const props = {
+      tag: "link",
       properties: { rel: "stylesheet", href },
       attributes: { "data-zorecto-style": styleKey },
       enableElementRecord: true,
-    }) as HTMLLinkElement;
-    (container as any).appendChild(link);
+    } as const;
+    const elem = container as unknown as Element | null;
+    if (elem && typeof (elem as any).appendChild === "function" && (elem as any).tagName) {
+      ztoolkit.UI.appendElement(props as any, elem);
+    } else {
+      const link = ztoolkit.UI.createElement(doc, "link", props as any) as HTMLLinkElement;
+      (container as any).appendChild(link);
+    }
   };
 
   // Inject global design tokens/styles shared across UI (derived from chat css path)

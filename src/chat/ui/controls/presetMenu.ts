@@ -31,16 +31,6 @@ export function buildPresetMenu(
     enableElementRecord: true,
   }) as HTMLDivElement;
 
-  const labelSpan = ztoolkit.UI.createElement(doc, "span", {
-    classList: ["zorecto-preset-button__label"],
-  }) as HTMLSpanElement;
-
-  const iconWrap = ztoolkit.UI.createElement(doc, "span", {
-    classList: ["zorecto-preset-button__icon"],
-  }) as HTMLSpanElement;
-  const chevron = createDownOutlinedIcon(doc);
-  if (chevron) iconWrap.appendChild(chevron);
-
   const button = ztoolkit.UI.createElement(doc, "button", {
     classList: ["zorecto-preset-button"],
     properties: { type: "button" },
@@ -52,7 +42,16 @@ export function buildPresetMenu(
       },
     ],
   }) as HTMLButtonElement;
-  button.append(labelSpan, iconWrap);
+  const labelSpan = ztoolkit.UI.appendElement(
+    { tag: "span", classList: ["zorecto-preset-button__label"] },
+    button,
+  ) as HTMLSpanElement;
+  const iconWrap = ztoolkit.UI.appendElement(
+    { tag: "span", classList: ["zorecto-preset-button__icon"] },
+    button,
+  ) as HTMLSpanElement;
+  const chevron = createDownOutlinedIcon(doc);
+  if (chevron) iconWrap.appendChild(chevron);
 
   let menu!: HTMLUListElement;
 
@@ -114,28 +113,29 @@ export function buildPresetMenu(
   }) as HTMLUListElement;
 
   for (const preset of PRESETS) {
-    const li = ztoolkit.UI.createElement(doc, "li", {
-      classList: [
-        "zorecto-preset-option",
-        ...(preset.id === currentId ? ["zorecto-preset-option--selected"] : []),
-      ],
-      properties: { textContent: preset.label },
-      attributes: { role: "option", "data-id": preset.id },
-      listeners: [
-        {
-          type: "click",
-          listener: () => {
-            setSelected(preset.id);
-            onSelect(preset.id);
-            close();
-            try {
-              button.focus();
-            } catch {}
+    ztoolkit.UI.appendElement(
+      {
+        tag: "li",
+        classList: [
+          "zorecto-preset-option",
+          ...(preset.id === currentId ? ["zorecto-preset-option--selected"] : []),
+        ],
+        properties: { textContent: preset.label },
+        attributes: { role: "option", "data-id": preset.id },
+        listeners: [
+          {
+            type: "click",
+            listener: () => {
+              setSelected(preset.id);
+              onSelect(preset.id);
+              close();
+              try { button.focus(); } catch {}
+            },
           },
-        },
-      ],
-    }) as HTMLLIElement;
-    menu.appendChild(li);
+        ],
+      },
+      menu,
+    );
   }
 
   function updateLabel(id: string) {

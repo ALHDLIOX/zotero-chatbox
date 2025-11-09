@@ -29,20 +29,32 @@ export function buildActionButtons(
 
   let mode: "send" | "stop" = "send";
 
-  const sendButton = ztoolkit.UI.createElement(doc, "button", {
-    classList: ["zorecto-send-button"],
-    properties: { type: "button" },
-    attributes: { title: "Send" },
-    listeners: [
-      {
-        type: "click",
-        listener: (ev: Event) => {
-          if (mode === "send") void handlers.onSend(ev);
-          else void handlers.onStop(ev);
+  const buildModeButton = (m: "send" | "stop"): HTMLButtonElement => {
+    const isSend = m === "send";
+    const btn = ztoolkit.UI.createElement(doc, "button", {
+      classList: [
+        "zorecto-send-button",
+        ...(isSend ? [] : ["zorecto-send-button--stop"]),
+      ],
+      properties: { type: "button", title: isSend ? "Send" : "Stop" },
+      attributes: { "data-mode": m },
+      listeners: [
+        {
+          type: "click",
+          listener: (ev: Event) => {
+            if (m === "send") void handlers.onSend(ev);
+            else void handlers.onStop(ev);
+          },
         },
-      },
-    ],
-  }) as HTMLButtonElement;
+      ],
+    }) as HTMLButtonElement;
+    const icon = isSend ? createSendIcon(doc) : createStopIcon(doc);
+    if (icon) btn.replaceChildren(icon);
+    else btn.textContent = isSend ? "✈" : "■";
+    return btn;
+  };
+
+  let sendButton = buildModeButton(mode);
 
   const clearButton = ztoolkit.UI.createElement(doc, "button", {
     classList: ["zorecto-clear-button"],
@@ -56,31 +68,18 @@ export function buildActionButtons(
     ],
   }) as HTMLButtonElement;
 
-  const sendIcon = createSendIcon(doc);
-  const stopIcon = createStopIcon(doc);
-  const toggleIconVisibility = (icon: SVGSVGElement | null, visible: boolean) => {
-    if (!icon) return;
-    (icon.style as any).display = visible ? "" : "none";
-  };
-  if (sendIcon && stopIcon) {
-    toggleIconVisibility(sendIcon, true);
-    toggleIconVisibility(stopIcon, false);
-    sendButton.append(sendIcon, stopIcon);
-  } else {
-    sendButton.textContent = "✈";
-  }
-
   const deleteIcon = createDeleteIcon(doc);
   if (deleteIcon) clearButton.replaceChildren(deleteIcon);
   else clearButton.textContent = "🗑";
 
   function setMode(next: "send" | "stop") {
+    if (next === mode) return;
+    const newBtn = buildModeButton(next);
+    try {
+      sendButton.replaceWith(newBtn);
+    } catch {}
+    sendButton = newBtn;
     mode = next;
-    sendButton.dataset.mode = next;
-    sendButton.title = next === "send" ? "Send" : "Stop";
-    toggleIconVisibility(sendIcon, next === "send");
-    toggleIconVisibility(stopIcon, next === "stop");
-    sendButton.classList.toggle("zorecto-send-button--stop", next === "stop");
   }
 
   row.append(clearButton, sendButton);

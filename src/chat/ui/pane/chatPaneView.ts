@@ -25,37 +25,39 @@ export function buildChatPane(doc: Document): ChatPaneRefs {
     enableElementRecord: true,
   }) as HTMLDivElement;
 
-  const dialog = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-dialog"],
-  }) as HTMLDivElement;
+  const dialog = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-dialog"] },
+    container,
+  ) as HTMLDivElement;
 
-  const messages = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-messages"],
-  }) as HTMLDivElement;
+  const messages = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-messages"] },
+    dialog,
+  ) as HTMLDivElement;
 
   const placeholder = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-empty-placeholder"],
   }) as HTMLDivElement;
 
-  const error = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-error"],
-    properties: { hidden: true },
-  }) as HTMLDivElement;
+  const error = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-error"], properties: { hidden: true } },
+    dialog,
+  ) as HTMLDivElement;
 
-  const toolbarRow = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-toolbar"],
-  }) as HTMLDivElement;
+  const toolbarRow = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-toolbar"] },
+    dialog,
+  ) as HTMLDivElement;
 
-  const inputWrapper = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-input-wrapper"],
-  }) as HTMLDivElement;
+  const inputWrapper = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-input-wrapper"] },
+    dialog,
+  ) as HTMLDivElement;
 
-  const resizeHandle = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-resize-handle"],
-  }) as HTMLDivElement;
-
-  dialog.append(messages, error, toolbarRow, inputWrapper, resizeHandle);
-  container.appendChild(dialog);
+  const resizeHandle = ztoolkit.UI.appendElement(
+    { tag: "div", classList: ["zorecto-resize-handle"] },
+    dialog,
+  ) as HTMLDivElement;
 
   return {
     container,

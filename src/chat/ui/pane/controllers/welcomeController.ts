@@ -20,10 +20,14 @@ export class WelcomeController {
       this.mounted = true;
     } catch {
       // Fallback minimal content
-      const w = this.doc.createElement("div");
-      w.className = "zorecto-welcome";
-      w.textContent = "Welcome";
-      this.placeholderEl.appendChild(w);
+      ztoolkit.UI.appendElement(
+        {
+          tag: "div",
+          classList: ["zorecto-welcome"],
+          properties: { textContent: "Welcome" },
+        },
+        this.placeholderEl,
+      );
       this.mounted = true;
     }
   }

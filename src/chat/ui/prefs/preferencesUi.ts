@@ -94,16 +94,18 @@ function populatePresetOptions(state: PrefsState) {
   const l10n = doc.l10n;
   state.preset.textContent = "";
   for (const p of PRESETS) {
-    const opt = state.window.document.createElement("option");
-    opt.value = p.id;
-    // Fallback text first, then try localize
-    opt.textContent = p.label;
+    const opt = ztoolkit.UI.appendElement(
+      {
+        tag: "option",
+        properties: { value: p.id, textContent: p.label } as any,
+      },
+      state.preset,
+    ) as HTMLOptionElement;
     try {
       l10n?.setAttributes?.(opt, p.labelKey);
     } catch (e) {
       // ignore
     }
-    state.preset.appendChild(opt);
   }
 }
 
@@ -181,16 +183,21 @@ function renderModelList(state: PrefsState) {
   const l10n = doc.l10n;
   state.modelList.textContent = "";
   for (const p of PRESETS) {
-    const li = state.window.document.createElement("li") as any;
-    li.className = "pref-model-item";
-    li.setAttribute("role", "option");
-    li.setAttribute("data-id", p.id);
-    li.textContent = p.label;
+    const li = ztoolkit.UI.appendElement(
+      {
+        tag: "li",
+        classList: ["pref-model-item"],
+        attributes: { role: "option", "data-id": p.id },
+        properties: { textContent: p.label },
+        listeners: [
+          { type: "click", listener: () => selectModelById(state, p.id) },
+        ],
+      },
+      state.modelList,
+    ) as HTMLElement;
     try {
-      l10n?.setAttributes?.(li, p.labelKey);
+      l10n?.setAttributes?.(li as any, p.labelKey);
     } catch {}
-    li.addEventListener("click", () => selectModelById(state, p.id));
-    state.modelList.appendChild(li);
   }
 }
 
