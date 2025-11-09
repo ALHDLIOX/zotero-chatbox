@@ -28,7 +28,7 @@ export async function copyAssistantMessageById(
   const entry = getEntry(messageId);
   const content = message?.content ?? entry?.latestContent ?? "";
   if (!content.trim()) return;
-  await copyText(doc, content);
+  await copyText(content);
 }
 
 /**

@@ -1,6 +1,6 @@
 % src 目录架构说明（Architecture）
 
-本文件展示 `src/` 的树状结构，并用中文说明每个目录与文件的职责；末尾给出结构改进建议。
+本文件展示 `src/` 的树状结构，并用中文说明每个目录与文件的职责。
 
 ## 目录结构树（含中文标注）
 
@@ -24,7 +24,7 @@ src
    │  ├─ sessionScope.ts — 计算会话 ID 与作用域 key（reader/attachment/item），作用域切换时重置会话
    │  ├─ chatFlow.ts — 对话流程控制：启动/中止、流式 token 回调、错误处理并更新 sessionStore
    │  ├─ createNotes.ts — 将助手回复渲染为 Zotero Note 兼容 HTML 并保存到关联条目
-   │  └─ clipboard.ts — 复制纯文本到剪贴板（原生 Clipboard API/Zotero 工具/execCommand 回退）
+   │  └─ clipboard.ts — 复制纯文本到剪贴板（仅使用 Toolkit ClipboardHelper）
    ├─ state — 会话内存状态
    │  └─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离
    ├─ providers — 模型服务商与请求客户端
@@ -84,21 +84,6 @@ src
             ├─ messageRenderer.ts — 单条消息 DOM 结构与内容渲染、数学错误横幅
             └─ types.ts — 消息视图 DOM 句柄/渲染选项类型
 ```
-
-## 结构改进建议
-
-- KaTeX 与样式按需注入
-  - 当前总是注入 KaTeX CSS，后续可在首次检测到数学片段时再注入，减少无数学对话时的样式负担。
-- Markdown 解析模块化与测试
-  - `render/shared/markdown.ts` 体量较大，建议拆分 tokenizer/block-parser/table/parser utils；补充快照与边界单测（数学/表格/列表/代码围栏）。
-- 上下文读取缓存与并发控制
-  - `documentContext.ts` 逐个附件顺序读取全文，可加入并发上限（如 p-limit）与按 attachmentID 的短时缓存，降低大文献下的等待与重复 IO。
-- 错误与提示文案集中化
-  - Provider 错误码、偏好校验与 UI 提示分散；建议集中到 `shared/errors.ts` 与 `i18n` key 常量，避免魔法字符串分布式修改。
-- 类型与 any 降低
-  - 与 Zotero 运行时交互处存在 `any` 回退，逐步梳理 `zotero-types` 的覆盖并补充轻量本地类型，减少潜在运行时错误。
-
-以上建议以最小侵入为原则，优先拆分复用与测试覆盖，逐步演进而非一次性重构。
 
 ## 取消（Cancellation）
 

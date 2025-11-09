@@ -32,6 +32,7 @@ export function buildPresetMenu(
   }) as HTMLDivElement;
 
   const button = ztoolkit.UI.createElement(doc, "button", {
+    namespace: "html",
     classList: ["zorecto-preset-button"],
     properties: { type: "button" },
     attributes: { "aria-haspopup": "listbox", "aria-expanded": "false" },

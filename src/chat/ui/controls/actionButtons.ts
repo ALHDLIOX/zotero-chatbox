@@ -32,6 +32,7 @@ export function buildActionButtons(
   const buildModeButton = (m: "send" | "stop"): HTMLButtonElement => {
     const isSend = m === "send";
     const btn = ztoolkit.UI.createElement(doc, "button", {
+      namespace: "html",
       classList: [
         "zorecto-send-button",
         ...(isSend ? [] : ["zorecto-send-button--stop"]),
@@ -57,6 +58,7 @@ export function buildActionButtons(
   let sendButton = buildModeButton(mode);
 
   const clearButton = ztoolkit.UI.createElement(doc, "button", {
+    namespace: "html",
     classList: ["zorecto-clear-button"],
     properties: { type: "button" },
     attributes: { title: "Clear" },

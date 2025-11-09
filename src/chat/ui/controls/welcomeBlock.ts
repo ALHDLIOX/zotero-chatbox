@@ -20,6 +20,7 @@ export function buildWelcomeBlock(
     const label = getString(id as any);
     return {
       tag: "button",
+      namespace: "html",
       classList: ["zorecto-suggestion"],
       properties: { type: "button", textContent: label },
       listeners: [

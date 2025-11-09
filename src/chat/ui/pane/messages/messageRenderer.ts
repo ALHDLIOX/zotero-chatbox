@@ -66,6 +66,7 @@ export function createMessageDom(
     copyButton = ztoolkit.UI.appendElement(
       {
         tag: "button",
+        namespace: "html",
         classList: ["zorecto-copy-button"],
         properties: {
           type: "button",
@@ -85,6 +86,7 @@ export function createMessageDom(
     noteButton = ztoolkit.UI.appendElement(
       {
         tag: "button",
+        namespace: "html",
         classList: ["zorecto-note-button"],
         properties: {
           type: "button",
