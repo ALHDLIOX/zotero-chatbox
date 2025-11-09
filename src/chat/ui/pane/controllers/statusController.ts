@@ -1,19 +1,20 @@
 /** Status bar controller: encapsulates status text and insertion. */
 import { getString } from "../../../../shared/locale";
-import { createStatusBar } from "../../controls/statusBar";
+import { createStatusBarProps } from "../../controls/statusBar";
 
 export class StatusController {
-  private readonly doc: Document;
   private readonly el: HTMLDivElement;
 
-  constructor(doc: Document, dialogEl: HTMLDivElement) {
-    this.doc = doc;
-    this.el = createStatusBar(this.doc, getString("zorecto-status-loading"));
-    try {
-      dialogEl.insertBefore(this.el, dialogEl.firstChild);
-    } catch {
-      dialogEl.appendChild(this.el);
-    }
+  constructor(dialogEl: HTMLDivElement) {
+    const loadingText = getString("zorecto-status-loading");
+    const firstElement = dialogEl.firstElementChild ?? undefined;
+    const inserted =
+      firstElement &&
+      ztoolkit.UI.insertElementBefore(createStatusBarProps(loadingText), firstElement);
+    this.el = (
+      inserted ??
+      ztoolkit.UI.appendElement(createStatusBarProps(loadingText), dialogEl)
+    ) as HTMLDivElement;
   }
 
   setLoading(): void {
@@ -36,4 +37,3 @@ export class StatusController {
     this.el.textContent = text;
   }
 }
-

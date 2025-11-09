@@ -78,7 +78,7 @@ export class chatPaneController {
     } catch {}
 
     // Controllers for status/welcome/error
-    this.statusCtrl = new StatusController(doc, this.dialogEl);
+    this.statusCtrl = new StatusController(this.dialogEl);
     this.errorCtrl = new ErrorController(view.error);
 
     // Placeholder content (welcome)

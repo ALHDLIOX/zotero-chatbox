@@ -19,35 +19,30 @@ export function ensurePaneStyles(
   }
 
   const scope: Document | ShadowRoot = (mount as any) || doc;
+  const appendStyleLink = (styleKey: string, href: string): void => {
+    const link = ztoolkit.UI.createElement(doc, "link", {
+      properties: { rel: "stylesheet", href },
+      attributes: { "data-zorecto-style": styleKey },
+      enableElementRecord: true,
+    }) as HTMLLinkElement;
+    (container as any).appendChild(link);
+  };
 
   // Inject global design tokens/styles shared across UI (derived from chat css path)
   try {
     const globalHref = chatHref.replace(/zorecto\.css$/, "global.css");
     if (globalHref && !scope.querySelector('link[data-zorecto-style="global"]')) {
-      const link = doc.createElement("link");
-      link.rel = "stylesheet";
-      link.href = globalHref;
-      link.setAttribute("data-zorecto-style", "global");
-      (container as any).appendChild(link);
+      appendStyleLink("global", globalHref);
     }
   } catch {}
 
   if (!scope.querySelector('link[data-zorecto-style="chat"]')) {
-    const link = doc.createElement("link");
-    link.rel = "stylesheet";
-    link.href = chatHref;
-    link.setAttribute("data-zorecto-style", "chat");
-    (container as any).appendChild(link);
+    appendStyleLink("chat", chatHref);
   }
 
   if (!scope.querySelector('link[data-zorecto-style="katex"]')) {
-    const link = doc.createElement("link");
-    link.rel = "stylesheet";
-    link.href = katexHref;
-    link.setAttribute("data-zorecto-style", "katex");
-    (container as any).appendChild(link);
+    appendStyleLink("katex", katexHref);
   }
 }
 
 // Water.css removed: base control transitions are now scoped in zorecto.css
-
