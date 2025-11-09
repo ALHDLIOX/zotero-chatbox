@@ -2,7 +2,7 @@
 import { config } from "../../../../package.json";
 import { clearMessages, ensureSession, type SessionState } from "../../state/sessionStore";
 import { ensurePaneStyles } from "./paneStyles";
-import { buildChatPane } from "../pane/chatPaneView";
+import { buildChatPane } from "../pane/paneView";
 import { MessageListController } from "./controllers/messageListController";
 import { initResizeController, type Dispose } from "./controllers/resizeController";
 import { initCitationController } from "./controllers/citationController";

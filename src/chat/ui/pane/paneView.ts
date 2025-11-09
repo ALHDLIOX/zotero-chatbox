@@ -70,3 +70,4 @@ export function buildChatPane(doc: Document): ChatPaneRefs {
     resizeHandle,
   };
 }
+

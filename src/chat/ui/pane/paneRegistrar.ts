@@ -1,7 +1,7 @@
 /** Reader pane registration for the chat panel in Zotero. */
 import { config } from "../../../../package.json";
 import { getLocaleID } from "../../../shared/locale";
-import { chatPaneController } from "./chatPaneController";
+import { chatPaneController } from "./paneController";
 
 const PANE_ID = "zorecto";
 const PaneIcons = {
@@ -47,4 +47,3 @@ function getController(body: HTMLDivElement): chatPaneController {
   }
   return controller;
 }
-

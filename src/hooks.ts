@@ -1,5 +1,5 @@
 import { BasicExampleFactory } from "./chat/ui/prefs/preferencesPane";
-import { registerzoRectoReaderPane } from "./chat/ui/pane/readerPane";
+import { registerzoRectoReaderPane } from "./chat/ui/pane/paneRegistrar";
 import { getString, initLocale } from "./shared/locale";
 import { registerPrefsScripts } from "./chat/ui/prefs/preferencesUi";
 import { createZToolkit } from "./shared/ztoolkit";

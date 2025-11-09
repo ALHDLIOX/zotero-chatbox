@@ -68,8 +68,8 @@ src
       │  ├─ rafBatcher.ts — requestAnimationFrame 合帧批量渲染工具
       │  └─ inputAutoResize.ts — 文本域自动高度（最大高度、滚动条策略）
       └─ pane — Reader 侧边面板
-         ├─ chatPaneView.ts — 纯视图骨架构建（容器/消息区/工具栏/输入区/拖拽手柄）
-         ├─ chatPaneController.ts — Presenter：装配控制器与服务、处理提交/中止/清空/引用跳转、注入样式与 KaTeX CSS
+         ├─ paneView.ts — 纯视图骨架构建（容器/消息区/工具栏/输入区/拖拽手柄）
+         ├─ paneController.ts — Presenter：装配控制器与服务、处理提交/中止/清空/引用跳转、注入样式与 KaTeX CSS
          ├─ paneStyles.ts — 注入聊天与 KaTeX 样式表（可作用于 ShadowRoot）
          ├─ controllers — 面板子控制器
          │  ├─ statusController.ts — 状态条控制器：集中管理 Loading/Sending/Loaded/Missing 文案
