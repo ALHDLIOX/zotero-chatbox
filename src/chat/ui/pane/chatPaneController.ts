@@ -13,7 +13,7 @@ import { ErrorController } from "./controllers/errorController";
 import { ContextController } from "./controllers/contextController";
 import { SendController } from "./controllers/sendController";
 import { InputController } from "./controllers/inputController";
-import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./controllers/messageActions";
+import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./controllers/messageActionsController";
 import { openReaderAndNavigate } from "../../services/readerNavigation";
 import { resolveSessionAndScope } from "../../services/sessionScope";
  

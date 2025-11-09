@@ -235,3 +235,32 @@ export async function loadContextForProps(
   const updated = setSessionContext(sessionId, ctx);
   return { updated, key };
 }
+
+/**
+ * Factory: create a context loader bound to a document, maintaining an internal
+ * attachment key cache to avoid redundant fulltext reloads.
+ *
+ * Purpose: decouple key management from UI controllers so they only trigger
+ * refresh and handle status text, while business logic and caching stay here.
+ */
+export function createContextLoader(doc: Document): {
+  /** Refresh session context for given pane props and return updated session. */
+  refresh: (
+    sessionId: string,
+    props: _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs,
+  ) => Promise<SessionState>;
+} {
+  let attachmentKey: string | undefined;
+  return {
+    async refresh(sessionId, props) {
+      const { updated, key } = await loadContextForProps(
+        sessionId,
+        props,
+        doc,
+        attachmentKey,
+      );
+      attachmentKey = key || undefined;
+      return updated;
+    },
+  };
+}

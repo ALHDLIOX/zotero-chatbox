@@ -6,6 +6,7 @@
  * Invariants: No fallbacks. Failures only log a concise error and return.
  */
 import { ClipboardHelper } from "zotero-plugin-toolkit";
+import { getAssistantMessageText } from "./conversation";
 
 /**
  * Copy plain text to the clipboard using toolkit ClipboardHelper only.
@@ -15,6 +16,23 @@ export async function copyText(text: string): Promise<void> {
   const payload = text ?? "";
   if (!payload.trim()) return;
   copyViaToolkit(payload);
+}
+
+/**
+ * Copy an assistant message by id, falling back to provided text when missing.
+ * @param sessionId - Active session identifier.
+ * @param messageId - Assistant message id.
+ * @param fallback - Optional plain text when session content not found.
+ */
+export async function copyAssistantMessageById(
+  sessionId: string | undefined,
+  messageId: string,
+  fallback?: string,
+): Promise<void> {
+  const content = sessionId ? getAssistantMessageText(sessionId, messageId) : undefined;
+  const text = (content ?? fallback ?? "").trim();
+  if (!text) return;
+  await copyText(text);
 }
 
 function copyViaToolkit(text: string): boolean {
@@ -29,3 +47,4 @@ function copyViaToolkit(text: string): boolean {
     return false;
   }
 }
+

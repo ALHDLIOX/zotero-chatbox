@@ -1,17 +1,12 @@
 /**
  * Send controller: orchestrates submit/stream/abort for chat messages.
  *
- * Purpose: drives the UI send flow and delegates network/abort to ChatFlow.
- * Invariants: cancellation is owned by ChatFlow; this controller never creates
- * its own AbortController and only forwards abort() to the flow.
+ * Purpose: keep UI orchestration only and delegate all business/state to
+ * services/conversation. Cancellation is owned by ChatFlow inside the service;
+ * this controller only forwards abort() via the returned handle.
  */
-import {
-  appendMessage,
-  ensureSession,
-  type SessionMessage,
-} from "../../../state/sessionStore";
-import { ChatFlow } from "../../../services/chatFlow";
-import { buildContextMessage } from "../../../services/documentContext";
+import type { SessionMessage } from "../../../state/sessionStore";
+import { sendWithContext } from "../../../services/conversation";
 import { MessageListController } from "./messageListController";
 import { createAbortError } from "../../../../shared/errors";
 
@@ -20,7 +15,7 @@ export class SendController {
   private readonly doc: Document;
   private readonly messageList: MessageListController;
 
-  private chatFlow?: ChatFlow;
+  private abortFn?: (reason?: unknown) => void;
 
   /**
    * @param doc Host document for view updates.
@@ -46,60 +41,30 @@ export class SendController {
     const text = (content || "").trim();
     if (!text) return;
 
-    appendMessage(sessionId, {
-      id: `${Date.now()}-u`,
-      role: "user",
-      content: text,
-      timestamp: Date.now(),
-    });
-    this.messageList.ensureAndAppend(ensureSession(sessionId).messages.at(-1)!);
-    this.messageList.scrollToBottom();
-
-    const context = await buildContextMessage(sessionId);
-    if (context) {
-      // Only add to the session for provider context; do NOT render in UI.
-      appendMessage(sessionId, context);
-    }
-
     let assistant: SessionMessage | undefined;
-    this.chatFlow = new ChatFlow(sessionId);
+    const { promise, abort } = sendWithContext(sessionId, text, {
+      onUser: (msg) => {
+        this.messageList.ensureAndAppend(msg);
+        this.messageList.scrollToBottom();
+      },
+      onAssistant: (msg) => {
+        assistant = { ...msg };
+        this.messageList.ensureAndAppend(msg);
+        this.messageList.scrollToBottom();
+      },
+      onToken: (token) => {
+        if (!assistant) return;
+        assistant.content += token;
+        this.messageList.scheduleRender(assistant.id, assistant.content);
+        this.messageList.scrollToBottom();
+      },
+    });
+    this.abortFn = abort;
     try {
-      ztoolkit.log("[zorecto] SendController.submit created ChatFlow", {
-        hasChatFlow: Boolean(this.chatFlow),
-        sessionId,
-      });
-    } catch {}
-
-    const onToken = (token: string) => {
-      if (!assistant) return;
-      assistant.content += token;
-      this.messageList.scheduleRender(assistant.id, assistant.content);
-      this.messageList.scrollToBottom();
-    };
-
-    try {
-      try {
-        ztoolkit.log("[zorecto] SendController.submit starting flow", {
-          hasChatFlow: Boolean(this.chatFlow),
-        });
-      } catch {}
-      await this.chatFlow.start({
-        onAssistant: (msg) => {
-          assistant = { ...msg };
-          this.messageList.ensureAndAppend(msg);
-          this.messageList.scrollToBottom();
-        },
-        onToken,
-      });
-      // Streaming finished: ensure buttons are enabled now that content exists
-      if (assistant) {
-        this.messageList.updateEntryByMessage(assistant);
-      }
+      await promise;
+      if (assistant) this.messageList.updateEntryByMessage(assistant);
     } finally {
-      try {
-        ztoolkit.log("[zorecto] SendController.submit finally clearing chatFlow");
-      } catch {}
-      this.chatFlow = undefined;
+      this.abortFn = undefined;
     }
   }
 
@@ -107,9 +72,9 @@ export class SendController {
   abort(): void {
     try {
       ztoolkit.log("[zorecto] SendController.abort invoked (UI stop)", {
-        hasChatFlow: Boolean(this.chatFlow),
+        hasAbort: Boolean(this.abortFn),
       });
     } catch {}
-    try { this.chatFlow?.abort(createAbortError()); } catch {}
+    try { this.abortFn?.(createAbortError()); } catch {}
   }
 }

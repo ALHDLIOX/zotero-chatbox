@@ -1,23 +1,22 @@
 /** Context controller: load and cache document context for current scope. */
 import type { SessionState } from "../../../state/sessionStore";
-import { loadContextForProps } from "../../../services/documentContext";
+import { createContextLoader } from "../../../services/documentContext";
 import { StatusController } from "./statusController";
 
 /** Loads Reader context metadata and updates the status bar accordingly. */
 export class ContextController {
   private readonly doc: Document;
   private readonly status: StatusController;
-  private attachmentKey?: string;
+  private readonly loader: ReturnType<typeof createContextLoader>;
   public isLoading = false;
 
   constructor(doc: Document, status: StatusController) {
     this.doc = doc;
     this.status = status;
+    this.loader = createContextLoader(doc);
   }
 
-  getKey(): string | undefined {
-    return this.attachmentKey;
-  }
+  // No external key exposure; the service keeps its cache internally
 
   /**
    * Refresh context for given pane props; optionally show loading state.
@@ -35,13 +34,7 @@ export class ContextController {
     } catch {}
 
     try {
-      const { updated, key } = await loadContextForProps(
-        sessionId,
-        props,
-        this.doc,
-        this.attachmentKey,
-      );
-      this.attachmentKey = key || undefined;
+      const updated = await this.loader.refresh(sessionId, props);
       return updated;
     } finally {
       this.isLoading = false;

@@ -1,6 +1,8 @@
 import { getString } from "../../shared/locale";
 import { config } from "../../../package.json";
 import { getActiveReader } from "./readerNavigation";
+import { getAssistantMessageText } from "./conversation";
+import { renderNoteHtml } from "../render/note/block";
 
 function parseScopeForItemID(currentScopeKey?: string): { kind: "reader" | "attachment" | "item"; id: number } | undefined {
   const key = currentScopeKey || "";
@@ -109,4 +111,27 @@ export async function createNotes(
     .createLine({ text: getString("zorecto-note-added"), type: "default" })
     .show();
   pw.startCloseTimer(1200);
+}
+
+/**
+ * Create a Zotero note from an assistant message id, rendering Markdown to HTML.
+ *
+ * @param doc Pane document (for DOM + progress UI)
+ * @param sessionId Active session id
+ * @param messageId Assistant message id
+ * @param currentScopeKey Reader scope key used to resolve parent item
+ * @param fallback Optional plain text when session content not found
+ */
+export async function createNoteFromAssistantMessage(
+  doc: Document,
+  sessionId: string | undefined,
+  messageId: string,
+  currentScopeKey?: string,
+  fallback?: string,
+): Promise<void> {
+  const raw = sessionId ? getAssistantMessageText(sessionId, messageId) : undefined;
+  const text = (raw ?? fallback ?? "").trim();
+  if (!text) return;
+  const html = renderNoteHtml(text, doc);
+  await createNotes(doc, html, currentScopeKey);
 }

@@ -19,12 +19,14 @@ src
 │  └─ abort.ts — AbortSignal utilities (timeout/any/polyfill/combine)
 └─ chat — 聊天功能域（服务、状态、渲染、UI）
    ├─ services — 功能服务层（与 Zotero/Reader 交互、上下文、流程）
+   │  ├─ conversation.ts — 会话发送管道：追加 user/可选 system 文档上下文，驱动 ChatFlow 流式请求，提供 abort 句柄与只读助手文本获取
    │  ├─ documentContext.ts — 收集当前条目/Reader 的 PDF 附件，读取全文并构建 System 上下文（Allowed Attachments + Document Context），提供缓存键
+   │  │                       （提供 createContextLoader(doc) 工厂，内部维护附件 key，控制器仅触发 refresh）
    │  ├─ readerNavigation.ts — 打开 Reader、等待 PDF 就绪、翻页与查找高亮
    │  ├─ sessionScope.ts — 计算会话 ID 与作用域 key（reader/attachment/item），作用域切换时重置会话
    │  ├─ chatFlow.ts — 对话流程控制：启动/中止、流式 token 回调、错误处理并更新 sessionStore
-   │  ├─ createNotes.ts — 将助手回复渲染为 Zotero Note 兼容 HTML 并保存到关联条目
-   │  └─ clipboard.ts — 复制纯文本到剪贴板（仅使用 Toolkit ClipboardHelper）
+   │  ├─ createNotes.ts — 将助手回复渲染为 Zotero Note 兼容 HTML 并保存到关联条目；提供按消息ID创建笔记
+   │  └─ copyMessage.ts — 复制消息文本到剪贴板（仅使用 Toolkit ClipboardHelper；提供按消息ID复制）
    ├─ state — 会话内存状态
    │  └─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离
    ├─ providers — 模型服务商与请求客户端
@@ -74,7 +76,8 @@ src
          │  ├─ welcomeController.ts — 欢迎占位控制器：构建与显隐，承载快捷提问回调
          │  ├─ errorController.ts — 错误横幅控制器：统一错误展示与清空
          │  ├─ messageListController.ts — 列表渲染与增量更新（与 MessageView 协作）
-         │  ├─ messageActions.ts — 助手消息：复制到剪贴板 / 添加为 Zotero 笔记
+         │  ├─ messageActionsController.ts — 助手消息：复制到剪贴板 / 添加为 Zotero 笔记
+         │  │                      （薄封装：仅收集视图 fallback 文本并转调 services/copyMessage 与 services/createNotes）
          │  ├─ inputController.ts — 文本输入与快捷键、动作行（发送/停止/清空）
          │  ├─ presetController.ts — 模型预设选择与持久化
          │  ├─ resizeController.ts — 面板高度拖拽（最小/默认高度回调）
