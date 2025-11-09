@@ -1,8 +1,9 @@
-/** Simple status bar element factory for chat pane. */
+/** Status bar element factory for the chat pane toolbar area. */
 export function createStatusBar(doc: Document, text: string): HTMLDivElement {
-  const el = doc.createElement("div");
-  el.className = "zorecto-status";
-  el.textContent = text;
+  const el = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-status"],
+    properties: { textContent: text },
+    enableElementRecord: true,
+  });
   return el as HTMLDivElement;
 }
-

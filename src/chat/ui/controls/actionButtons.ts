@@ -1,6 +1,7 @@
 /** Action buttons (Send/Stop, Clear) with mode control and icons. */
 import { createSendIcon, createStopIcon, createDeleteIcon } from "../utils/icons";
 
+/** Handles to the input action buttons row. */
 export interface ActionButtons {
   row: HTMLDivElement;
   sendButton: HTMLButtonElement;
@@ -8,6 +9,11 @@ export interface ActionButtons {
   setMode(mode: "send" | "stop"): void;
 }
 
+/**
+ * Build the action buttons row with send/stop and clear controls.
+ * @param doc - Pane document used for DOM operations
+ * @param handlers - Event callbacks for the buttons
+ */
 export function buildActionButtons(
   doc: Document,
   handlers: {
@@ -16,61 +22,64 @@ export function buildActionButtons(
     onClear: (ev: Event) => void | Promise<void>;
   },
 ): ActionButtons {
-  const row = doc.createElement("div");
-  row.className = "zorecto-button-row";
+  const row = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-button-row"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const sendButton = doc.createElement("button") as HTMLButtonElement;
-  sendButton.className = "zorecto-send-button";
-  sendButton.type = "button";
-  sendButton.title = "Send";
+  let mode: "send" | "stop" = "send";
 
-  const clearButton = doc.createElement("button") as HTMLButtonElement;
-  clearButton.className = "zorecto-clear-button";
-  clearButton.type = "button";
-  clearButton.title = "Clear";
+  const sendButton = ztoolkit.UI.createElement(doc, "button", {
+    classList: ["zorecto-send-button"],
+    properties: { type: "button" },
+    attributes: { title: "Send" },
+    listeners: [
+      {
+        type: "click",
+        listener: (ev: Event) => {
+          if (mode === "send") void handlers.onSend(ev);
+          else void handlers.onStop(ev);
+        },
+      },
+    ],
+  }) as HTMLButtonElement;
 
-  // icons
-  let sendIcon = createSendIcon(doc);
-  let stopIcon = createStopIcon(doc);
-  (stopIcon.style as any).display = "none";
-  try {
-    sendButton.appendChild(sendIcon);
-    sendButton.appendChild(stopIcon);
-  } catch {
+  const clearButton = ztoolkit.UI.createElement(doc, "button", {
+    classList: ["zorecto-clear-button"],
+    properties: { type: "button" },
+    attributes: { title: "Clear" },
+    listeners: [
+      {
+        type: "click",
+        listener: (ev: Event) => void handlers.onClear(ev),
+      },
+    ],
+  }) as HTMLButtonElement;
+
+  const sendIcon = createSendIcon(doc);
+  const stopIcon = createStopIcon(doc);
+  if (sendIcon && stopIcon) {
+    (stopIcon.style as any).display = "none";
+    sendButton.append(sendIcon, stopIcon);
+  } else {
     sendButton.textContent = "✈";
   }
-  // delete icon
-  {
-    const del = createDeleteIcon(doc);
-    if (del) clearButton.replaceChildren(del);
-    else clearButton.textContent = "🗑";
-  }
 
-  // mode toggle
-  let mode: "send" | "stop" = "send";
+  const deleteIcon = createDeleteIcon(doc);
+  if (deleteIcon) clearButton.replaceChildren(deleteIcon);
+  else clearButton.textContent = "🗑";
+
   function setMode(next: "send" | "stop") {
     mode = next;
     sendButton.dataset.mode = next;
     sendButton.title = next === "send" ? "Send" : "Stop";
-    try {
-      (sendIcon.style as any).display = next === "send" ? "" : "none";
-      (stopIcon.style as any).display = next === "stop" ? "" : "none";
-    } catch {}
+    if (sendIcon) (sendIcon.style as any).display = next === "send" ? "" : "none";
+    if (stopIcon) (stopIcon.style as any).display = next === "stop" ? "" : "none";
     sendButton.classList.toggle("zorecto-send-button--stop", next === "stop");
   }
 
-  sendButton.addEventListener("click", (ev: Event) => {
-    if (mode === "send") {
-      void handlers.onSend(ev);
-    } else {
-      void handlers.onStop(ev);
-    }
-  });
+  row.append(clearButton, sendButton);
+  setMode("send");
 
-  clearButton.addEventListener("click", (ev: Event) => void handlers.onClear(ev));
-
-  row.appendChild(clearButton);
-  row.appendChild(sendButton);
-
-  return { row: row as HTMLDivElement, sendButton, clearButton, setMode };
+  return { row, sendButton, clearButton, setMode };
 }

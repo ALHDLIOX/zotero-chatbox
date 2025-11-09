@@ -1,19 +1,42 @@
-/** Copy plain text to clipboard with progressive fallbacks. */
+/** Clipboard helpers for copying plain text replies to the OS clipboard. */
+
+/**
+ * Copy plain text to the clipboard, preferring ztoolkit's ClipboardHelper.
+ * @param doc - Pane document, used for legacy fallbacks
+ * @param text - Plain text content to copy
+ */
 export async function copyText(doc: Document, text: string): Promise<void> {
+  const payload = text ?? "";
+  if (!payload.trim()) return;
+
+  if (copyViaToolkit(payload)) return;
+
   const win = doc.defaultView as (Window & { navigator?: any }) | null;
   const clipboardApi = win && (win.navigator as any)?.clipboard;
   if (clipboardApi && typeof clipboardApi.writeText === "function") {
-    await clipboardApi.writeText(text);
+    await clipboardApi.writeText(payload);
     return;
   }
 
   const copyWithZotero = (Zotero as any)?.Utilities?.Internal?.copyTextToClipboard;
   if (typeof copyWithZotero === "function") {
-    await copyWithZotero(text);
+    await copyWithZotero(payload);
     return;
   }
 
-  fallbackCopyText(doc, text);
+  fallbackCopyText(doc, payload);
+}
+
+function copyViaToolkit(text: string): boolean {
+  try {
+    new ztoolkit.ClipboardHelper().addText(text, "text/unicode").copy();
+    return true;
+  } catch (error) {
+    try {
+      ztoolkit.log("[zorecto] ClipboardHelper copy failed", error);
+    } catch {}
+    return false;
+  }
 }
 
 function fallbackCopyText(doc: Document, text: string): void {

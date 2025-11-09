@@ -1,3 +1,4 @@
+/** Chat pane view builder – constructs the static DOM skeleton used by controllers. */
 export interface ChatPaneRefs {
   container: HTMLDivElement;
   dialog: HTMLDivElement;
@@ -9,41 +10,63 @@ export interface ChatPaneRefs {
   resizeHandle: HTMLDivElement;
 }
 
+/**
+ * Build the chat pane container and return the primary element handles.
+ * @param doc - Pane document used for DOM operations
+ */
 export function buildChatPane(doc: Document): ChatPaneRefs {
-  const container = doc.createElement("div") as HTMLDivElement;
-  container.className = "zorecto-pane";
+  const container = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-pane"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const dialog = doc.createElement("div") as HTMLDivElement;
-  dialog.className = "zorecto-dialog";
+  const dialog = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-dialog"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const messages = doc.createElement("div") as HTMLDivElement;
-  messages.className = "zorecto-messages";
+  const messages = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-messages"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const placeholder = doc.createElement("div") as HTMLDivElement;
-  placeholder.className = "zorecto-empty-placeholder";
+  const placeholder = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-empty-placeholder"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const error = doc.createElement("div") as HTMLDivElement;
-  error.className = "zorecto-error";
-  (error as any).hidden = true;
+  const error = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-error"],
+    properties: { hidden: true },
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const toolbarRow = doc.createElement("div") as HTMLDivElement;
-  toolbarRow.className = "zorecto-toolbar";
+  const toolbarRow = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-toolbar"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const inputWrapper = doc.createElement("div") as HTMLDivElement;
-  inputWrapper.className = "zorecto-input-wrapper";
+  const inputWrapper = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-input-wrapper"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  const resizeHandle = doc.createElement("div") as HTMLDivElement;
-  resizeHandle.className = "zorecto-resize-handle";
+  const resizeHandle = ztoolkit.UI.createElement(doc, "div", {
+    classList: ["zorecto-resize-handle"],
+    enableElementRecord: true,
+  }) as HTMLDivElement;
 
-  // Compose dialog (status element is inserted by controller before these)
-  dialog.appendChild(messages);
-  dialog.appendChild(error);
-  dialog.appendChild(toolbarRow);
-  dialog.appendChild(inputWrapper);
-  // Place resize handle directly under the input area
-  dialog.appendChild(resizeHandle);
-
+  dialog.append(messages, error, toolbarRow, inputWrapper, resizeHandle);
   container.appendChild(dialog);
 
-  return { container, dialog, messages, placeholder, error, toolbarRow, inputWrapper, resizeHandle };
+  return {
+    container,
+    dialog,
+    messages,
+    placeholder,
+    error,
+    toolbarRow,
+    inputWrapper,
+    resizeHandle,
+  };
 }
