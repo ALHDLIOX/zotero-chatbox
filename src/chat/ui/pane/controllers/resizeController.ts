@@ -23,7 +23,8 @@ export function initResizeController(
 
   const onMouseMove = (ev: MouseEvent) => {
     if (!isDragging) return;
-    const dy = startY - ev.clientY; // drag upwards → increase height
+    // With handle at the bottom, dragging DOWN should increase height
+    const dy = ev.clientY - startY; // drag downwards → increase height
     const maxH = opts.maxHeight ?? calcMax();
     const next = Math.min(maxH, Math.max(opts.minHeight, startH + dy));
     dialogEl.style.height = `${next}px`;
@@ -58,4 +59,3 @@ export function initResizeController(
     } catch {}
   };
 }
-

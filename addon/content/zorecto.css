@@ -27,8 +27,8 @@
   cursor: ns-resize;
   user-select: none;
   touch-action: none;
-  /* pull closer to input (counter the pane gap) */
-  margin-top: calc(var(--space-1) - var(--space-3));
+  /* inside dialog; rely on dialog gap for spacing */
+  margin: 0;
 }
 .zorecto-resize-handle::before {
   content: "";
@@ -451,18 +451,21 @@
   border-color: color-mix(in oklab, var(--accent) 60%, transparent);
 }
 
-.zorecto-preset-button::after {
-  content: "▼";
-  font-size: var(--font-size-caret);
-  opacity: 0.5;
-  transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+/* New SVG chevron (Ant Design DownOutlined) */
+.zorecto-preset-button__icon {
   position: absolute;
   right: var(--space-2);
   top: 50%;
   transform: translateY(-50%);
+  pointer-events: none;
 }
-
-.zorecto-preset-button[aria-expanded="true"]::after {
+.zorecto-preset-button__icon svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+  transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+.zorecto-preset-button[aria-expanded="true"] .zorecto-preset-button__icon svg {
   transform: rotate(180deg);
 }
 

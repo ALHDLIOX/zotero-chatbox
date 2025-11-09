@@ -76,9 +76,37 @@ export async function createNotes(
   note.setNote(html as any);
   await note.saveTx();
 
+  // Detailed diagnostic log after note is created, including citation summary
+  try {
+    const tpl = doc.createElement("template");
+    tpl.innerHTML = html;
+    const root = tpl.content;
+    const blocks = Array.from(root.querySelectorAll('[data-citation-items]')) as HTMLElement[];
+    const citations: Array<{
+      index: number;
+      items: Array<{ uris: string[]; itemData?: any }>;
+    }> = [];
+    blocks.forEach((el, i) => {
+      const raw = el.getAttribute("data-citation-items") || "";
+      let parsed: Array<{ uris: string[]; itemData?: any }> = [];
+      try { parsed = JSON.parse(raw); } catch {}
+      citations.push({ index: i + 1, items: parsed || [] });
+    });
+    ztoolkit.log("[zorecto] note added", {
+      parentItemID,
+      noteID: (note as any)?.id,
+      scope: currentScopeKey || "",
+      htmlLength: html.length,
+      citationBlockCount: citations.length,
+      citationBlocks: citations.map((c) => ({
+        index: c.index,
+        uris: c.items.map((it) => Array.isArray(it?.uris) ? (it.uris[0] || "") : ""),
+      })),
+    } as any);
+  } catch {}
+
   const pw = new ztoolkit.ProgressWindow(config.addonName, { closeOnClick: true, closeTime: 1500 })
     .createLine({ text: getString("zorecto-note-added"), type: "default" })
     .show();
   pw.startCloseTimer(1200);
 }
-

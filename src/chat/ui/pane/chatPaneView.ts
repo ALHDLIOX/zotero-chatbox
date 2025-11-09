@@ -40,10 +40,10 @@ export function buildChatPane(doc: Document): ChatPaneRefs {
   dialog.appendChild(error);
   dialog.appendChild(toolbarRow);
   dialog.appendChild(inputWrapper);
+  // Place resize handle directly under the input area
+  dialog.appendChild(resizeHandle);
 
-  container.appendChild(resizeHandle);
   container.appendChild(dialog);
 
   return { container, dialog, messages, placeholder, error, toolbarRow, inputWrapper, resizeHandle };
 }
-

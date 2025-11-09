@@ -12,10 +12,10 @@
  * - Data/state management – handled by sessionStore and chatPaneController
  */
 import type { SessionMessage } from "../../../state/sessionStore";
-import type { CitationTarget } from "../../../render/shared";
+import type { CitationTarget } from "../../../render/shared/parsing/cite";
 import type { MessageDom, RenderOptions } from "./types";
 import { createMessageDom, renderMessageContent as renderContent } from "./messageRenderer";
-import { getCitationTarget as getCitation, makeCitations } from "./makeCitations";
+import { getCitationTarget as getCitation } from "../../../render/chat/citationTargets";
 import { RafBatcher } from "../../utils/rafBatcher";
 
 export type { MessageDom } from "./types";
@@ -107,13 +107,7 @@ export class MessageView {
       entry.noteButton.disabled = !isAssistant || !hasContent;
     }
 
-    if (isAssistant && message.content) {
-      try {
-        this.makeCitations(entry, message.content);
-      } catch (e) {
-        void e;
-      }
-    }
+    // Inline citations are now rendered during inline token rendering via CiteToken.
   }
 
   /** Queue a content diff to be rendered on next animation frame (dedup by messageId). */
@@ -153,8 +147,5 @@ export class MessageView {
 
   // applyMathErrorState moved to renderer; retained here only via import for API locality.
 
-  // Parse inline citation markers and render small numeric buttons in-place.
-  private makeCitations(entry: MessageDom, content: string): void {
-    makeCitations(this.doc, entry, content);
-  }
+  // Inline citations are handled in chat inline renderer; retained no-op slot for API locality.
 }

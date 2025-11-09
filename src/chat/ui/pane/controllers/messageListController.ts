@@ -29,6 +29,8 @@ export class MessageListController {
       return;
     }
     for (const m of session.messages) {
+      // Hide system messages from the chat view (e.g., Document Context)
+      if (m.role === "system") continue;
       const entry = this.view.ensureMessageDom(m);
       this.view.updateMessageDom(entry, m);
       this.root.appendChild(entry.container);
@@ -68,5 +70,12 @@ export class MessageListController {
     this.placeholder.hidden = false;
     this.root.textContent = "";
     this.root.appendChild(this.placeholder);
+  }
+
+  /** Keep viewport pinned to bottom. */
+  scrollToBottom(): void {
+    try {
+      this.root.scrollTop = this.root.scrollHeight;
+    } catch {}
   }
 }

@@ -23,7 +23,7 @@
   "scripts": {
     "start": "zotero-plugin serve",
     "prebuild": "node scripts/clean-dist.mjs && node scripts/copy-katex-assets.mjs",
-    "build": "node scripts/build-tabler-icons.mjs && zotero-plugin build && tsc --noEmit",
+    "build": "zotero-plugin build && tsc --noEmit",
     "lint:check": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
     "release": "zotero-plugin release",
@@ -34,7 +34,6 @@
     "zotero-plugin-toolkit": "^5.1.0-4.beta"
   },
   "devDependencies": {
-    "@ant-design/icons-svg": "^4.4.2",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.0",

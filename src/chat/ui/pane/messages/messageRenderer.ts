@@ -15,7 +15,7 @@ import { getString } from "../../../../shared/locale";
 import type { SessionMessage } from "../../../state/sessionStore";
 import type { MessageDom, RenderOptions } from "./types";
 import { createCopyIcon, createNoteIcon } from "../../utils/icons";
-import { renderMessage } from "../../../render/chat";
+import { renderMessage } from "../../../render/chat/block";
 
 /**
  * Create the immutable DOM structure for a single chat message entry.

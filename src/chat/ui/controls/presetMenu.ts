@@ -1,5 +1,6 @@
 /** Preset menu widget for selecting chat provider/model. */
 import { PRESETS, getPresetById } from "../../providers";
+import { createDownOutlinedIcon } from "../utils/icons";
 
 export interface PresetMenuWidget {
   wrapper: HTMLDivElement;
@@ -30,10 +31,36 @@ export function buildPresetMenu(
   labelSpan.className = "zorecto-preset-button__label";
   button.appendChild(labelSpan);
 
+  // Ant Design DownOutlined chevron icon on the right
+  const iconWrap = doc.createElement("span");
+  iconWrap.className = "zorecto-preset-button__icon";
+  try {
+    const svg = createDownOutlinedIcon(doc);
+    if (svg) iconWrap.appendChild(svg);
+  } catch {}
+  button.appendChild(iconWrap);
+
   const menu = doc.createElement("ul");
   menu.className = "zorecto-preset-menu";
   (menu as any).hidden = true;
   menu.setAttribute("role", "listbox");
+
+  // Close when clicking outside of the menu/button wrapper
+  const outsideClickHandler = (ev: Event) => {
+    try {
+      const path = (ev as any)?.composedPath?.();
+      if (Array.isArray(path)) {
+        if (path.includes(wrapper)) return; // click inside
+      } else {
+        const t = ev.target as Node | null;
+        if (t && wrapper.contains(t)) return; // click inside
+      }
+      close();
+    } catch {
+      // best-effort fallback: close on any external event errors
+      close();
+    }
+  };
 
   for (const p of PRESETS) {
     const li = doc.createElement("li");
@@ -44,6 +71,8 @@ export function buildPresetMenu(
     li.addEventListener("click", () => {
       setSelected(p.id);
       onSelect(p.id);
+      close();
+      try { button.focus(); } catch {}
     });
     menu.appendChild(li);
   }
@@ -89,6 +118,8 @@ export function buildPresetMenu(
       if (id) {
         setSelected(id);
         onSelect(id);
+        close();
+        try { button.focus(); } catch {}
       }
     }
   });
@@ -101,11 +132,17 @@ export function buildPresetMenu(
   function open() {
     (menu as any).hidden = false;
     button.setAttribute("aria-expanded", "true");
+    // attach outside click listener in capture phase for reliability
+    doc.addEventListener("mousedown", outsideClickHandler, true);
+    doc.addEventListener("pointerdown", outsideClickHandler, true);
   }
 
   function close() {
     (menu as any).hidden = true;
     button.setAttribute("aria-expanded", "false");
+    // detach listeners to avoid leaks
+    doc.removeEventListener("mousedown", outsideClickHandler, true);
+    doc.removeEventListener("pointerdown", outsideClickHandler, true);
   }
 
   function toggle() {
@@ -119,4 +156,3 @@ export function buildPresetMenu(
 
   return { wrapper: wrapper as HTMLDivElement, button: button as HTMLButtonElement, menu: menu as HTMLUListElement, getValue, setValue: setSelected, open, close, toggle, updateLabel };
 }
-

@@ -142,7 +142,7 @@ export function buildContextMessage(
 
   if (!documentText && attachmentIDs.length === 0) return undefined;
 
-  // Build an "Allowed Attachments" list so the model only uses valid IDs in ((cite)) markers
+  // Build an "Allowed Attachments" list so the model only uses valid IDs in [-[cite]-] markers
   let allowedSection = "";
   try {
     const lines: string[] = [];
@@ -179,7 +179,7 @@ export function buildContextMessage(
       lines.push(
         "# Allowed Attachments",
         "",
-        "- Use ONLY these attachmentIDs in ((cite: {...})) markers.",
+        "- Use ONLY these attachmentIDs in [-[cite: {...}]-] markers.",
         "- If not listed here, do not cite the attachment.",
         "",
         "```json",
