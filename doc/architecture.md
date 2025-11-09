@@ -13,7 +13,10 @@ src
 │  ├─ ztoolkit.ts — 初始化 Zotero Toolkit：日志前缀、UI 调试、插件图标等
 │  ├─ locale.ts — Fluent 本地化工具：initLocale/getString/getLocaleID
 │  ├─ prefs.ts — 偏好读写封装：getPref/setPref/clearPref（按插件前缀命名）
-│  └─ window.ts — 轻量窗口存活检测 isWindowAlive
+│  ├─ window.ts — 轻量窗口存活检测 isWindowAlive
+│  ├─ errors.ts — Provider error types and HTTP/status mapping to localized messages
+│  ├─ i18nKeys.ts — Centralized Fluent message ID constants used by chat
+│  └─ abort.ts — AbortSignal utilities (timeout/any/polyfill/combine)
 └─ chat — 聊天功能域（服务、状态、渲染、UI）
    ├─ services — 功能服务层（与 Zotero/Reader 交互、上下文、流程）
    │  ├─ documentContext.ts — 收集当前条目/Reader 的 PDF 附件，读取全文并构建 System 上下文（Allowed Attachments + Document Context），提供缓存键
@@ -26,7 +29,9 @@ src
    │  └─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离
    ├─ providers — 模型服务商与请求客户端
    │  ├─ providerPresets.ts — 内置模型预设（OpenAI/DeepSeek）：id/endpoint/model/本地化 key
-   │  ├─ chatClient.ts — OpenAI 风格 Chat API 客户端：系统提示拼接、token 估算与上限、Abort/超时、SSE 流解析、错误分类映射
+   │  ├─ chatClient.ts — OpenAI 风格 Chat API 客户端：token 估算与上限、Abort/超时、SSE 流解析（系统提示与错误映射已拆分）
+   │  ├─ prompts.ts — System prompts for LLMs (extracted from chat client)
+   │  ├─ constants.ts — Provider-level constants (token limits, timeouts)
    │  └─ index.ts — 对外导出 sendChat/预设与类型
    ├─ render — 渲染层（Markdown/数学/清洗；聊天视图与笔记视图）
    │  ├─ shared — 渲染共享模块（按领域分层，避免单文件子目录）
