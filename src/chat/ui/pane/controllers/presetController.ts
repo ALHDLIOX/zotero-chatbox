@@ -1,6 +1,6 @@
 /** Preset controller: persists and updates chat model preset selection. */
 import { getSelectedPresetId, setSelectedPresetId } from "../../prefs/prefs";
-import { buildPresetMenu } from "../../controls/presetMenu";
+import { buildPresetMenu } from "../elements/presetMenu";
 
 /** Wraps the preset dropdown widget, syncing toolbar UI with stored prefs. */
 export class PresetController {

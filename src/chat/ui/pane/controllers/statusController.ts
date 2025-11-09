@@ -1,6 +1,6 @@
 /** Status bar controller: encapsulates status text and insertion. */
 import { getString } from "../../../../shared/locale";
-import { createStatusBarProps } from "../../controls/statusBar";
+import { createStatusBarProps } from "../elements/statusBar";
 
 /** Displays localized status text at the top of the chat pane dialog. */
 export class StatusController {

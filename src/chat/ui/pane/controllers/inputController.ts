@@ -1,6 +1,6 @@
 /** Input controller: manages textarea, resize behavior, and action buttons. */
 import { attachAutoResize } from "../../utils/inputAutoResize";
-import { buildActionButtons } from "../../controls/actionButtons";
+import { buildActionButtons } from "../elements/actionButtons";
 import { getString } from "../../../../shared/locale";
 
 /** Disposable callback for cleaning up controller resources. */

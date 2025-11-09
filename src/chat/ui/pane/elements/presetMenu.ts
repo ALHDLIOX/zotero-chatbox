@@ -1,6 +1,6 @@
 /** Preset menu widget for selecting chat provider/model. */
-import { PRESETS, getPresetById } from "../../providers";
-import { createDownOutlinedIcon } from "../utils/icons";
+import { PRESETS, getPresetById } from "../../../providers";
+import { createDownOutlinedIcon } from "../../utils/icons";
 
 /** Element handles and helpers for the preset dropdown. */
 export interface PresetMenuWidget {

@@ -1,5 +1,5 @@
 /** Build welcome placeholder block with suggestion cards. */
-import { getString } from "../../../shared/locale";
+import { getString } from "../../../../shared/locale";
 
 /**
  * Create the welcome placeholder that shows preset prompt suggestions.

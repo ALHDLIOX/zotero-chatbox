@@ -1,5 +1,5 @@
 /** Action buttons (Send/Stop, Clear) with mode control and icons. */
-import { createSendIcon, createStopIcon, createDeleteIcon } from "../utils/icons";
+import { createSendIcon, createStopIcon, createDeleteIcon } from "../../utils/icons";
 
 /** Handles to the input action buttons row. */
 export interface ActionButtons {

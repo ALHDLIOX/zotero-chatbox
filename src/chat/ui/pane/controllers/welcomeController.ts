@@ -1,5 +1,5 @@
 /** Welcome placeholder controller: builds and toggles welcome block. */
-import { buildWelcomeBlock } from "../../controls/welcomeBlock";
+import { buildWelcomeBlock } from "../elements/welcomeBlock";
 
 /** Manages the welcome placeholder content and its visibility. */
 export class WelcomeController {

@@ -54,11 +54,6 @@ src
    │     ├─ inline.ts — 笔记用行内渲染（文本复用 shared/inlineFormat + shared/NOTE_INLINE_PRESET 清洗；行内代码 <code>；无 KaTeX）
    │     └─ （清洗逻辑已收敛至 shared/sanitizer 的 NOTE_INLINE_PRESET）
    └─ ui — UI 组件与 Reader 面板
-      ├─ controls — 纯 UI 控件
-      │  ├─ statusBar.ts — 状态条元素工厂
-      │  ├─ welcomeBlock.ts — 欢迎占位与快捷提问按钮
-      │  ├─ presetMenu.ts — 预设选择下拉菜单（ARIA/键盘交互）
-      │  └─ actionButtons.ts — 发送/停止与清空按钮（图标/模式切换）
       ├─ prefs — 偏好面板（about:addons）
       │  ├─ preferencesPane.ts — 注册偏好面板入口与图标/文案
       │  ├─ preferencesUi.ts — 偏好脚本：预设与 API Key 管理、测试连接、面板切换
@@ -71,6 +66,11 @@ src
          ├─ paneView.ts — 纯视图骨架构建（容器/消息区/工具栏/输入区/拖拽手柄）
          ├─ paneController.ts — Presenter：装配控制器与服务、处理提交/中止/清空/引用跳转、注入样式与 KaTeX CSS
          ├─ paneStyles.ts — 注入聊天与 KaTeX 样式表（可作用于 ShadowRoot）
+         ├─ elements — 面板通用视图构件（纯 UI 控件）
+         │  ├─ statusBar.ts — 状态条元素工厂
+         │  ├─ welcomeBlock.ts — 欢迎占位与快捷提问按钮
+         │  ├─ presetMenu.ts — 预设选择下拉菜单（ARIA/键盘交互）
+         │  └─ actionButtons.ts — 发送/停止与清空按钮（图标/模式切换）
          ├─ controllers — 面板子控制器
          │  ├─ statusController.ts — 状态条控制器：集中管理 Loading/Sending/Loaded/Missing 文案
          │  ├─ welcomeController.ts — 欢迎占位控制器：构建与显隐，承载快捷提问回调
