@@ -3,6 +3,7 @@ import type { SessionState } from "../../../state/sessionStore";
 import { loadContextForProps } from "../../../services/documentContext";
 import { StatusController } from "./statusController";
 
+/** Loads Reader context metadata and updates the status bar accordingly. */
 export class ContextController {
   private readonly doc: Document;
   private readonly status: StatusController;
@@ -50,4 +51,3 @@ export class ContextController {
     }
   }
 }
-

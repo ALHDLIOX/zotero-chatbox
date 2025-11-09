@@ -1,6 +1,8 @@
+/** Message list controller: bridges session state and the message view adapter. */
 import { MessageView, type MessageDom } from "../messages/messageView";
 import type { SessionMessage, SessionState } from "../../../state/sessionStore";
 
+/** Coordinates placeholder visibility and message view updates within the pane. */
 export class MessageListController {
   private readonly doc: Document;
   private readonly root: HTMLDivElement;

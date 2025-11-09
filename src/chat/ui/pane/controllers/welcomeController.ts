@@ -1,6 +1,7 @@
 /** Welcome placeholder controller: builds and toggles welcome block. */
 import { buildWelcomeBlock } from "../../controls/welcomeBlock";
 
+/** Manages the welcome placeholder content and its visibility. */
 export class WelcomeController {
   private readonly doc: Document;
   private readonly placeholderEl: HTMLDivElement;
@@ -35,4 +36,3 @@ export class WelcomeController {
     (this.placeholderEl as any).hidden = true;
   }
 }
-

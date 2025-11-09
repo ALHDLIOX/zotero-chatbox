@@ -1,3 +1,4 @@
+/** Status bar UI helpers for the chat pane toolbar. */
 import type { TagElementProps } from "zotero-plugin-toolkit";
 
 /** Status bar element factory for the chat pane toolbar area. */

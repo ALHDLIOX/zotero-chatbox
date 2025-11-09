@@ -1,11 +1,23 @@
+/** Resize controller: handles drag-to-resize interactions for the chat pane. */
+/** Dispose callback returned by the resize controller. */
 export type Dispose = () => void;
 
+/** Options governing pane sizing behavior. */
 export interface ResizeOptions {
   minHeight: number;
   maxHeight?: number;
   onResizeEnd?: () => void;
 }
 
+/**
+ * Initialize resize drag handlers for the chat pane dialog.
+ *
+ * @param doc - Document hosting the pane DOM.
+ * @param dialogEl - The pane dialog element whose height is adjusted.
+ * @param handleEl - Drag handle element.
+ * @param opts - Resize configuration.
+ * @returns Dispose callback to remove listeners.
+ */
 export function initResizeController(
   doc: Document,
   dialogEl: HTMLDivElement,

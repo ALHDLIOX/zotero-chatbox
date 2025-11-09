@@ -2,6 +2,7 @@
 import { getString } from "../../../../shared/locale";
 import { ProviderError } from "../../../providers";
 
+/** Controls the transient error banner in the chat pane. */
 export class ErrorController {
   private readonly el: HTMLDivElement;
 
@@ -42,4 +43,3 @@ export class ErrorController {
     this.show(String((error as any)?.message || error || "Error"));
   }
 }
-

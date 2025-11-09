@@ -1,15 +1,19 @@
+/** Input controller: manages textarea, resize behavior, and action buttons. */
 import { attachAutoResize } from "../../utils/inputAutoResize";
 import { buildActionButtons } from "../../controls/actionButtons";
 import { getString } from "../../../../shared/locale";
 
+/** Disposable callback for cleaning up controller resources. */
 export type Dispose = () => void;
 
+/** Callback bag used to communicate user actions back to the presenter. */
 export interface InputCallbacks {
   onSubmit: (content: string) => void;
   onAbort: () => void;
   onClear: () => void;
 }
 
+/** Manages the chat input textarea, hotkeys, and action buttons. */
 export class InputController {
   readonly inputEl: HTMLTextAreaElement;
   private readonly doc: Document;
@@ -72,10 +76,44 @@ export class InputController {
     this._disposeKey = () => this.inputEl.removeEventListener("keydown", onKey);
   }
 
-  setMode(m: "send" | "stop") { try { this._setMode?.(m); } catch {} }
-  focus() { try { this.inputEl.focus(); } catch {} }
-  setValue(text: string) { this.inputEl.value = text; try { this._auto?.resizeNow(); } catch {} }
-  getAndClear(): string { const t = (this.inputEl.value || "").trim(); this.inputEl.value = ""; try { this._auto?.resizeNow(); } catch {}; return t; }
-  resizeNow(): void { try { this._auto?.resizeNow(); } catch {} }
-  dispose(): void { try { this._disposeKey?.(); this._auto?.detach(); } catch {} }
+  setMode(m: "send" | "stop"): void {
+    try {
+      this._setMode?.(m);
+    } catch {}
+  }
+
+  focus(): void {
+    try {
+      this.inputEl.focus();
+    } catch {}
+  }
+
+  setValue(text: string): void {
+    this.inputEl.value = text;
+    try {
+      this._auto?.resizeNow();
+    } catch {}
+  }
+
+  getAndClear(): string {
+    const value = (this.inputEl.value || "").trim();
+    this.inputEl.value = "";
+    try {
+      this._auto?.resizeNow();
+    } catch {}
+    return value;
+  }
+
+  resizeNow(): void {
+    try {
+      this._auto?.resizeNow();
+    } catch {}
+  }
+
+  dispose(): void {
+    try {
+      this._disposeKey?.();
+      this._auto?.detach();
+    } catch {}
+  }
 }

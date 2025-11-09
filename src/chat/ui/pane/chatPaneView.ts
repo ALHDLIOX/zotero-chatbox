@@ -1,4 +1,7 @@
 /** Chat pane view builder – constructs the static DOM skeleton used by controllers. */
+/**
+ * Element handles for the chat pane skeleton built by {@link buildChatPane}.
+ */
 export interface ChatPaneRefs {
   container: HTMLDivElement;
   dialog: HTMLDivElement;
@@ -12,7 +15,9 @@ export interface ChatPaneRefs {
 
 /**
  * Build the chat pane container and return the primary element handles.
- * @param doc - Pane document used for DOM operations
+ *
+ * @param doc - Pane document used for DOM operations.
+ * @returns References to the constructed DOM nodes.
  */
 export function buildChatPane(doc: Document): ChatPaneRefs {
   const container = ztoolkit.UI.createElement(doc, "div", {
@@ -22,38 +27,31 @@ export function buildChatPane(doc: Document): ChatPaneRefs {
 
   const dialog = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-dialog"],
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   const messages = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-messages"],
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   const placeholder = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-empty-placeholder"],
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   const error = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-error"],
     properties: { hidden: true },
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   const toolbarRow = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-toolbar"],
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   const inputWrapper = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-input-wrapper"],
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   const resizeHandle = ztoolkit.UI.createElement(doc, "div", {
     classList: ["zorecto-resize-handle"],
-    enableElementRecord: true,
   }) as HTMLDivElement;
 
   dialog.append(messages, error, toolbarRow, inputWrapper, resizeHandle);

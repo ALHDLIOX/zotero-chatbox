@@ -8,6 +8,7 @@ import { ChatFlow } from "../../../services/chatFlow";
 import { buildContextMessage } from "../../../services/documentContext";
 import { MessageListController } from "./messageListController";
 
+/** Handles send/stream lifecycle, updating message list during chat interactions. */
 export class SendController {
   private readonly doc: Document;
   private readonly messageList: MessageListController;

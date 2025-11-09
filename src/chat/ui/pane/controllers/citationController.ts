@@ -1,5 +1,8 @@
+/** Inline citation controller wiring click/keyboard events to Reader navigation. */
+/** Callback used to dispose controller-bound listeners. */
 export type Dispose = () => void;
 
+/** Dependencies required when delegating citation navigation behavior. */
 export interface CitationDeps {
   getTarget: (refEl: HTMLElement) => {
     attachmentID: number;
@@ -14,6 +17,15 @@ export interface CitationDeps {
   ) => Promise<void> | void;
 }
 
+/**
+ * Attach inline citation listeners to the chat message list.
+ *
+ * @param doc - Pane document hosting the chat pane.
+ * @param messagesEl - Root list element containing message bubbles.
+ * @param handlerOrDeps - Either a handler invoked with the citation element
+ * or an object describing how to resolve and navigate to citation targets.
+ * @returns Dispose handle to remove the listeners.
+ */
 export function initCitationController(
   doc: Document,
   messagesEl: HTMLElement,

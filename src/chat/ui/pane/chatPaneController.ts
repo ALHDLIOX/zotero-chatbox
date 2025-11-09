@@ -25,8 +25,10 @@ type SectionInitHookArgs =
 const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/zorecto.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
 
-// Presenter for the Reader side pane – assembles controllers/services and
-// forwards Zotero pane lifecycle; avoids heavy UI logic here.
+/**
+ * Presenter for the Reader side pane. Assembles UI controllers/services and
+ * forwards Zotero pane lifecycle events without embedding business logic.
+ */
 export class chatPaneController {
   private readonly body: HTMLDivElement;
   private readonly dialogEl: HTMLDivElement;

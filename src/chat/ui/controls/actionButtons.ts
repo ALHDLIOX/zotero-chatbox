@@ -58,8 +58,13 @@ export function buildActionButtons(
 
   const sendIcon = createSendIcon(doc);
   const stopIcon = createStopIcon(doc);
+  const toggleIconVisibility = (icon: SVGSVGElement | null, visible: boolean) => {
+    if (!icon) return;
+    (icon.style as any).display = visible ? "" : "none";
+  };
   if (sendIcon && stopIcon) {
-    (stopIcon.style as any).display = "none";
+    toggleIconVisibility(sendIcon, true);
+    toggleIconVisibility(stopIcon, false);
     sendButton.append(sendIcon, stopIcon);
   } else {
     sendButton.textContent = "✈";
@@ -73,8 +78,8 @@ export function buildActionButtons(
     mode = next;
     sendButton.dataset.mode = next;
     sendButton.title = next === "send" ? "Send" : "Stop";
-    if (sendIcon) (sendIcon.style as any).display = next === "send" ? "" : "none";
-    if (stopIcon) (stopIcon.style as any).display = next === "stop" ? "" : "none";
+    toggleIconVisibility(sendIcon, next === "send");
+    toggleIconVisibility(stopIcon, next === "stop");
     sendButton.classList.toggle("zorecto-send-button--stop", next === "stop");
   }
 

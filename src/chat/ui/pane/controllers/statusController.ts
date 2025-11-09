@@ -2,6 +2,7 @@
 import { getString } from "../../../../shared/locale";
 import { createStatusBarProps } from "../../controls/statusBar";
 
+/** Displays localized status text at the top of the chat pane dialog. */
 export class StatusController {
   private readonly el: HTMLDivElement;
 
