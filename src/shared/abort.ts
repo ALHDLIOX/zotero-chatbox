@@ -9,6 +9,7 @@
  */
 
 type AbortSignalCtor = typeof AbortSignal;
+type AbortControllerCtor = typeof AbortController;
 
 function getToolkitGlobal<T = unknown>(name: string): T | undefined {
   try {
@@ -46,6 +47,33 @@ function resolveAbortSignalCtor(): AbortSignalCtor | undefined {
       ? ((globalThis as { AbortSignal?: AbortSignalCtor }).AbortSignal ?? undefined)
       : undefined;
   if (globalSignal) return globalSignal;
+  return undefined;
+}
+
+function resolveAbortControllerCtor(): AbortControllerCtor | undefined {
+  const toolkitController = getToolkitGlobal<AbortControllerCtor>("AbortController");
+  if (toolkitController) return toolkitController;
+
+  const toolkitWindow = getToolkitGlobal<Window>("window");
+  if (toolkitWindow && typeof toolkitWindow.AbortController === "function") {
+    return toolkitWindow.AbortController as AbortControllerCtor;
+  }
+
+  const zotero = getToolkitGlobal<{ getMainWindow?: () => Window }>("Zotero");
+  const mainWindow = zotero?.getMainWindow?.();
+  if (mainWindow && typeof (mainWindow as any).AbortController === "function") {
+    return (mainWindow as any).AbortController as AbortControllerCtor;
+  }
+
+  if (typeof AbortController !== "undefined") {
+    return AbortController as AbortControllerCtor;
+  }
+
+  const globalController =
+    typeof globalThis !== "undefined"
+      ? ((globalThis as { AbortController?: AbortControllerCtor }).AbortController ?? undefined)
+      : undefined;
+  if (globalController) return globalController;
   return undefined;
 }
 
@@ -95,6 +123,22 @@ export function getAbortReason(signal?: AbortSignal): unknown {
   return typeof reason === "undefined" ? undefined : reason;
 }
 
+/**
+ * Create an AbortController from the host environment.
+ * - Resolves AbortController ctor via Zotero toolkit / main window / globalThis
+ * - Returns undefined if construction fails (caller may degrade behavior)
+ */
+export function createAbortController(): AbortController | undefined {
+  try {
+    const ctor = resolveAbortControllerCtor();
+    if (!ctor) return undefined;
+    return new ctor();
+  } catch (error) {
+    void error;
+    return undefined;
+  }
+}
+
 /** Deduplicate and return a list of AbortSignals. */
 export function collectSignals(...signals: Array<AbortSignal | undefined>): AbortSignal[] {
   const seen = new Set<AbortSignal>();
@@ -124,7 +168,16 @@ export function combineSignals(signals: Array<AbortSignal | undefined>): AbortSi
   }
 
   // Polyfill: create a controller that aborts when any input aborts
-  const controller = new AbortController();
+  const controller = createAbortController();
+  if (!controller) {
+    try {
+      ztoolkit.log("[zorecto] Abort polyfill: no AbortController in this compartment; degrading to first input signal", {
+        count: filtered.length,
+      });
+    } catch {}
+    // Degrade: return the first signal so at least one cancellation source works
+    return filtered[0];
+  }
   const outSignal = controller.signal;
 
   const dispose: Array<() => void> = [];
@@ -161,4 +214,3 @@ export function combineSignals(signals: Array<AbortSignal | undefined>): AbortSi
   ztoolkit.log("[zorecto] Using AbortSignal polyfill combine", { count: filtered.length });
   return outSignal;
 }
-

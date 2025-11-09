@@ -304,11 +304,12 @@ async function performStreamingRequest(
 
   const decoder = new TextDecoder("utf-8");
   const reader = response.body.getReader();
-  const abortSignals = collectSignals(fetchSignal, options.signal, timeoutSignal);
+  // Listen only to the effective fetchSignal (already combines upstream + timeout)
+  const abortSignals = collectSignals(fetchSignal);
   const abortListeners: Array<() => void> = [];
   let abortEventError: Error | undefined;
 
-  const cancelStream = (error: Error, status: string) => {
+  const cancelStream = (error: Error, status: string, rawReason?: unknown) => {
     if (abortEventError) {
       return;
     }
@@ -321,23 +322,43 @@ async function performStreamingRequest(
     if (typeof cancel === "function") {
       void cancel.call(reader, error).catch(() => undefined);
     }
-    ztoolkit.log("[zorecto] 已中断流式读取", {
-      status,
-      reason: error.message,
-    });
+    try {
+      const rawInfo =
+        rawReason instanceof Error
+          ? { rawName: rawReason.name, rawMessage: rawReason.message }
+          : { rawReason };
+      ztoolkit.log("[zorecto] 已中断流式读取", {
+        status,
+        reasonName: (error as any)?.name,
+        reasonMessage: (error as any)?.message,
+        ...rawInfo,
+      });
+    } catch {}
   };
 
   for (const signal of abortSignals) {
     const status = signal === timeoutSignal ? "timeout" : "signal-abort";
     const handler = () => {
       const rawReason = getAbortReason(signal);
-      const resolved =
-        rawReason instanceof Error
-          ? rawReason
-          : status === "timeout"
-            ? createTimeoutError()
-            : createAbortError();
-      cancelStream(resolved, status);
+      let resolved: Error;
+      if (status === "timeout") {
+        resolved = createTimeoutError();
+      } else if (rawReason instanceof Error) {
+        resolved = isAbortLikeError(rawReason) ? rawReason : createAbortError();
+      } else {
+        resolved = createAbortError();
+      }
+      try {
+        ztoolkit.log("[zorecto] fetch/stream abort event", {
+          status,
+          rawReason:
+            rawReason instanceof Error
+              ? { name: rawReason.name, message: rawReason.message }
+              : rawReason,
+          resolved: { name: resolved.name, message: resolved.message },
+        });
+      } catch {}
+      cancelStream(resolved, status, rawReason);
     };
     if (signal.aborted) {
       handler();

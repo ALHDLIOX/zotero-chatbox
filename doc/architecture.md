@@ -99,3 +99,11 @@ src
   - 与 Zotero 运行时交互处存在 `any` 回退，逐步梳理 `zotero-types` 的覆盖并补充轻量本地类型，减少潜在运行时错误。
 
 以上建议以最小侵入为原则，优先拆分复用与测试覆盖，逐步演进而非一次性重构。
+
+## Cancellation
+
+The chat flow uses a single-owner cancellation model:
+- Ownership: `ChatFlow` creates one internal `AbortController` per run and is the sole owner of cancellation. UI controllers never create their own controllers; they only call `chatFlow.abort()`.
+- Upstream signals: `ChatFlow.start({ signal })` combines the upstream signal with its internal signal using `shared/abort.combineSignals`. Either source cancels the provider request.
+- Reason propagation: `ChatFlow.abort(reason?)` forwards the reason to the internal controller when the host supports `AbortController.abort(reason)`. Providers receive a combined `AbortSignal`; where supported, `signal.reason` can differentiate user cancel vs. other causes.
+- Utilities: `shared/abort` resolves `AbortSignal` from the host, offers `combineSignals` (with native `AbortSignal.any` or a polyfill), and `startTimeout(ms)` if a timeout signal is needed. No default timeout is applied at present.

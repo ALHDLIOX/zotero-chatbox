@@ -1,4 +1,10 @@
-/** Send controller: orchestrates submit/stream/abort for chat messages. */
+/**
+ * Send controller: orchestrates submit/stream/abort for chat messages.
+ *
+ * Purpose: drives the UI send flow and delegates network/abort to ChatFlow.
+ * Invariants: cancellation is owned by ChatFlow; this controller never creates
+ * its own AbortController and only forwards abort() to the flow.
+ */
 import {
   appendMessage,
   ensureSession,
@@ -7,15 +13,19 @@ import {
 import { ChatFlow } from "../../../services/chatFlow";
 import { buildContextMessage } from "../../../services/documentContext";
 import { MessageListController } from "./messageListController";
+import { createAbortError } from "../../../../shared/errors";
 
 /** Handles send/stream lifecycle, updating message list during chat interactions. */
 export class SendController {
   private readonly doc: Document;
   private readonly messageList: MessageListController;
 
-  private currentAbortController?: AbortController;
   private chatFlow?: ChatFlow;
 
+  /**
+   * @param doc Host document for view updates.
+   * @param deps Dependency bag containing message list controller.
+   */
   constructor(
     doc: Document,
     deps: {
@@ -26,6 +36,11 @@ export class SendController {
     this.messageList = deps.messageList;
   }
 
+  /**
+   * Submit user content and start streaming assistant reply via ChatFlow.
+   * @param sessionId The active chat session ID.
+   * @param content User-entered text content.
+   */
   async submit(sessionId: string, content: string): Promise<void> {
     if (!sessionId) return;
     const text = (content || "").trim();
@@ -46,15 +61,14 @@ export class SendController {
       appendMessage(sessionId, context);
     }
 
-    try {
-      this.currentAbortController = new AbortController();
-    } catch {
-      this.currentAbortController = undefined;
-    }
-
-    const controller = this.currentAbortController;
     let assistant: SessionMessage | undefined;
     this.chatFlow = new ChatFlow(sessionId);
+    try {
+      ztoolkit.log("[zorecto] SendController.submit created ChatFlow", {
+        hasChatFlow: Boolean(this.chatFlow),
+        sessionId,
+      });
+    } catch {}
 
     const onToken = (token: string) => {
       if (!assistant) return;
@@ -64,6 +78,11 @@ export class SendController {
     };
 
     try {
+      try {
+        ztoolkit.log("[zorecto] SendController.submit starting flow", {
+          hasChatFlow: Boolean(this.chatFlow),
+        });
+      } catch {}
       await this.chatFlow.start({
         onAssistant: (msg) => {
           assistant = { ...msg };
@@ -71,24 +90,26 @@ export class SendController {
           this.messageList.scrollToBottom();
         },
         onToken,
-        signal: controller?.signal,
       });
       // Streaming finished: ensure buttons are enabled now that content exists
       if (assistant) {
         this.messageList.updateEntryByMessage(assistant);
       }
     } finally {
-      this.currentAbortController = undefined;
+      try {
+        ztoolkit.log("[zorecto] SendController.submit finally clearing chatFlow");
+      } catch {}
       this.chatFlow = undefined;
     }
   }
 
+  /** Abort the current chat flow, if any. */
   abort(): void {
     try {
-      this.currentAbortController?.abort();
+      ztoolkit.log("[zorecto] SendController.abort invoked (UI stop)", {
+        hasChatFlow: Boolean(this.chatFlow),
+      });
     } catch {}
-    try {
-      this.chatFlow?.abort();
-    } catch {}
+    try { this.chatFlow?.abort(createAbortError()); } catch {}
   }
 }
