@@ -10,7 +10,7 @@ import {
   getProviderSettings,
   type ProviderSettings,
   validateProviderSettings,
-} from "../ui/prefs/prefs";
+} from "../ui/prefs/prefController";
 
 
 

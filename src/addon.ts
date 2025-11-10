@@ -19,7 +19,7 @@ class Addon {
       columns: Array<ColumnOptions>;
       rows: Array<{ [dataKey: string]: string }>;
     };
-    zoRectoPrefs?: unknown;
+    prefState?: unknown;
     dialog?: DialogHelper;
   };
   // Lifecycle hooks

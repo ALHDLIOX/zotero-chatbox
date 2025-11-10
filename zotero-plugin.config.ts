@@ -15,6 +15,10 @@ export default defineConfig({
 
   build: {
     assets: ["addon/**/*.*"],
+    fluent: {
+      // Generate Fluent message ID typings to `typings/i18n.d.ts` (instead of default i10n.d.ts)
+      dts: "typings/i18n.d.ts",
+    },
     define: {
       ...pkg.config,
       author: pkg.author,
