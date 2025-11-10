@@ -5,7 +5,7 @@
  * API key persistence, connection test) and expose provider settings helpers
  * for other modules. View-only DOM operations live in `prefView`.
  * Dependencies: PRESETS and helpers from providers, ztoolkit.UI for dynamic
- * rendering, and Zotero.Prefs for persistence.
+ * rendering, and shared prefs helpers for persistence.
  * Invariants: Controller owns event listeners and state lifetime; view stays
  * stateless (pure DOM updates).
  */
@@ -29,6 +29,7 @@ import {
   showError,
   type PrefViewRefs,
 } from "./prefView";
+import { setPref } from "../../../shared/prefs";
 
 /** Runtime state for the preferences controller. */
 interface PrefState {
@@ -203,7 +204,11 @@ function readStringPref(key: string): string {
 }
 
 function writeStringPref(key: string, value: string): void {
-  Zotero.Prefs.set(key, value, true);
+  // Map fully-qualified key to plugin-relative key expected by setPref
+  const prefix = `${PREFS_PREFIX}.`;
+  const relativeKey = key.startsWith(prefix) ? key.slice(prefix.length) : key;
+  // setPref applies the plugin prefix internally
+  setPref(relativeKey as any, value as any);
 }
 
 /** Get the selected preset id, defaulting to app default. */
