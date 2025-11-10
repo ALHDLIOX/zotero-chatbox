@@ -23,12 +23,12 @@ src
    │  ├─ documentContext.ts — 收集当前条目/Reader 的 PDF 附件，读取全文并构建 System 上下文（Allowed Attachments + Document Context），提供缓存键
    │  │                       （提供 createContextLoader(doc) 工厂，内部维护附件 key，控制器仅触发 refresh）
    │  ├─ readerNavigation.ts — 打开 Reader、等待 PDF 就绪、翻页与查找高亮
-   │  ├─ sessionScope.ts — 计算会话 ID 与作用域 key（reader/attachment/item），作用域切换时重置会话
+   │  ├─ session — 会话作用域与状态
+   │  │  ├─ sessionScope.ts — 计算会话 ID 与作用域 key（reader/attachment/item），作用域切换时重置会话
+   │  │  └─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离
    │  ├─ chatFlow.ts — 对话流程控制：启动/中止、流式 token 回调、错误处理并更新 sessionStore
    │  ├─ createNotes.ts — 将助手回复渲染为 Zotero Note 兼容 HTML 并保存到关联条目；提供按消息ID创建笔记
    │  └─ copyMessage.ts — 复制消息文本到剪贴板（仅使用 Toolkit ClipboardHelper；提供按消息ID复制）
-   ├─ state — 会话内存状态
-   │  └─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离
    ├─ providers — 模型服务商与请求客户端
    │  ├─ providerPresets.ts — 内置模型预设（OpenAI/DeepSeek）：id/endpoint/model/本地化 key
    │  ├─ chatClient.ts — OpenAI 风格 Chat API 客户端：token 估算与上限、Abort/超时、SSE 流解析（系统提示与错误映射已拆分）

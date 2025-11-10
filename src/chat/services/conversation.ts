@@ -13,7 +13,7 @@ import {
   ensureSession,
   getSession,
   type SessionMessage,
-} from "../state/sessionStore";
+} from "./session/sessionStore";
 import { buildContextMessage } from "./documentContext";
 import { ChatFlow } from "./chatFlow";
 import type { ChatResponse } from "../providers";
@@ -96,4 +96,3 @@ export function getAssistantMessageText(
   const text = m?.content ?? "";
   return text || undefined;
 }
-

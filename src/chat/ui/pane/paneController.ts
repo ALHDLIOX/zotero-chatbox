@@ -1,6 +1,6 @@
 /** Chat pane controller (Presenter) responsible for wiring UI and chat flow. */
 import { config } from "../../../../package.json";
-import { clearMessages, ensureSession, type SessionState } from "../../state/sessionStore";
+import { clearMessages, ensureSession, type SessionState } from "../../services/session/sessionStore";
 import { ensurePaneStyles } from "./paneStyles";
 import { buildChatPane } from "../pane/paneView";
 import { MessageListController } from "./controllers/messageListController";
@@ -15,7 +15,7 @@ import { SendController } from "./controllers/sendController";
 import { InputController } from "./controllers/inputController";
 import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./controllers/messageActionsController";
 import { openReaderAndNavigate } from "../../services/readerNavigation";
-import { resolveSessionAndScope } from "../../services/sessionScope";
+import { resolveSessionAndScope } from "../../services/session/sessionScope";
  
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;

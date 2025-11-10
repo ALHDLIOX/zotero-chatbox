@@ -5,7 +5,7 @@ import { ProviderError, type ProviderErrorCode, httpStatusToProviderError, isAbo
 import { SYSTEM_PROMPT as SYSTEM_PROMPT_TEXT } from "./prompts";
 import { REQUEST_TIMEOUT_MS, TOKEN_LIMIT } from "./constants";
 import { startTimeout, combineSignals, collectSignals, getAbortReason } from "../../shared/abort";
-import type { SessionMessage } from "../state/sessionStore";
+import type { SessionMessage } from "../services/session/sessionStore";
 import {
   getProviderSettings,
   type ProviderSettings,

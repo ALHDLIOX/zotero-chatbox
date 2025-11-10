@@ -1,5 +1,5 @@
 /** Open Zotero Reader and navigate/highlight within PDFs. */
-import type { SessionMessage } from "../state/sessionStore";
+import type { SessionMessage } from "./session/sessionStore";
 
 export interface CitationTarget {
   attachmentID: number;

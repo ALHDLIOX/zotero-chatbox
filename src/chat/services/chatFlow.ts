@@ -19,7 +19,7 @@ import {
   updateMessage,
   type SessionMessage,
   type SessionState,
-} from "../state/sessionStore";
+} from "./session/sessionStore";
 import { sendChat, ProviderError, type ChatResponse } from "../providers";
 import { combineSignals, getAbortReason, createAbortController } from "../../shared/abort";
 

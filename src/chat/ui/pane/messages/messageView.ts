@@ -11,7 +11,7 @@
  * - Business logic (copy, notes) – handled by controllers
  * - Data/state management – handled by sessionStore and chatPaneController
  */
-import type { SessionMessage } from "../../../state/sessionStore";
+import type { SessionMessage } from "../../../services/session/sessionStore";
 import type { CitationTarget } from "../../../render/shared/parsing/cite";
 import type { MessageDom, RenderOptions } from "./types";
 import { createMessageDom, renderMessageContent as renderContent } from "./messageRenderer";
