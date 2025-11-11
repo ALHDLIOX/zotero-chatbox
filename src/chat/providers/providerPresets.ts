@@ -27,6 +27,14 @@ export const PRESETS: ProviderPreset[] = [
     endpoint: "https://api.deepseek.com",
     model: "deepseek-chat",
   },
+  {
+    id: "deepseek:deepseek-reasoner",
+    provider: "deepseek",
+    labelKey: "zorecto-preset-deepseek-reasoner",
+    label: "deepseek reasoner",
+    endpoint: "https://api.deepseek.com",
+    model: "deepseek-reasoner",
+  },
 ];
 
 export function getDefaultPresetId(): string {

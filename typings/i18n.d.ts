@@ -54,6 +54,7 @@ export type FluentMessageId =
   | 'zorecto-pref-test-failed'
   | 'zorecto-pref-test-success'
   | 'zorecto-preset-deepseek-chat'
+  | 'zorecto-preset-deepseek-reasoner'
   | 'zorecto-preset-openai-gpt-4-1'
   | 'zorecto-send-button'
   | 'zorecto-status-loaded'

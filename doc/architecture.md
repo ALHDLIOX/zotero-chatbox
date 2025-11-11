@@ -96,3 +96,11 @@ src
 - 原因透传：`ChatFlow.abort(reason?)` 在宿主支持时向内部控制器透传 `reason`；Provider 端接收合并后的 `AbortSignal`，在支持时可通过 `signal.reason` 区分“用户取消/超时”等来源。
 - 工具：`shared/abort` 负责解析宿主环境中的 `AbortSignal/AbortController`，提供 `combineSignals`（优先用原生 `AbortSignal.any`，否则回退到 polyfill）与 `startTimeout(ms)` 等能力；当前未启用默认超时。
 - 表现：当请求被取消（`ABORTED`）时，`ChatFlow` 保留已流式生成的助手内容并静默结束，不用错误文案覆盖消息，同时记录详细日志以便排查。
+
+## Adding a Provider Preset
+
+1. **Declare the preset** – edit `src/chat/providers/providerPresets.ts`, append a `ProviderPreset` describing `id`, `provider`, `labelKey`, `label`, `endpoint`, and `model`.
+2. **Expose localization strings** – update `addon/locale/<locale>/preferences.ftl` to add a `zorecto-preset-...` entry for each supported language; this key must match `labelKey`.
+3. **Synchronize Fluent typings** – add the new Fluent ID to `typings/i18n.d.ts` so `FluentMessageId` stays exhaustive.
+4. **Preferences & toolbar reuse** – the new preset is automatically populated in the preferences page (select/list) and in the toolbar menu since they iterate over `PRESETS`; no further wiring is usually required.
+5. **API keys and defaults** – ensure `addon/prefs.js` and `prefController.ts` contain defaults and key helpers for the provider (matching `ProviderId`), and update `getDefaultPresetId` if the default should change.

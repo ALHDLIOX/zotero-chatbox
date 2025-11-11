@@ -13,6 +13,7 @@ zorecto-pref-error-generic = 设置未保存，请检查输入
 # 预置项标签
 zorecto-preset-openai-gpt-4-1 = ChatGPT 4.1
 zorecto-preset-deepseek-chat = deepseek chat
+zorecto-preset-deepseek-reasoner = deepseek reasoner
 
 # 偏好页导航
 zorecto-pref-nav-profile = 个人资料

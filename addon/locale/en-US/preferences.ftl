@@ -18,3 +18,4 @@ zorecto-pref-panel-profile-empty = No profile settings yet.
 # Preset option labels
 zorecto-preset-openai-gpt-4-1 = ChatGPT 4.1
 zorecto-preset-deepseek-chat = deepseek chat
+zorecto-preset-deepseek-reasoner = deepseek reasoner
