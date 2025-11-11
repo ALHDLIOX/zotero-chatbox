@@ -1,99 +1,34 @@
-/** OpenAI-style chat client with streaming and error mapping. */
+/** OpenAI-style chat client: streaming, token estimate, and error mapping. */
 import { getString } from "../../shared/locale";
-import type { SessionMessage } from "../state/sessionStore";
+import { I18N_KEYS } from "../../shared/i18nKeys";
+import { ProviderError, type ProviderErrorCode, httpStatusToProviderError, isAbortLikeError, createTimeoutError, createAbortError } from "../../shared/errors";
+import { getSystemPrompt } from "./prompts";
+import { REQUEST_TIMEOUT_MS, TOKEN_LIMIT } from "./constants";
+import { startTimeout, combineSignals, collectSignals, getAbortReason } from "../../shared/abort";
+import type { SessionMessage } from "../services/session/sessionStore";
 import {
   getProviderSettings,
   type ProviderSettings,
   validateProviderSettings,
-} from "../prefs";
+} from "../ui/prefs/prefController";
 
-interface AbortControllerLike {
-  signal?: AbortSignal;
-  abort(reason?: unknown): void;
-}
 
-type AbortControllerCtor = new () => AbortController;
 
-function resolveAbortControllerCtor(): AbortControllerCtor | undefined {
-  if (typeof AbortController === "function") {
-    return AbortController as AbortControllerCtor;
-  }
+// System prompt moved to ./prompts
 
-  try {
-    if (
-      typeof Zotero !== "undefined" &&
-      typeof Zotero.getMainWindow === "function"
-    ) {
-      const win = Zotero.getMainWindow();
-      if (win && typeof win.AbortController === "function") {
-        return win.AbortController as AbortControllerCtor;
-      }
-    }
-  } catch (error) {
-    void error;
-  }
-
-  try {
-    const globalWin =
-      typeof globalThis !== "undefined" ? (globalThis as any) : undefined;
-    if (globalWin && typeof globalWin.AbortController === "function") {
-      return globalWin.AbortController as AbortControllerCtor;
-    }
-  } catch (error) {
-    void error;
-  }
-
-  return undefined;
-}
-
-const AbortControllerCtor = resolveAbortControllerCtor();
-const supportsAbortController = typeof AbortControllerCtor === "function";
-
-class NoopAbortController implements AbortControllerLike {
-  signal = undefined;
-  abort(): void {
-    // AbortController 兼容缺失时的降级；无法真正中断请求
-  }
-}
-
-const SYSTEM_PROMPT = [
-  "# Response Formatting Rules",
-  "",
-  "- Output Markdown only; use clear headings, lists, and code blocks when they improve readability.",
-  "- Render every mathematical expression with LaTeX delimiters:",
-  "  * Inline math: `$...$` or \(\(...\)\).",
-  "  * Block math: `$$...$$` or \(\[...\\]\) on its own lines.",
-  "- Never place math delimiters inside inline code or fenced code blocks.",
-  "- Escape literal dollar signs that are not math with `\\$`.",
-  "- Keep explanations structured, concise, and easy to scan.",
-  "",
-  "# Bold Math",
-  "",
-  "- Do NOT bold math by wrapping LaTeX with **…**.",
-  "- To make symbols or entire expressions bold, use LaTeX control sequences: \\mathbf{...} (roman letters) or \\boldsymbol{...} (greek/symbols).",
-  "",
-  "# Zotero Citation Buttons (Inline)",
-  "",
-  "- Immediately after any sentence that uses a document source, insert an inline marker of the form:",
-  "  ((cite: { \"attachmentID\": 123, \"page\": 7, \"locate\": \"Eq. (3)\", \"quote\": \"short snippet\" }))",
-  "  or for multiple sources: ((cite: [{...}, {...}]))",
-  "- The marker must sit right after the sentence, not in a separate paragraph; do not put it inside code blocks.",
-  "- Fields:",
-  "  * attachmentID: Zotero item ID of the cited PDF attachment",
-  "  * page: 1-based page number",
-  "  * locate: optional within-page locator string placed immediately after page, e.g., section/chapter number, equation number, or figure/table number (e.g., '§3.2', 'Eq. (7)', 'Fig. 2', 'Table 1'); omit or use an empty string if unknown",
-  "  * quote: optional short text from the target page to improve in-viewer highlighting",
-  "- If an 'Allowed Attachments' section is provided in earlier messages, you MUST use only those attachmentIDs in ((cite)) markers; do not invent or guess IDs.",
-  "- Numbering of citations starts from 1 and increases across the whole answer.",
-  "- Do NOT output any trailing citation JSON code block; use only inline markers.",
-].join("\n");
-
+/**
+ * Options for sending a chat request.
+ * @param messages Conversation messages in session order.
+ * @param signal Optional abort signal to cancel the request.
+ * @param onToken Optional streaming token callback.
+ */
 export interface SendChatOptions {
   messages: SessionMessage[];
   signal?: AbortSignal;
   onToken?: (token: string) => void;
 }
 
+/** Chat response including completion text and optional usage. */
 export interface ChatResponse {
   completion: string;
   usage?: {
@@ -104,39 +39,9 @@ export interface ChatResponse {
   raw?: unknown;
 }
 
-export type ProviderErrorCode =
-  | "TOKEN_LIMIT"
-  | "SETTINGS"
-  | "NETWORK"
-  | "AUTH"
-  | "SERVER"
-  | "ABORTED"
-  | "UNKNOWN";
+// Provider error types moved to shared/errors
 
-const TOKEN_LIMIT = 60000;
-const REQUEST_TIMEOUT_MS = 60000;
-
-export class ProviderError extends Error {
-  code: ProviderErrorCode;
-  status?: number;
-  messageKey: string;
-
-  constructor(
-    code: ProviderErrorCode,
-    messageKey: string,
-    message: string,
-    init?: { status?: number; cause?: unknown },
-  ) {
-    super(message);
-    this.code = code;
-    this.messageKey = messageKey;
-    this.status = init?.status;
-    if (init?.cause) {
-      this.cause = init.cause;
-    }
-  }
-}
-
+/** Returns the current soft token limit used for preflight. */
 export function getTokenLimit(): number {
   return TOKEN_LIMIT;
 }
@@ -160,10 +65,11 @@ function withSystemPrompt(messages: SessionMessage[]): SessionMessage[] {
     }
   }
 
+  const locale = Zotero.locale || "en-US";
   const systemMessage: SessionMessage = {
     id: `system-prompt-${Date.now()}`,
     role: "system",
-    content: SYSTEM_PROMPT,
+    content: getSystemPrompt(locale),
     timestamp: Date.now(),
   };
 
@@ -177,95 +83,23 @@ function ensureValidSettings(settings: ProviderSettings) {
     if (validation.invalidEndpoint) {
       throw new ProviderError(
         "SETTINGS",
-        "zorecto-error-endpoint-invalid",
-        getString("zorecto-error-endpoint-invalid"),
+        I18N_KEYS.error.endpointInvalid,
+        getString(I18N_KEYS.error.endpointInvalid as any),
       );
     }
 
     if (validation.missingKeys.length > 0) {
       throw new ProviderError(
         "SETTINGS",
-        "zorecto-error-settings-missing",
-        getString("zorecto-error-settings-missing"),
+        I18N_KEYS.error.settingsMissing,
+        getString(I18N_KEYS.error.settingsMissing as any),
         { cause: validation.missingKeys },
       );
     }
   }
 }
 
-function createAbortController(parent?: AbortSignal): AbortControllerLike {
-  if (!AbortControllerCtor) {
-    return new NoopAbortController();
-  }
-
-  const controller = new AbortControllerCtor();
-  if (parent) {
-    if (parent.aborted) {
-      controller.abort(parent.reason);
-    } else {
-      parent.addEventListener("abort", () => controller.abort(parent.reason), {
-        once: true,
-      });
-    }
-  }
-
-  return controller;
-}
-
-function getAbortSignal(
-  controller: AbortControllerLike,
-): AbortSignal | undefined {
-  const signal = controller.signal;
-  if (signal && typeof signal === "object" && "aborted" in signal) {
-    return signal;
-  }
-  return undefined;
-}
-
-function startTimeout(controller: AbortControllerLike, ms: number) {
-  if (!supportsAbortController) {
-    return;
-  }
-
-  if (ms <= 0) {
-    return;
-  }
-  setTimeout(() => {
-    const signal = getAbortSignal(controller);
-    if (!signal?.aborted) {
-      controller.abort(createTimeoutError());
-    }
-  }, ms);
-}
-
-function createTimeoutError(): Error {
-  if (typeof DOMException === "function") {
-    return new DOMException("Request timed out", "TimeoutError");
-  }
-  const error = new Error("Request timed out");
-  error.name = "TimeoutError";
-  return error;
-}
-
-function isAbortLikeError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const name = (error as { name?: unknown }).name;
-  if (name === "AbortError" || name === "TimeoutError") {
-    return true;
-  }
-
-  if (supportsAbortController && typeof DOMException === "function") {
-    return (
-      error instanceof DOMException &&
-      (error.name === "AbortError" || error.name === "TimeoutError")
-    );
-  }
-
-  return false;
-}
+// AbortSignal helpers moved to shared/abort and errors
 
 async function readErrorBody(response: Response): Promise<string | undefined> {
   try {
@@ -318,6 +152,10 @@ function parseSSELine(line: string): ParsedSSEChunk | null {
   }
 }
 
+/**
+ * Send a chat completion request with SSE streaming support.
+ * @throws ProviderError on validation, network or server errors.
+ */
 export async function sendChat(
   options: SendChatOptions,
 ): Promise<ChatResponse> {
@@ -329,8 +167,8 @@ export async function sendChat(
   if (estimatedTokens > TOKEN_LIMIT) {
     throw new ProviderError(
       "TOKEN_LIMIT",
-      "zorecto-error-token-limit",
-      getString("zorecto-error-token-limit"),
+      I18N_KEYS.error.tokenLimit,
+      getString(I18N_KEYS.error.tokenLimit as any),
       { cause: { estimatedTokens, limit: TOKEN_LIMIT } },
     );
   }
@@ -355,8 +193,8 @@ export async function sendChat(
     if (isAbortLikeError(error)) {
       const wrapped = new ProviderError(
         "ABORTED",
-        "zorecto-error-network",
-        getString("zorecto-error-network"),
+        I18N_KEYS.error.network,
+        getString(I18N_KEYS.error.network as any),
         { cause: error },
       );
       ztoolkit.log("[zorecto] sendChat 请求被外部中止", {
@@ -371,8 +209,8 @@ export async function sendChat(
     if (error instanceof TypeError) {
       const wrapped = new ProviderError(
         "NETWORK",
-        "zorecto-error-network",
-        getString("zorecto-error-network"),
+        I18N_KEYS.error.network,
+        getString(I18N_KEYS.error.network as any),
         { cause: error },
       );
       ztoolkit.log("[zorecto] sendChat 捕获网络层错误", {
@@ -384,8 +222,8 @@ export async function sendChat(
 
     const wrapped = new ProviderError(
       "UNKNOWN",
-      "zorecto-error-server",
-      getString("zorecto-error-server"),
+      I18N_KEYS.error.server,
+      getString(I18N_KEYS.error.server as any),
       { cause: error },
     );
     ztoolkit.log("[zorecto] sendChat 捕获未知错误", {
@@ -399,8 +237,8 @@ async function performStreamingRequest(
   options: SendChatOptions,
   settings: ProviderSettings,
 ): Promise<ChatResponse> {
-  const controller = createAbortController(options.signal);
-  startTimeout(controller, REQUEST_TIMEOUT_MS);
+  const timeoutSignal = startTimeout(REQUEST_TIMEOUT_MS);
+  const fetchSignal = combineSignals([options.signal, timeoutSignal]);
 
   const url = new URL("/v1/chat/completions", settings.endpoint);
   const body = JSON.stringify({
@@ -421,9 +259,8 @@ async function performStreamingRequest(
     body,
   };
 
-  const abortSignal = getAbortSignal(controller);
-  if (abortSignal) {
-    requestInit.signal = abortSignal;
+  if (fetchSignal) {
+    requestInit.signal = fetchSignal;
   }
 
   const response = await fetch(url.toString(), requestInit);
@@ -435,7 +272,7 @@ async function performStreamingRequest(
       statusText: response.statusText,
       bodyPreview,
     });
-    throw httpErrorToProviderError(response.status);
+    throw httpStatusToProviderError(response.status);
   }
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -461,36 +298,81 @@ async function performStreamingRequest(
     });
     throw new ProviderError(
       "NETWORK",
-      "zorecto-error-network",
-      getString("zorecto-error-network"),
+      I18N_KEYS.error.network,
+      getString(I18N_KEYS.error.network as any),
     );
   }
 
   const decoder = new TextDecoder("utf-8");
   const reader = response.body.getReader();
-  if (abortSignal) {
-    abortSignal.addEventListener(
-      "abort",
-      () => {
-        const cancel = (
-          reader as {
-            cancel?: (reason?: unknown) => Promise<void>;
-          }
-        ).cancel;
-        const abortReason =
-          typeof (abortSignal as { reason?: unknown }).reason !== "undefined"
-            ? (abortSignal as { reason?: unknown }).reason
-            : "aborted";
-        if (typeof cancel === "function") {
-          void cancel.call(reader, abortReason).catch(() => undefined);
-        }
-        ztoolkit.log("[zorecto] 已中断流式读取", {
-          status: "signal-abort",
-          reason: abortReason,
+  // Listen only to the effective fetchSignal (already combines upstream + timeout)
+  const abortSignals = collectSignals(fetchSignal);
+  const abortListeners: Array<() => void> = [];
+  let abortEventError: Error | undefined;
+
+  const cancelStream = (error: Error, status: string, rawReason?: unknown) => {
+    if (abortEventError) {
+      return;
+    }
+    abortEventError = error;
+    const cancel = (
+      reader as {
+        cancel?: (reason?: unknown) => Promise<void>;
+      }
+    ).cancel;
+    if (typeof cancel === "function") {
+      void cancel.call(reader, error).catch(() => undefined);
+    }
+    try {
+      const rawInfo =
+        rawReason instanceof Error
+          ? { rawName: rawReason.name, rawMessage: rawReason.message }
+          : { rawReason };
+      ztoolkit.log("[zorecto] 已中断流式读取", {
+        status,
+        reasonName: (error as any)?.name,
+        reasonMessage: (error as any)?.message,
+        ...rawInfo,
+      });
+    } catch {}
+  };
+
+  for (const signal of abortSignals) {
+    const status = signal === timeoutSignal ? "timeout" : "signal-abort";
+    const handler = () => {
+      const rawReason = getAbortReason(signal);
+      let resolved: Error;
+      if (status === "timeout") {
+        resolved = createTimeoutError();
+      } else if (rawReason instanceof Error) {
+        resolved = isAbortLikeError(rawReason) ? rawReason : createAbortError();
+      } else {
+        resolved = createAbortError();
+      }
+      try {
+        ztoolkit.log("[zorecto] fetch/stream abort event", {
+          status,
+          rawReason:
+            rawReason instanceof Error
+              ? { name: rawReason.name, message: rawReason.message }
+              : rawReason,
+          resolved: { name: resolved.name, message: resolved.message },
         });
-      },
-      { once: true },
-    );
+      } catch {}
+      cancelStream(resolved, status, rawReason);
+    };
+    if (signal.aborted) {
+      handler();
+      continue;
+    }
+    signal.addEventListener("abort", handler, { once: true });
+    abortListeners.push(() => {
+      try {
+        signal.removeEventListener("abort", handler);
+      } catch (error) {
+        void error;
+      }
+    });
   }
   let buffer = "";
   let completion = "";
@@ -498,11 +380,17 @@ async function performStreamingRequest(
   let finalRaw: unknown;
 
   while (true) {
+    if (abortEventError) {
+      throw abortEventError;
+    }
     const { value, done } = await (reader as any).read();
     if (done) {
       break;
     }
 
+    if (abortEventError) {
+      throw abortEventError;
+    }
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split(/\r?\n/);
     buffer = lines.pop() ?? "";
@@ -526,6 +414,11 @@ async function performStreamingRequest(
     }
   }
 
+  abortListeners.forEach((dispose) => dispose());
+  if (abortEventError) {
+    throw abortEventError;
+  }
+
   return {
     completion,
     usage,
@@ -533,29 +426,4 @@ async function performStreamingRequest(
   };
 }
 
-function httpErrorToProviderError(status: number): ProviderError {
-  if (status === 401 || status === 403) {
-    return new ProviderError(
-      "AUTH",
-      "zorecto-error-auth",
-      getString("zorecto-error-auth"),
-      { status },
-    );
-  }
-
-  if (status === 408 || status === 429 || status === 504) {
-    return new ProviderError(
-      "NETWORK",
-      "zorecto-error-network",
-      getString("zorecto-error-network"),
-      { status },
-    );
-  }
-
-  return new ProviderError(
-    "SERVER",
-    "zorecto-error-server",
-    getString("zorecto-error-server"),
-    { status },
-  );
-}
+// httpStatusToProviderError moved to shared/errors

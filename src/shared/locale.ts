@@ -1,6 +1,6 @@
 /** Fluent localization helpers (init/lookup with addonRef prefix). */
 import { config } from "../../package.json";
-import { FluentMessageId } from "../../typings/i10n";
+import { FluentMessageId } from "../../typings/i18n";
 
 export { initLocale, getString, getLocaleID };
 

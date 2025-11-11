@@ -1,8 +1,8 @@
 /** Gather PDF context and build system context messages for chat. */
-import { getSession, type SessionMessage } from "../state/sessionStore";
+import { getSession, type SessionMessage } from "./session/sessionStore";
 import { getActiveReader } from "./readerNavigation";
-import { ensureSession } from "../state/sessionStore";
-import { setSessionContext, type SessionState } from "../state/sessionStore";
+import { ensureSession } from "./session/sessionStore";
+import { setSessionContext, type SessionState } from "./session/sessionStore";
 
 export async function collectRelevantAttachments(
   props: _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs,
@@ -142,7 +142,7 @@ export function buildContextMessage(
 
   if (!documentText && attachmentIDs.length === 0) return undefined;
 
-  // Build an "Allowed Attachments" list so the model only uses valid IDs in ((cite)) markers
+  // Build an "Allowed Attachments" list so the model only uses valid IDs in [-[cite]-] markers
   let allowedSection = "";
   try {
     const lines: string[] = [];
@@ -179,7 +179,7 @@ export function buildContextMessage(
       lines.push(
         "# Allowed Attachments",
         "",
-        "- Use ONLY these attachmentIDs in ((cite: {...})) markers.",
+        "- Use ONLY these attachmentIDs in [-[cite: {...}]-] markers.",
         "- If not listed here, do not cite the attachment.",
         "",
         "```json",
@@ -234,4 +234,33 @@ export async function loadContextForProps(
   const ctx = await readAttachmentsContext(attachments);
   const updated = setSessionContext(sessionId, ctx);
   return { updated, key };
+}
+
+/**
+ * Factory: create a context loader bound to a document, maintaining an internal
+ * attachment key cache to avoid redundant fulltext reloads.
+ *
+ * Purpose: decouple key management from UI controllers so they only trigger
+ * refresh and handle status text, while business logic and caching stay here.
+ */
+export function createContextLoader(doc: Document): {
+  /** Refresh session context for given pane props and return updated session. */
+  refresh: (
+    sessionId: string,
+    props: _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs,
+  ) => Promise<SessionState>;
+} {
+  let attachmentKey: string | undefined;
+  return {
+    async refresh(sessionId, props) {
+      const { updated, key } = await loadContextForProps(
+        sessionId,
+        props,
+        doc,
+        attachmentKey,
+      );
+      attachmentKey = key || undefined;
+      return updated;
+    },
+  };
 }

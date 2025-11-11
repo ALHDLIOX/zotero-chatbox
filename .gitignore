@@ -17,3 +17,6 @@ tsconfig.tsbuildinfo
 .scaffold
 build
 logs
+
+# Python
+.venv/

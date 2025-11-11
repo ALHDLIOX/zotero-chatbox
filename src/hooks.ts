@@ -1,7 +1,7 @@
-import { BasicExampleFactory } from "./settings/preferencesPane";
-import { registerzoRectoReaderPane } from "./chat/ui/readerPane";
+import { registerPreferencesPane } from "./chat/ui/prefs/prefRegister";
+import { registerzoRectoReaderPane } from "./chat/ui/pane/paneRegistrar";
 import { getString, initLocale } from "./shared/locale";
-import { registerPrefsScripts } from "./settings/preferencesUi";
+import { initPrefController } from "./chat/ui/prefs/prefController";
 import { createZToolkit } from "./shared/ztoolkit";
 
 async function onStartup() {
@@ -13,7 +13,7 @@ async function onStartup() {
 
   initLocale();
 
-  BasicExampleFactory.registerPrefs();
+  registerPreferencesPane();
 
   await registerzoRectoReaderPane();
 
@@ -103,7 +103,7 @@ async function onNotify(
 async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   switch (type) {
     case "load":
-      registerPrefsScripts(data.window);
+      initPrefController(data.window);
       break;
     default:
       return;
