@@ -74,10 +74,15 @@ export class MessageListController {
     this.root.appendChild(this.placeholder);
   }
 
-  /** Keep viewport pinned to bottom. */
+  /** Keep viewport pinned to bottom, if user is already there. */
   scrollToBottom(): void {
     try {
-      this.root.scrollTop = this.root.scrollHeight;
+      const threshold = 30; // pixels
+      const { scrollHeight, scrollTop, clientHeight } = this.root;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < threshold;
+      if (isAtBottom) {
+        this.root.scrollTop = this.root.scrollHeight;
+      }
     } catch {}
   }
 }

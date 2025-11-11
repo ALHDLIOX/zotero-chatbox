@@ -36,7 +36,7 @@ export class chatPaneController {
   private readonly placeholderEl: HTMLDivElement;
   private readonly inputEl: HTMLTextAreaElement;
   private readonly dialogMinHeight = 180; // px
-  private readonly dialogDefaultHeight = 360; // px
+  private readonly dialogDefaultHeight = 720; // px
   private readonly inputMaxHeight = 200; // px
   private readonly presetCtrl: PresetController;
   private readonly inputCtrl: InputController;

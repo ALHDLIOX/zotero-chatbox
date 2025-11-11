@@ -2,7 +2,7 @@
 import { getString } from "../../shared/locale";
 import { I18N_KEYS } from "../../shared/i18nKeys";
 import { ProviderError, type ProviderErrorCode, httpStatusToProviderError, isAbortLikeError, createTimeoutError, createAbortError } from "../../shared/errors";
-import { SYSTEM_PROMPT as SYSTEM_PROMPT_TEXT } from "./prompts";
+import { getSystemPrompt } from "./prompts";
 import { REQUEST_TIMEOUT_MS, TOKEN_LIMIT } from "./constants";
 import { startTimeout, combineSignals, collectSignals, getAbortReason } from "../../shared/abort";
 import type { SessionMessage } from "../services/session/sessionStore";
@@ -65,10 +65,11 @@ function withSystemPrompt(messages: SessionMessage[]): SessionMessage[] {
     }
   }
 
+  const locale = Zotero.locale || "en-US";
   const systemMessage: SessionMessage = {
     id: `system-prompt-${Date.now()}`,
     role: "system",
-    content: SYSTEM_PROMPT_TEXT,
+    content: getSystemPrompt(locale),
     timestamp: Date.now(),
   };
 
