@@ -47,7 +47,7 @@
   --chip-size: 18px;            /* citation chip height/min-width */
   --icon-size: 16px;            /* default icon size */
   --icon-size-sm: 14px;         /* small icon size */
-  --preset-width: 120px;        /* preset trigger width */
+  --preset-width: 160px;        /* preset trigger width */
   --menu-max-height: 240px;     /* dropdown max height */
 
   /* Colors (semantic) */

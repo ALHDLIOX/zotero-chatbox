@@ -29,6 +29,7 @@ import {
   showError,
   type PrefViewRefs,
 } from "./prefView";
+import { linkCheck } from "../../../api/linkCheck";
 import { setPref } from "../../../shared/prefs";
 
 /** Runtime state for the preferences controller. */
@@ -128,33 +129,16 @@ function bindEvents(state: PrefState): void {
     clearError(refs);
 
     try {
-      const url = new URL("/v1/chat/completions", preset.endpoint);
-      const body = JSON.stringify({
+      await linkCheck({
+        endpoint: preset.endpoint,
+        apiKey,
         model: preset.model,
-        messages: [
-          { role: "system", content: "ping" },
-          { role: "user", content: "ping" },
-        ],
-        stream: false,
-        max_tokens: 1,
       });
-
-      const resp = await fetch(url.toString(), {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body,
+      showError(refs, {
+        fallback: "Connection OK",
+        l10nId: "zorecto-pref-test-success",
       });
-
-      if (resp.ok) {
-        showError(refs, {
-          fallback: "Connection OK",
-          l10nId: "zorecto-pref-test-success",
-        });
-        return;
-      }
+      return;
     } catch (error) {
       void error;
     } finally {

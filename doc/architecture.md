@@ -17,6 +17,9 @@ src
 │  ├─ errors.ts — Provider error types and HTTP/status mapping to localized messages
 │  ├─ i18nKeys.ts — Centralized Fluent message ID constants used by chat
 │  └─ abort.ts — AbortSignal utilities (timeout/any/polyfill/combine)
+├─ api — 后端请求支持：封装与模型服务商的 HTTP/SSE/abort 细节，供 chat/providers/chatClient 复用，同时包括被偏好面板复用的连接验证工具
+│  ├─ chatRequest.ts — 构造 chat/completions 请求、Stream 解析、Abort/timeout 管理与 ProviderError 映射
+│  └─ linkCheck.ts — 偏好面板“链接测试”请求封装：POST /v1/chat/completions 的最小 payload、fetch/Abort 处理，与 UI 响应共享
 └─ chat — 聊天功能域（服务、状态、渲染、UI）
    ├─ services — 功能服务层（与 Zotero/Reader 交互、上下文、流程）
    │  ├─ conversation.ts — 会话发送管道：追加 user/可选 system 文档上下文，驱动 ChatFlow 流式请求，提供 abort 句柄与只读助手文本获取
@@ -31,7 +34,7 @@ src
    │  └─ copyMessage.ts — 复制消息文本到剪贴板（仅使用 Toolkit ClipboardHelper；提供按消息ID复制）
    ├─ providers — 模型服务商与请求客户端
    │  ├─ providerPresets.ts — 内置模型预设（OpenAI/DeepSeek）：id/endpoint/model/本地化 key
-   │  ├─ chatClient.ts — OpenAI 风格 Chat API 客户端：token 估算与上限、Abort/超时、SSE 流解析（系统提示与错误映射已拆分）
+   │  ├─ chatClient.ts — OpenAI 风格 Chat API 客户端：依赖 Provider/Session 上下文、令牌预检与错误分类，网络请求委托给 `src/api/chatRequest.ts`
    │  ├─ prompts.ts — System prompts for LLMs (extracted from chat client)
    │  ├─ constants.ts — Provider-level constants (token limits, timeouts)
    │  └─ index.ts — 对外导出 sendChat/预设与类型
