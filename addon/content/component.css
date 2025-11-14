@@ -20,7 +20,7 @@
   /* Visuals */
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
-  border: var(--border-width) solid var(--color-border-subtle);
+  border: var(--border-width) solid var(--color-accent);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   line-height: 1;
@@ -38,7 +38,7 @@
 
 .zorecto-button:hover {
   background: var(--color-hover-subtle);
-  border-color: color-mix(in oklab, var(--color-accent) 40%, transparent);
+  border-color: var(--color-accent);
 }
 
 /* Icon button (neutral) */

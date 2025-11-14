@@ -110,13 +110,13 @@
   border-radius: var(--radius-md);
   padding: var(--space-1) var(--space-3);
   background-color: var(--color-bg-surface);
-  border: var(--border-width) solid var(--color-border-subtle);
+  border: var(--border-width) solid var(--color-accent);
 }
 
 .zorecto-message[data-role="user"] {
   align-self: flex-end;
   background-color: var(--color-accent-soft);
-  border-color: color-mix(in oklab, var(--color-accent) 25%, transparent);
+  border-color: var(--color-accent);
 }
 
 .zorecto-message[data-role="assistant"] {
@@ -152,7 +152,6 @@
   color: var(--color-text-secondary);
   text-align: left;
   padding: var(--space-3) var(--space-2);
-  border: var(--border-width) dashed var(--color-border-subtle);
   border-radius: var(--radius-md);
 }
 
@@ -162,24 +161,41 @@
 .zorecto-welcome-subtitle { margin: 0 0 var(--space-2); color: var(--color-text-secondary); }
 .zorecto-suggestions { display: flex; flex-direction: column; gap: var(--space-2); }
 .zorecto-suggestion {
-  text-align: center; /* center horizontally */
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 40px;
-  padding: var(--space-1) var(--space-3); /* match user bubble */
-  border-radius: var(--radius-md); /* match user bubble */
-  border: var(--border-width) solid color-mix(in oklab, var(--color-accent) 25%, transparent);
-  background: var(--color-accent-soft); /* match user bubble */
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-accent);
+  background: transparent;
   color: var(--color-text-primary);
-  cursor: pointer;
-  display: flex;               /* center vertically */
-  align-items: center;         /* vertical center */
-  justify-content: center;     /* horizontal center for flex */
-  transition: background-color var(--anim-fast) linear, box-shadow var(--anim-fast) linear, transform var(--anim-fast) var(--ease);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
 }
-.zorecto-suggestion:hover { background: color-mix(in oklab, var(--color-accent-soft) 80%, white); box-shadow: var(--shadow-hover); }
-.zorecto-suggestion:active { transform: scale(0.99); box-shadow: var(--shadow-active); }
-/* Focus handled globally via :focus-visible outline */
-/* .zorecto-suggestion:focus — removed to avoid overriding global ring */
+
+/* Header: title + action button */
+.zorecto-suggestion__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.zorecto-suggestion__title {
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+}
+
+.zorecto-suggestion__text {
+  white-space: normal;
+  margin: var(--space-1) 0;
+}
+
+.zorecto-suggestion__action {
+  margin-left: var(--space-2);
+}
+/* 无阴影或悬浮态加深，保持安静外观 */
 
 .zorecto-message-actions {
   display: flex;
@@ -195,7 +211,7 @@
   gap: var(--space-1);
   padding: var(--space-2);
   border-radius: var(--radius-md);
-  border: var(--border-width) solid color-mix(in oklab, var(--color-accent) 50%, transparent);
+  border: var(--border-width) solid var(--color-accent);
   background: var(--color-accent-soft);
   flex: 0 0 auto;
 }
@@ -244,4 +260,3 @@
   border-top: var(--border-width) solid color-mix(in oklab, var(--color-accent) 45%, transparent);
   padding-top: var(--space-2);
 }
-

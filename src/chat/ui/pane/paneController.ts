@@ -253,6 +253,11 @@ export class chatPaneController {
     if (!session || session.messages.length === 0) return;
     clearMessages(this.sessionId);
     this.messageList.clear();
+    try {
+      // After clearing, show and refresh welcome cards with new randomized suggestions
+      this.welcomeCtrl.show();
+      this.welcomeCtrl.refresh((q) => this.handleQuickAsk(q));
+    } catch {}
     this.focusInput();
   }
 
@@ -269,10 +274,9 @@ export class chatPaneController {
   private handleQuickAsk(template: string): void {
     const text = (template || "").trim();
     if (!text) return;
-    try { this.welcomeCtrl.hide(); } catch {}
-    // Clear input to avoid duplicating text visually, then submit directly
-    try { this.inputCtrl.setValue(""); } catch {}
-    void this.handleSubmitText(text);
+    // Fill input and focus, but do NOT auto-send
+    try { this.inputCtrl.setValue(text); } catch {}
+    this.focusInput();
   }
 
   private selectPreset(presetId: string): void {

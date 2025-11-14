@@ -187,3 +187,35 @@ export function createDownOutlinedIcon(doc: Document): SVGSVGElement | null {
     return null;
   }
 }
+
+/** Create a plus icon (Ant Design: PlusOutlined style, 16x16). */
+export function createPlusOutlinedIcon(doc: Document): SVGSVGElement | null {
+  try {
+    const svg = ztoolkit.UI.createElement(doc, "svg", {
+      namespace: "svg",
+      // Ant-like PlusOutlined glyph
+      attributes: {
+        viewBox: "64 64 896 896",
+        width: "16",
+        height: "16",
+        "aria-hidden": "true",
+        fill: "currentColor",
+      },
+      styles: { display: "block" },
+      children: [
+        {
+          tag: "path",
+          namespace: "svg",
+          attributes: {
+            d:
+              "M482 176m34 0h-34q-34 0-34 34v272H176q-34 0-34 34v34q0 34 34 34h272v272q0 34 34 34h34q34 0 34-34V584h272q34 0 34-34v-34q0-34-34-34H550V210q0-34-34-34z",
+            fill: "currentColor",
+          },
+        },
+      ],
+    });
+    return svg as unknown as SVGSVGElement;
+  } catch {
+    return null;
+  }
+}

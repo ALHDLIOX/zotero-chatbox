@@ -15,7 +15,7 @@
   width: 100%;
   padding: 0 var(--space-6) 0 var(--space-4); /* right reserves arrow; left aligns with option */
   background: var(--color-bg-surface);
-  border: var(--border-width) solid var(--color-border-subtle);
+  border: var(--border-width) solid var(--color-accent);
   cursor: pointer;
   color: var(--color-text-primary);
   box-sizing: border-box;
@@ -34,7 +34,7 @@
 
 .zorecto-preset-button:hover {
   background: var(--color-hover-subtle);
-  border-color: color-mix(in oklab, var(--color-accent) 40%, transparent);
+  border-color: var(--color-accent);
 }
 
 /* New SVG chevron (Ant Design DownOutlined) */
@@ -78,7 +78,7 @@
   right: 0;
   width: 100%; /* Match wrapper/button width */
   background: var(--color-bg-window);
-  border: var(--border-width) solid var(--color-border-subtle);
+  border: var(--border-width) solid var(--color-accent);
   border-radius: var(--radius-md);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1); /* left inset aligns with button label */
   margin: 0;
@@ -156,4 +156,3 @@
   box-shadow: none;
   transform: none;
 }
-

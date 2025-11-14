@@ -6,6 +6,7 @@ export class WelcomeController {
   private readonly doc: Document;
   private readonly placeholderEl: HTMLDivElement;
   private mounted = false;
+  private onAsk?: (q: string) => void;
 
   constructor(doc: Document, placeholderEl: HTMLDivElement) {
     this.doc = doc;
@@ -15,6 +16,7 @@ export class WelcomeController {
   mount(onAsk: (q: string) => void): void {
     if (this.mounted) return;
     try {
+      this.onAsk = onAsk;
       const block = buildWelcomeBlock(this.doc, onAsk);
       this.placeholderEl.appendChild(block);
       this.mounted = true;
@@ -30,6 +32,17 @@ export class WelcomeController {
       );
       this.mounted = true;
     }
+  }
+
+  /** Rebuild the welcome block with freshly randomized suggestions. */
+  refresh(onAsk?: (q: string) => void): void {
+    try {
+      if (onAsk) this.onAsk = onAsk;
+      // Clear existing content and rebuild
+      this.placeholderEl.textContent = "";
+      const block = buildWelcomeBlock(this.doc, this.onAsk || (() => {}));
+      this.placeholderEl.appendChild(block);
+    } catch {}
   }
 
   show(): void {

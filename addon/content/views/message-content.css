@@ -92,7 +92,7 @@
 }
 .zorecto-message-content th,
 .zorecto-message-content td {
-  border: var(--border-width) solid var(--color-border-subtle);
+  border: var(--border-width) solid var(--color-accent);
   padding: 6px 8px;
   vertical-align: top;
 }
@@ -159,4 +159,3 @@
   transform: scale(0.95);
   box-shadow: var(--shadow-accent-active);
 }
-
