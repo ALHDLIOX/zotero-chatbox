@@ -1,3 +1,34 @@
+% addon 目录架构说明
+
+本节展示 `addon/` 目录的树状结构，并用中文说明各部分职责。
+
+## 目录结构树
+
+```
+addon
+├─ bootstrap.js — 插件引导入口：注册并初始化插件
+├─ manifest.json — 插件清单与元数据
+├─ prefs.js — 默认偏好设置（本插件的 about:config 键）
+├─ content — 在 Zotero 窗口中加载的 UI 资源
+│  ├─ global.css — 设计令牌与工具类（分层：tokens、utilities）
+│  ├─ component.css — 可复用组件基类（分层：components）
+│  ├─ zorecto.css — 视图样式聚合器（@import 引入子模块；为保持优先级不分层）
+│  ├─ views — 视图特定样式，按职责分组
+│  │  ├─ pane.css — 聊天窗布局/容器/工具栏/输入区/消息外壳
+│  │  ├─ message-content.css — 消息内容中的 Markdown/代码/KaTeX/表格/引用徽章
+│  │  └─ preset-menu.css — 预设下拉菜单（视图组合；基础尺寸/动效在 component.css）
+│  ├─ preferences.xhtml — 偏好设置 UI；引入 global/component/preferences.css
+│  ├─ preferences.css — 偏好设置页面样式
+│  ├─ icons — 图标资源（favicon.svg/png 等）
+│  └─ vendor — 第三方资源
+│     ├─ katex.min.css — KaTeX 样式（第三方，未分层）
+│     ├─ katex.min.js — KaTeX 脚本
+│     └─ fonts — KaTeX 字体文件（WOFF/WOFF2/TTF）
+└─ locale — Fluent 本地化资源
+   ├─ en-US — 英文字符串
+   └─ zh-CN — 简体中文字符串
+```
+
 % src 目录架构说明（Architecture）
 
 本文件展示 `src/` 的树状结构，并用中文说明每个目录与文件的职责。
@@ -91,6 +122,67 @@ src
             └─ types.ts — 消息视图 DOM 句柄/渲染选项类型
 ```
 
+## UI 设计标记与按钮焦点
+
+- 焦点样式通过 `:focus-visible` 在所有可点击控件中保持统一。
+  - 适用于：`.pref-nav-button`, `.zorecto-clear-button`, `.zorecto-send-button`, `.zorecto-copy-button`, `.zorecto-note-button`, `.zorecto-preset-button`, `.zorecto-suggestion`。
+  - 必须使用 `addon/content/global.css` 中定义的轮廓标记（tokens）：
+    - `--outline-width` (默认为 `2px`)
+    - `--outline-offset` (默认为 `1px`)
+    - `--outline-color` (默认为 `--zotero-accent-color`)
+- 不要在可聚焦元素上使用 `outline: none` 来抑制轮廓。
+  - 避免为按钮或交互式芯片添加类似 `:focus { outline: none; }` 的规则。
+  - 为了可访问性和一致性，优先使用全局的 `:focus-visible` 링样式。
+- 局部的按钮焦点规则不应覆盖全局的轮廓环。
+  - 如果某个组件需要额外的焦点标识，可以添加不冲突的样式（例如，背景色），但应保留轮廓。
+  - 保持 `hover` 和 `active` 状态不变；`focus-visible` 是附加的样式。
+
+- Button disabled state (English): unified across `.zorecto-icon-button`, `.zorecto-clear-button`, `.zorecto-copy-button`, `.zorecto-note-button`, `.zorecto-send-button`, `.zorecto-preset-button`; avoid local overrides.
+
+### 样式注入与组件库
+
+- 注入顺序（chat pane）：`global.css` → `component.css` → `zorecto.css` → `katex.css`。
+  - 代码位置：`src/chat/ui/pane/paneStyles.ts` 会基于 `zorecto.css` 路径推导并注入上述样式。
+- 组件样式库：`addon/content/component.css`
+  - 定义按钮基类：`.zorecto-button`（普通按钮）、`.zorecto-icon-button`（图标按钮）。
+  - 采用 DOM 组合：所有图标按钮元素在保留现有类名的同时，额外添加 `.zorecto-icon-button`，以复用基础样式；特化规则（例如发送按钮强调、引用按钮尺寸/配色）保留在 `addon/content/zorecto.css` 中覆盖。
+    - 涉及位置：`src/chat/ui/pane/elements/actionButtons.ts`（Send/Clear）、`src/chat/ui/pane/messages/messageRenderer.ts`（Copy/Note）、`src/chat/render/chat/inline.ts`（Cite 引用徽章）。
+  - 偏好页同样加载 `component.css`（见 `addon/content/preferences.xhtml`）。
+
+### CSS Architecture (Authoring Guidelines)
+
+The CSS is structured for clarity and safe extensibility using cascade layers and clear responsibilities:
+
+- Layer order: declared once as `@layer tokens, base, components, utilities, overrides;`.
+- Injection order (chat pane): `global.css` → `component.css` → `zorecto.css` → `katex.css`.
+
+Phase 1 (completed)
+- `global.css`
+  - `@layer tokens`: design tokens under `:root` (colors, spacing, radii, shadows, typography, outline).
+  - `@layer utilities`: generic helpers such as `.hidden`, `.hidden-textarea`.
+- `component.css`
+  - `@layer components`: reusable primitives (buttons, icon buttons, base sizing/motion for preset button).
+- `zorecto.css`
+  - Unlayered for now to avoid precedence issues with vendor, unlayered `katex.css` (which is injected later).
+  - In Phase 2 it becomes an aggregator that `@import`s view modules from `addon/content/views/`.
+
+Guidelines
+- Add new tokens only in `global.css` under `@layer tokens`.
+- Add reusable component primitives in `component.css` under `@layer components` with low-specificity selectors (prefer `:where(...)`).
+- Add/adjust chat-view specifics in `zorecto.css`, scoped under `.zorecto-pane` or `.zorecto-message-content`.
+- Prefer variables and scoping; avoid `!important` unless interacting with third-party constraints.
+
+Phase 2 (current)
+- Files under `addon/content/views/` are imported by `addon/content/zorecto.css`:
+  - `views/pane.css` — chat pane layout, containers, toolbars, inputs, message shells.
+  - `views/message-content.css` — markdown/KaTeX/tables/citation chips inside `.zorecto-message-content`.
+  - `views/preset-menu.css` — preset dropdown view specifics; base size/motion still in `component.css`.
+- Rationale: keep `zorecto.css` unlayered and preserve the existing precedence against vendor `katex.css`, while making the codebase modular and easier to extend.
+
+Next steps (optional)
+- After validating with vendor CSS, consider layering view modules (`@layer components/overrides`) to stabilize cascade across all sheets.
+
+
 ## 取消（Cancellation）
 
 聊天流程采用“单一所有者”的取消模型：
@@ -100,10 +192,10 @@ src
 - 工具：`shared/abort` 负责解析宿主环境中的 `AbortSignal/AbortController`，提供 `combineSignals`（优先用原生 `AbortSignal.any`，否则回退到 polyfill）与 `startTimeout(ms)` 等能力；当前未启用默认超时。
 - 表现：当请求被取消（`ABORTED`）时，`ChatFlow` 保留已流式生成的助手内容并静默结束，不用错误文案覆盖消息，同时记录详细日志以便排查。
 
-## Adding a Provider Preset
+## 添加模型服务商预设
 
-1. **Declare the preset** – edit `src/chat/providers/providerPresets.ts`, append a `ProviderPreset` describing `id`, `provider`, `labelKey`, `label`, `endpoint`, and `model`.
-2. **Expose localization strings** – update `addon/locale/<locale>/preferences.ftl` to add a `zorecto-preset-...` entry for each supported language; this key must match `labelKey`.
-3. **Synchronize Fluent typings** – add the new Fluent ID to `typings/i18n.d.ts` so `FluentMessageId` stays exhaustive.
-4. **Preferences & toolbar reuse** – the new preset is automatically populated in the preferences page (select/list) and in the toolbar menu since they iterate over `PRESETS`; no further wiring is usually required.
-5. **API keys and defaults** – ensure `addon/prefs.js` and `prefController.ts` contain defaults and key helpers for the provider (matching `ProviderId`), and update `getDefaultPresetId` if the default should change.
+1. **声明预设** – 编辑 `src/chat/providers/providerPresets.ts`，追加一个 `ProviderPreset` 对象，描述其 `id`, `provider`, `labelKey`, `label`, `endpoint`, 和 `model`。
+2. **暴露本地化字符串** – 更新 `addon/locale/<locale>/preferences.ftl` 文件，为每种支持的语言添加一个 `zorecto-preset-...` 条目；此键必须与 `labelKey` 匹配。
+3. **同步 Fluent 类型定义** – 将新的 Fluent ID 添加到 `typings/i18n.d.ts` 中，以保持 `FluentMessageId` 类型的完整性。
+4. **偏好设置与工具栏的复用** – 新的预设会自动出现在偏好设置页面（下拉菜单/列表）和工具栏菜单中，因为它们都遍历 `PRESETS` 数组；通常不需要额外的配置。
+5. **API 密钥与默认值** – 确保 `addon/prefs.js` 和 `prefController.ts` 包含该服务商（匹配 `ProviderId`）的默认值和密钥辅助函数，并在需要更改默认预设时更新 `getDefaultPresetId`。

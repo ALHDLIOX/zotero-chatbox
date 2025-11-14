@@ -1,0 +1,247 @@
+/*
+  Chat Pane Layout & Controls (view composition)
+  Purpose: Layout, containers, toolbars and input area for chat pane.
+  Scope: Specific to chat UI; relies on tokens/components from global.css and component.css.
+*/
+
+.zorecto-pane {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-3);
+  box-sizing: border-box;
+  gap: var(--space-3);
+}
+
+/* Fixed-height dialog wrapper with resizable handle */
+.zorecto-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: var(--dialog-height, 360px);
+  min-height: 180px;
+  max-height: calc(100% - var(--space-6));
+}
+
+.zorecto-resize-handle {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  user-select: none;
+  touch-action: none;
+  /* inside dialog; rely on dialog gap for spacing */
+  margin: 0;
+}
+.zorecto-resize-handle::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border-subtle);
+  box-shadow: var(--shadow-active);
+}
+
+/* Scoped base controls */
+.zorecto-pane input,
+.zorecto-pane textarea {
+  transition:
+    background-color var(--anim-fast) linear,
+    border-color var(--anim-fast) linear,
+    color var(--anim-fast) linear,
+    box-shadow var(--anim-fast) linear,
+    transform var(--anim-fast) var(--ease);
+}
+
+.zorecto-status {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: var(--space-1) var(--space-1);
+}
+
+.zorecto-error {
+  color: var(--zotero-error-color, #c71515);
+}
+
+.zorecto-input-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.zorecto-input {
+  resize: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-1) var(--space-1);
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  background: transparent;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+}
+
+.zorecto-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.zorecto-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+  /* Prevent scroll chaining to outer containers when hitting top/bottom */
+  overscroll-behavior-y: contain;
+  flex: 1;
+  padding: var(--space-1) 0;
+}
+
+.zorecto-message {
+  max-width: 85%;
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width) solid var(--color-border-subtle);
+}
+
+.zorecto-message[data-role="user"] {
+  align-self: flex-end;
+  background-color: var(--color-accent-soft);
+  border-color: color-mix(in oklab, var(--color-accent) 25%, transparent);
+}
+
+.zorecto-message[data-role="assistant"] {
+  /* Remove bubble styling and fill width */
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* Place assistant copy action at bottom-left */
+.zorecto-message[data-role="assistant"] .zorecto-message-actions {
+  justify-content: flex-end; /* move to the right */
+  padding-right: var(--space-1); /* safe inset to avoid clipping */
+}
+
+.zorecto-message-role {
+  display: none !important;
+}
+
+.zorecto-message-content {
+  line-height: 1.5;
+  white-space: normal;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Empty placeholder when there are no messages */
+.zorecto-empty-placeholder {
+  color: var(--color-text-secondary);
+  text-align: left;
+  padding: var(--space-3) var(--space-2);
+  border: var(--border-width) dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+/* Welcome block shown when there are no messages */
+.zorecto-welcome { font-style: normal; color: var(--color-text-primary); }
+.zorecto-welcome-title { font-weight: 600; margin: 0 0 var(--space-1); }
+.zorecto-welcome-subtitle { margin: 0 0 var(--space-2); color: var(--color-text-secondary); }
+.zorecto-suggestions { display: flex; flex-direction: column; gap: var(--space-2); }
+.zorecto-suggestion {
+  text-align: center; /* center horizontally */
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3); /* match user bubble */
+  border-radius: var(--radius-md); /* match user bubble */
+  border: var(--border-width) solid color-mix(in oklab, var(--color-accent) 25%, transparent);
+  background: var(--color-accent-soft); /* match user bubble */
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;               /* center vertically */
+  align-items: center;         /* vertical center */
+  justify-content: center;     /* horizontal center for flex */
+  transition: background-color var(--anim-fast) linear, box-shadow var(--anim-fast) linear, transform var(--anim-fast) var(--ease);
+}
+.zorecto-suggestion:hover { background: color-mix(in oklab, var(--color-accent-soft) 80%, white); box-shadow: var(--shadow-hover); }
+.zorecto-suggestion:active { transform: scale(0.99); box-shadow: var(--shadow-active); }
+/* Focus handled globally via :focus-visible outline */
+/* .zorecto-suggestion:focus — removed to avoid overriding global ring */
+
+.zorecto-message-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* Input area */
+.zorecto-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid color-mix(in oklab, var(--color-accent) 50%, transparent);
+  background: var(--color-accent-soft);
+  flex: 0 0 auto;
+}
+
+.zorecto-button-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: flex-end;
+  margin-top: 0;
+  padding: 0;
+}
+
+/* 左对齐排布 */
+.zorecto-clear-button { margin-right: auto; }
+
+/* Send button: primary accent + hover background */
+.zorecto-send-button { color: var(--color-accent); }
+.zorecto-send-button:hover {
+  background: var(--color-accent);
+  color: var(--color-text-onAccent);
+}
+
+.zorecto-send-button.zorecto-send-button--stop {
+  background: transparent;
+  color: var(--color-danger);
+  box-shadow: none;
+}
+.zorecto-send-button.zorecto-send-button--stop:hover {
+  background: var(--color-danger);
+  color: var(--color-text-onAccent);
+  box-shadow: var(--shadow-danger-hover);
+  border-radius: var(--radius-sm);
+}
+
+/* Utilities moved to global.css */
+.zorecto-settings-row,
+.zorecto-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Clear separation between conversation and controls */
+.zorecto-toolbar {
+  border-top: var(--border-width) solid color-mix(in oklab, var(--color-accent) 45%, transparent);
+  padding-top: var(--space-2);
+}
+

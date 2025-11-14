@@ -43,6 +43,14 @@ export function ensurePaneStyles(
     }
   } catch {}
 
+  // Inject component library (button primitives), before chat CSS for proper overrides
+  try {
+    const componentHref = chatHref.replace(/zorecto\.css$/, "component.css");
+    if (componentHref && !scope.querySelector('link[data-zorecto-style="components"]')) {
+      appendStyleLink("components", componentHref);
+    }
+  } catch {}
+
   if (!scope.querySelector('link[data-zorecto-style="chat"]')) {
     appendStyleLink("chat", chatHref);
   }

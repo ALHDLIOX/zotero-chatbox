@@ -19,28 +19,28 @@
 .pref-nav-button {
   height: var(--control-size-sm);
   padding: 0 var(--space-3);
-  border-radius: var(--radius-pill);
-  background: var(--surface-1);
-  border: var(--border-width) solid var(--border);
+  border-radius: 6px;
+  background: var(--color-bg-surface);
+  border: var(--border-width) solid var(--color-border-subtle);
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   text-align: left;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  transition: background-color var(--anim-fast) linear, border-color var(--anim-fast) linear, transform var(--anim-fast) var(--ease);
 }
 
 .pref-nav-button:hover {
-  background: var(--surface-2);
-  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  background: var(--color-hover-subtle);
+  border-color: color-mix(in oklab, var(--color-accent) 40%, transparent);
 }
 
 .pref-nav-button--active,
 .pref-nav-button[aria-selected="true"] {
-  background: var(--accent-weak);
-  color: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-color: color-mix(in oklab, var(--color-accent) 50%, transparent);
   font-weight: 500;
 }
 
@@ -85,10 +85,10 @@
   height: var(--control-size-sm);
   line-height: var(--control-size-sm);
   padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  border: var(--border-width) solid var(--border);
-  color: var(--color-text);
+  border-radius: 6px;
+  background: var(--color-bg-surface);
+  border: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -98,13 +98,13 @@
 
 .pref-model-item:hover,
 .pref-model-item:focus {
-  background: var(--surface-2);
+  background: var(--color-hover-subtle);
 }
 
 .pref-model-item--selected {
-  background: var(--accent-weak);
-  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
-  color: var(--accent);
+  background: var(--color-accent-soft);
+  border-color: color-mix(in oklab, var(--color-accent) 50%, transparent);
+  color: var(--color-accent);
   font-weight: 500;
 }
 
@@ -115,8 +115,8 @@
   gap: var(--space-2);
   padding: var(--space-2);
   border-radius: var(--radius-lg);
-  border: var(--border-width-strong) solid color-mix(in oklab, var(--accent) 45%, transparent);
-  background: var(--accent-weakest);
+  border: var(--border-width) solid color-mix(in oklab, var(--color-accent) 45%, transparent);
+  background: var(--color-accent-soft);
 }
 
 .pref-field-row {

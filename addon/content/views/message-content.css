@@ -1,0 +1,162 @@
+/*
+  Chat Message Content (Markdown/Math/Table/Citations)
+  Purpose: Presentation for content within .zorecto-message-content.
+  Scope: Inline/block markdown, KaTeX adjustments, tables, citation chips.
+*/
+
+.zorecto-message-content pre,
+.zorecto-message-content code {
+  font-family: var(--zotero-code-font, "SFMono-Regular", "Consolas", monospace);
+}
+
+.zorecto-message-content pre code[data-language="zotero-citations"] {
+  display: none !important;
+}
+
+.zorecto-message-content pre {
+  margin: var(--space-1) 0;
+  padding: var(--space-3);
+  background-color: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.zorecto-message-content ul,
+.zorecto-message-content ol {
+  padding-inline-start: var(--list-indent);
+  margin: var(--space-2) 0;
+}
+
+/* Normalize paragraph spacing and remove outer edge expansion */
+.zorecto-message-content p {
+  margin: var(--space-1) 0;
+}
+
+.zorecto-message-content > *:first-child { margin-top: 0 !important; }
+.zorecto-message-content > *:last-child { margin-bottom: 0 !important; }
+
+.zorecto-message-content h1,
+.zorecto-message-content h2,
+.zorecto-message-content h3 {
+  margin: var(--space-1) 0 var(--space-1);
+  font-weight: 600;
+}
+
+.zorecto-message-content h1 {
+  font-size: var(--font-size-xl);
+}
+
+.zorecto-message-content h2 {
+  font-size: var(--font-size-lg);
+}
+
+.zorecto-message-content h3 {
+  font-size: var(--font-size-md);
+}
+
+.zorecto-message-content .math-inline {
+  font-size: var(--font-size-md);
+  color: inherit;
+}
+
+.zorecto-message-content .math-block {
+  margin: var(--space-3) 0;
+  text-align: center;
+}
+
+.zorecto-message-content .math-block .katex-display { margin: 1em 0; }
+
+/* KaTeX rendering stability: avoid inherited line-heights and clipping */
+.zorecto-message-content .katex {
+  line-height: 1.2; /* KaTeX default; prevents superscripts from overlapping */
+}
+.zorecto-message-content .katex,
+.zorecto-message-content .katex * {
+  overflow: visible; /* don't clip stacked boxes, radicals, or accents */
+}
+
+/* Lists: slightly tighter spacing for display math inside list items */
+.zorecto-message-content li .katex-display {
+  margin: var(--space-1) 0;
+}
+
+/* Table styles (GFM) */
+.zorecto-message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: var(--space-2) 0;
+}
+.zorecto-message-content thead th {
+  font-weight: 600;
+}
+.zorecto-message-content th,
+.zorecto-message-content td {
+  border: var(--border-width) solid var(--color-border-subtle);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.zorecto-message-content .math-error {
+  font-size: var(--font-size-sm);
+  color: var(--zotero-error-color, #c71515);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.zorecto-message-content .math-error::before {
+  content: "⚠";
+  font-size: var(--font-size-sm);
+}
+
+.zorecto-message-math-error {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--zotero-error-color, #c71515);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.zorecto-message-math-error[hidden] {
+  display: none !important;
+}
+
+.zorecto-message-math-error::before {
+  content: "⚠";
+  font-size: var(--font-size-xs);
+}
+
+/* Citation buttons */
+.zorecto-citations {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  vertical-align: baseline;
+  font-size: var(--font-size-xs);
+}
+
+/* Citation button specific overrides */
+.zorecto-cite-ref {
+  width: var(--chip-size);
+  height: var(--chip-size);
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  color: var(--color-accent);
+  background-color: var(--color-bg-surface);
+}
+
+/* Cite: accent hover background */
+.zorecto-cite-ref:hover {
+  background-color: var(--color-accent);
+  color: var(--color-text-onAccent);
+  box-shadow: var(--shadow-accent-hover);
+  border-radius: var(--radius-sm);
+}
+
+.zorecto-cite-ref:active {
+  transform: scale(0.95);
+  box-shadow: var(--shadow-accent-active);
+}
+

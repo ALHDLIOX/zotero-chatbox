@@ -67,7 +67,7 @@ export function createMessageDom(
       {
         tag: "button",
         namespace: "html",
-        classList: ["zorecto-copy-button"],
+        classList: ["zorecto-icon-button", "zorecto-copy-button"],
         properties: {
           type: "button",
           title: getString("zorecto-copy-button"),
@@ -87,7 +87,7 @@ export function createMessageDom(
       {
         tag: "button",
         namespace: "html",
-        classList: ["zorecto-note-button"],
+        classList: ["zorecto-icon-button", "zorecto-note-button"],
         properties: {
           type: "button",
           title: getString("zorecto-note-button"),
