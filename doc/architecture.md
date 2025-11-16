@@ -95,8 +95,11 @@ src
    └─ ui — UI 组件与 Reader 面板
       ├─ prefs — 偏好面板（about:addons）
       │  ├─ prefRegister.ts — 注册偏好面板入口与图标/文案（仅注册，无 UI 逻辑）
-      │  ├─ prefController.ts — 偏好控制器：事件绑定、偏好读写、校验与连接测试、面板切换
+      │  ├─ prefController.ts — 偏好控制器门面：聚合并导出 prefs/controllers 中的 UI 与 Provider 设置控制器
       │  ├─ prefView.ts — 偏好视图适配层：查询 DOM 并转调 prefs/elements 进行纯视图更新，无持久化与网络
+      │  ├─ prefs/controllers — 偏好子控制器
+      │  │  ├─ uiController.ts — UI 控制器：事件绑定、面板切换、模型列表交互与连接测试
+      │  │  └─ providerSettings.ts — Provider 设置控制器：预设选择、API 密钥持久化与 HTTPS Endpoint 校验
       │  └─ prefs/elements — Preferences view widgets (preset dropdown, model list, panel toggles) used by the preferences controller
       ├─ utils — UI 辅助
       │  ├─ icons.ts — SVG 图标构造器（发送/停止/删除/复制/笔记）
@@ -143,4 +146,4 @@ src
 2. **暴露本地化字符串** – 更新 `addon/locale/<locale>/preferences.ftl` 文件，为每种支持的语言添加一个 `zorecto-preset-...` 条目；此键必须与 `labelKey` 匹配。
 3. **同步 Fluent 类型定义** – 将新的 Fluent ID 添加到 `typings/i18n.d.ts` 中，以保持 `FluentMessageId` 类型的完整性。
 4. **偏好设置与工具栏的复用** – 新的预设会自动出现在偏好设置页面（下拉菜单/列表）和工具栏菜单中，因为它们都遍历 `PRESETS` 数组；通常不需要额外的配置。
-5. **API 密钥与默认值** – 确保 `addon/prefs.js` 和 `prefController.ts` 包含该服务商（匹配 `ProviderId`）的默认值和密钥辅助函数，并在需要更改默认预设时更新 `getDefaultPresetId`。
+5. **API 密钥与默认值** – 确保 `addon/prefs.js` 和 `prefs/controllers/providerSettings.ts` 包含该服务商（匹配 `ProviderId`）的默认值和密钥辅助函数，并在需要更改默认预设时更新 `getDefaultPresetId`。
