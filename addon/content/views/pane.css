@@ -110,13 +110,13 @@
   border-radius: var(--radius-md);
   padding: var(--space-1) var(--space-3);
   background-color: var(--color-bg-surface);
-  border: var(--border-width) solid var(--color-accent);
+  border: var(--border-width) solid var(--color-border-subtle);
 }
 
 .zorecto-message[data-role="user"] {
   align-self: flex-end;
   background-color: var(--color-accent-soft);
-  border-color: var(--color-accent);
+  border-color: var(--color-border-subtle);
 }
 
 .zorecto-message[data-role="assistant"] {
@@ -167,12 +167,18 @@
   min-height: 40px;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-accent);
+  border: var(--border-width) solid var(--color-border-subtle);
   background: transparent;
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   text-align: left;
+}
+
+/* Card hover/active: strengthen border only */
+.zorecto-suggestion:hover,
+.zorecto-suggestion:active {
+  border-color: var(--color-border-strong);
 }
 
 /* Header: title + action button */
@@ -211,9 +217,14 @@
   gap: var(--space-1);
   padding: var(--space-2);
   border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-accent);
-  background: var(--color-accent-soft);
+  border: var(--border-width) solid var(--color-border-subtle);
+  background: transparent;
   flex: 0 0 auto;
+}
+
+/* 强化：当文本域获得焦点时，高亮输入容器边框 */
+.zorecto-input-wrapper:focus-within {
+  border-color: var(--color-border-strong);
 }
 
 .zorecto-button-row {
@@ -227,6 +238,11 @@
 
 /* 左对齐排布 */
 .zorecto-clear-button { margin-right: auto; }
+/* Clear button: danger emphasis on hover */
+.zorecto-clear-button:hover {
+  background: var(--color-danger);
+  color: var(--color-text-onAccent);
+}
 
 /* Send button: primary accent + hover background */
 .zorecto-send-button { color: var(--color-accent); }
@@ -257,6 +273,6 @@
 
 /* Clear separation between conversation and controls */
 .zorecto-toolbar {
-  border-top: var(--border-width) solid color-mix(in oklab, var(--color-accent) 45%, transparent);
+  border-top: var(--border-width) solid var(--color-accent);
   padding-top: var(--space-2);
 }

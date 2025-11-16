@@ -20,13 +20,13 @@ import {
 } from "../../providers";
 import {
   buildPrefView,
-  clearError,
+  clearRowStatus,
   fillForm,
   renderModelList,
   renderPresetOptions,
   setActivePanel,
   setModelSelection,
-  showError,
+  showRowStatus,
   type PrefViewRefs,
 } from "./prefView";
 import { linkCheck } from "../../../api/linkCheck";
@@ -44,6 +44,22 @@ function getCurrentPresetFromUI(state: PrefState): ProviderPreset {
   return getPresetById(state.refs.preset.value) ?? PRESETS[0];
 }
 
+/** Sync all visible API key inputs for a provider to the given value. */
+function syncProviderApiKeyInputs(
+  refs: PrefViewRefs,
+  provider: ProviderId,
+  apiKey: string,
+): void {
+  const inputs = refs.modelList.querySelectorAll<HTMLInputElement>(
+    `.pref-model-apikey-input[data-provider="${provider}"]`,
+  );
+  inputs.forEach((input: HTMLInputElement) => {
+    if (input.value !== apiKey) {
+      input.value = apiKey;
+    }
+  });
+}
+
 /** Initialize preference controller and attach UI behavior. */
 export async function initPrefController(window: Window): Promise<void> {
   teardownPrefState();
@@ -58,13 +74,20 @@ export async function initPrefController(window: Window): Promise<void> {
 
   // Populate view
   renderPresetOptions(refs, PRESETS);
+  renderModelList(refs, PRESETS);
+
+  // Initialize API key inputs per provider
+  const providers = new Set<ProviderId>(PRESETS.map((p) => p.provider));
+  for (const provider of providers) {
+    const apiKey = getApiKeyForProvider(provider);
+    syncProviderApiKeyInputs(refs, provider, apiKey);
+  }
+
   const selectedId = getSelectedPresetId();
   const initialPreset = getPresetById(selectedId) ?? PRESETS[0];
-  fillForm(refs, initialPreset, getApiKeyForProvider(initialPreset.provider));
-  renderModelList(refs, PRESETS);
-  setActivePanel(refs, "model");
+  fillForm(refs, initialPreset);
+  setActivePanel(refs, "basic");
   setModelSelection(refs, initialPreset.id);
-  clearError(refs);
 
   bindEvents(state);
   window.addEventListener("unload", state.handleUnload, { once: true });
@@ -72,14 +95,12 @@ export async function initPrefController(window: Window): Promise<void> {
 
 function bindEvents(state: PrefState): void {
   const { refs } = state;
-  const doc = state.window.document as any;
-  const l10n = doc.l10n;
 
   // Navigation buttons → switch panel
   for (const btn of refs.navButtons) {
     btn.addEventListener("click", () => {
       const panel = btn.getAttribute("data-panel");
-      if (panel === "profile" || panel === "model") {
+      if (panel === "basic" || panel === "model") {
         setActivePanel(refs, panel);
       }
     });
@@ -88,68 +109,102 @@ function bindEvents(state: PrefState): void {
   // Preset dropdown change
   refs.preset.addEventListener("change", () => {
     const selected = getCurrentPresetFromUI(state);
-    fillForm(refs, selected, getApiKeyForProvider(selected.provider));
+    const apiKey = getApiKeyForProvider(selected.provider);
+    fillForm(refs, selected);
     setSelectedPresetId(selected.id);
     setModelSelection(refs, selected.id);
+    syncProviderApiKeyInputs(refs, selected.provider, apiKey);
   });
 
-  // API key change
-  refs.apiKey.addEventListener("change", () => {
-    const preset = getCurrentPresetFromUI(state);
-    setApiKeyForProvider(preset.provider, refs.apiKey.value.trim());
+  // Inline API key edits in model rows (provider-scoped)
+  refs.modelList.addEventListener("input", (ev) => {
+    const target = ev.target as HTMLInputElement | null;
+    if (!target || !target.classList.contains("pref-model-apikey-input")) return;
+    const provider = target.getAttribute("data-provider") as ProviderId | null;
+    if (!provider) return;
+    const value = target.value.trim();
+    setApiKeyForProvider(provider, value);
+    syncProviderApiKeyInputs(refs, provider, value);
   });
 
-  // Model list item click (delegate)
+  // Model list item click + per-row test (delegate)
   refs.modelList.addEventListener("click", (ev) => {
     const target = ev.target as HTMLElement | null;
-    const li = target?.closest?.(".pref-model-item") as HTMLElement | null;
-    if (!li) return;
-    const id = li.getAttribute("data-id");
+    if (!target) return;
+
+    const testBtn = target.closest(".pref-model-test-btn") as HTMLButtonElement | null;
+    if (testBtn) {
+      const row = testBtn.closest(".pref-model-row") as HTMLElement | null;
+      if (!row) return;
+      void testConnectionForRow(state, row);
+      return;
+    }
+
+    if (target.closest(".pref-model-apikey-input")) {
+      return;
+    }
+
+    const row = target.closest(".pref-model-row") as HTMLElement | null;
+    if (!row) return;
+    const id = row.getAttribute("data-id");
     if (!id) return;
     if (!PRESETS.some((p) => p.id === id)) return;
     refs.preset.value = id;
     // Trigger change handler to reuse logic
     refs.preset.dispatchEvent(new state.window.Event("change", { bubbles: true }));
   });
+}
 
-  // Test connection
-  refs.testBtn.addEventListener("click", async () => {
-    const preset = getCurrentPresetFromUI(state);
-    const apiKey = refs.apiKey.value.trim();
+async function testConnectionForRow(state: PrefState, row: HTMLElement): Promise<void> {
+  const id = row.getAttribute("data-id");
+  const provider = row.getAttribute("data-provider") as ProviderId | null;
+  if (!id || !provider || !PRESETS.some((p) => p.id === id)) return;
 
-    if (!apiKey) {
-      showError(refs, {
-        fallback: "API key is required",
-        l10nId: "zorecto-pref-error-apikey-required",
-      });
-      return;
-    }
+  const preset = getPresetById(id) ?? PRESETS[0];
+  const input = row.querySelector<HTMLInputElement>(".pref-model-apikey-input");
+  const button = row.querySelector<HTMLButtonElement>(".pref-model-test-btn");
+  if (!input || !button) return;
 
-    refs.testBtn.disabled = true;
-    clearError(refs);
+  const apiKey = input.value.trim();
+  if (!apiKey) {
+    setApiKeyForProvider(provider, "");
+    syncProviderApiKeyInputs(state.refs, provider, "");
+    clearRowStatus(row);
+    showRowStatus(state.refs, row, {
+      fallback: "API key is required",
+      l10nId: "zorecto-pref-error-apikey-required",
+      kind: "error",
+    });
+    return;
+  }
 
-    try {
-      await linkCheck({
-        endpoint: preset.endpoint,
-        apiKey,
-        model: preset.model,
-      });
-      showError(refs, {
-        fallback: "Connection OK",
-        l10nId: "zorecto-pref-test-success",
-      });
-      return;
-    } catch (error) {
-      void error;
-    } finally {
-      refs.testBtn.disabled = false;
-    }
+  setApiKeyForProvider(provider, apiKey);
+  syncProviderApiKeyInputs(state.refs, provider, apiKey);
 
-    showError(refs, {
+  button.disabled = true;
+  clearRowStatus(row);
+
+  try {
+    await linkCheck({
+      endpoint: preset.endpoint,
+      apiKey,
+      model: preset.model,
+    });
+    showRowStatus(state.refs, row, {
+      fallback: "Connection OK",
+      l10nId: "zorecto-pref-test-success",
+      kind: "ok",
+    });
+  } catch (error) {
+    void error;
+    showRowStatus(state.refs, row, {
       fallback: "Connection failed",
       l10nId: "zorecto-pref-test-failed",
+      kind: "error",
     });
-  });
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function teardownPrefState() {

@@ -92,7 +92,7 @@
 }
 .zorecto-message-content th,
 .zorecto-message-content td {
-  border: var(--border-width) solid var(--color-accent);
+  border: var(--border-width) solid var(--color-border-subtle);
   padding: 6px 8px;
   vertical-align: top;
 }

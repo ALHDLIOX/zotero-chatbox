@@ -8,8 +8,8 @@
   --color-bg-surface: rgba(0, 0, 0, 0.04);
   --color-bg-subtle: rgba(0, 0, 0, 0.06);
 
-  --color-border-subtle: color-mix(in oklab, currentColor 15%, transparent);
-  --color-border-strong: color-mix(in oklab, currentColor 30%, transparent);
+  --color-border-subtle: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  --color-border-strong: color-mix(in oklab, var(--color-accent) 30%, transparent);
 
   --color-accent: #170075; /* brand accent */
   --color-accent-soft: color-mix(in oklab, var(--color-accent) 6%, white);
