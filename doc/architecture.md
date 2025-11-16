@@ -96,7 +96,8 @@ src
       ├─ prefs — 偏好面板（about:addons）
       │  ├─ prefRegister.ts — 注册偏好面板入口与图标/文案（仅注册，无 UI 逻辑）
       │  ├─ prefController.ts — 偏好控制器：事件绑定、偏好读写、校验与连接测试、面板切换
-      │  └─ prefView.ts — 偏好视图：纯视图查询与更新（渲染 options/列表/错误与显隐），无持久化与网络
+      │  ├─ prefView.ts — 偏好视图适配层：查询 DOM 并转调 prefs/elements 进行纯视图更新，无持久化与网络
+      │  └─ prefs/elements — Preferences view widgets (preset dropdown, model list, panel toggles) used by the preferences controller
       ├─ utils — UI 辅助
       │  ├─ icons.ts — SVG 图标构造器（发送/停止/删除/复制/笔记）
       │  ├─ rafBatcher.ts — requestAnimationFrame 合帧批量渲染工具

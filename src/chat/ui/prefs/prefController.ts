@@ -20,15 +20,22 @@ import {
 } from "../../providers";
 import {
   buildPrefView,
-  clearRowStatus,
-  fillForm,
-  renderModelList,
-  renderPresetOptions,
-  setActivePanel,
-  setModelSelection,
-  showRowStatus,
   type PrefViewRefs,
 } from "./prefView";
+import {
+  renderPresetOptions,
+  fillPresetMenu,
+} from "./elements/presetMenu";
+import {
+  clearRowStatus,
+  renderModelList,
+  setModelSelection,
+  showRowStatus,
+} from "./elements/modelList";
+import {
+  setActivePanel,
+  type PrefPanelsRefs,
+} from "./elements/panels";
 import { linkCheck } from "../../../api/linkCheck";
 import { setPref } from "../../../shared/prefs";
 
@@ -71,14 +78,14 @@ export async function initPrefController(window: Window): Promise<void> {
   const onPresetChange = (id: string) => {
     const selected = getPresetById(id) ?? PRESETS[0];
     const apiKey = getApiKeyForProvider(selected.provider);
-    fillForm(refs, selected);
+    fillPresetMenu(refs.doc, refs.preset, selected);
     setSelectedPresetId(selected.id);
-    setModelSelection(refs, selected.id);
+    setModelSelection(refs.modelList, selected.id);
     syncProviderApiKeyInputs(refs, selected.provider, apiKey);
   };
 
-  renderPresetOptions(refs, PRESETS, onPresetChange);
-  renderModelList(refs, PRESETS);
+  renderPresetOptions(refs.doc, refs.preset, PRESETS, onPresetChange);
+  renderModelList(refs.doc, refs.modelList, PRESETS);
 
   // Initialize API key inputs per provider
   const providers = new Set<ProviderId>(PRESETS.map((p) => p.provider));
@@ -89,9 +96,14 @@ export async function initPrefController(window: Window): Promise<void> {
 
   const selectedId = getSelectedPresetId();
   const initialPreset = getPresetById(selectedId) ?? PRESETS[0];
-  fillForm(refs, initialPreset);
-  setActivePanel(refs, "basic");
-  setModelSelection(refs, initialPreset.id);
+  fillPresetMenu(refs.doc, refs.preset, initialPreset);
+  const panels: PrefPanelsRefs = {
+    panelBasic: refs.panelBasic,
+    panelModel: refs.panelModel,
+    navButtons: refs.navButtons,
+  };
+  setActivePanel(panels, "basic");
+  setModelSelection(refs.modelList, initialPreset.id);
 
   bindEvents(state, onPresetChange);
   window.addEventListener("unload", state.handleUnload, { once: true });
@@ -108,7 +120,12 @@ function bindEvents(
     btn.addEventListener("click", () => {
       const panel = btn.getAttribute("data-panel");
       if (panel === "basic" || panel === "model") {
-        setActivePanel(refs, panel);
+        const panels: PrefPanelsRefs = {
+          panelBasic: refs.panelBasic,
+          panelModel: refs.panelModel,
+          navButtons: refs.navButtons,
+        };
+        setActivePanel(panels, panel);
       }
     });
   }
@@ -165,7 +182,7 @@ async function testConnectionForRow(state: PrefState, row: HTMLElement): Promise
     setApiKeyForProvider(provider, "");
     syncProviderApiKeyInputs(state.refs, provider, "");
     clearRowStatus(row);
-    showRowStatus(state.refs, row, {
+    showRowStatus(state.refs.doc, row, {
       fallback: "API key is required",
       l10nId: "zorecto-pref-error-apikey-required",
       kind: "error",
@@ -185,14 +202,14 @@ async function testConnectionForRow(state: PrefState, row: HTMLElement): Promise
       apiKey,
       model: preset.model,
     });
-    showRowStatus(state.refs, row, {
+    showRowStatus(state.refs.doc, row, {
       fallback: "Connection OK",
       l10nId: "zorecto-pref-test-success",
       kind: "ok",
     });
   } catch (error) {
     void error;
-    showRowStatus(state.refs, row, {
+    showRowStatus(state.refs.doc, row, {
       fallback: "Connection failed",
       l10nId: "zorecto-pref-test-failed",
       kind: "error",

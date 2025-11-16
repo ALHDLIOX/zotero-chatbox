@@ -5,6 +5,13 @@
  * Dependencies: ztoolkit.UI.createElement with `namespace: 'svg'`.
  * Invariants: Return concrete SVG elements; callers may toggle visibility.
  */
+/**
+ * Ant Design icon helpers shared between chat pane and preferences UI.
+ *
+ * Purpose: Convert Ant Design icon definition objects into concrete SVG nodes.
+ * Dependencies: ztoolkit.UI.createElement for SVG element creation.
+ * Invariants: Always return an SVG element (never undefined).
+ */
 
 /** Create a paper-plane send icon (16x16). */
 export function createSendIcon(doc: Document): SVGSVGElement {
@@ -218,4 +225,51 @@ export function createPlusOutlinedIcon(doc: Document): SVGSVGElement | null {
   } catch {
     return null;
   }
+}
+
+/** Resolve Ant Design icon node from the provided module or definition object. */
+function getAntIconNode(def: any): any | null {
+  if (!def) return null;
+  const icon = def.icon ?? def.default?.icon;
+  if (!icon) return null;
+  return typeof icon === "function" ? icon("#000000", "#000000") : icon;
+}
+
+/** Recursively create SVG element subtree from Ant Design icon node description. */
+function createAntSvgElement(doc: Document, node: any): SVGGraphicsElement {
+  const el = doc.createElementNS(
+    "http://www.w3.org/2000/svg",
+    node.tag,
+  ) as unknown as SVGGraphicsElement;
+  const attrs = node.attrs ?? {};
+  for (const [key, value] of Object.entries(attrs)) {
+    el.setAttribute(key, String(value));
+  }
+  if (!("fill" in attrs)) {
+    el.setAttribute("fill", "currentColor");
+  }
+  (node.children ?? []).forEach((child: any) => {
+    el.appendChild(createAntSvgElement(doc, child));
+  });
+  return el;
+}
+
+/**
+ * Create an SVG element from an Ant Design icon definition.
+ * @param doc Host document used for DOM operations.
+ * @param def Ant Design icon module or plain icon definition object.
+ * @returns Concrete SVG element; may be an empty SVG when definition is invalid.
+ */
+export function createAntIcon(doc: Document, def: any): SVGSVGElement {
+  const node = getAntIconNode(def);
+  if (!node) {
+    return doc.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    ) as unknown as SVGSVGElement;
+  }
+  const svg = createAntSvgElement(doc, node) as unknown as SVGSVGElement;
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  return svg;
 }
