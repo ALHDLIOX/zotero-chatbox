@@ -151,13 +151,13 @@
 
 .zorecto-menu__option:hover,
 .zorecto-menu__option:focus {
-  background: var(--color-accent-soft);
+  background: var(--zorecto-accent-soft);
   outline: none;
 }
 
 .zorecto-menu__option--selected {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
+  background: var(--zorecto-accent-soft);
+  color: var(--zorecto-accent);
   font-weight: var(--font-weight-medium);
 }
 

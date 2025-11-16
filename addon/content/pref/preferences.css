@@ -13,14 +13,14 @@
   gap: var(--space-2);
   padding-bottom: var(--space-3);
   align-items: flex-end;
-  border-bottom: var(--border-width) solid var(--color-accent);
+  border-bottom: var(--border-width) solid var(--zorecto-accent);
   margin-bottom: var(--space-2);
 }
 
 .pref-nav-button[aria-selected="true"] {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--zorecto-accent-soft);
+  color: var(--zorecto-accent);
+  border-color: var(--zorecto-accent);
   font-weight: var(--font-weight-medium);
 }
 

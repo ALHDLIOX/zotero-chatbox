@@ -36,7 +36,7 @@ export function appendInlineTokens(
         // Removed verbose logging for detected [-[cite]-] markers per request
         for (const c of cites) {
           const ref = doc.createElement("span");
-          ref.className = "zorecto-cite-ref zorecto-icon-button";
+          ref.className = "zorecto-icon-button zorecto-cite-ref";
           ref.setAttribute("role", "button");
           ref.setAttribute("tabindex", "0");
           const pageNum = Number(c.page) || 1;

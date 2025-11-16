@@ -56,7 +56,7 @@ src
 ├─ api — 后端请求支持：封装与模型服务商的 HTTP/SSE/abort 细节，供 app/providers/chatClient 复用，同时包括被偏好面板复用的连接验证工具
 │  ├─ chatRequest.ts — 构造 chat/completions 请求、Stream 解析、Abort/timeout 管理与 ProviderError 映射
 │  └─ linkCheck.ts — 偏好面板“链接测试”请求封装：POST /v1/chat/completions 的最小 payload、fetch/Abort 处理，与 UI 响应共享
-└─ app — 聊天功能域（服务、状态、渲染、UI）
+└─ app — 插件功能域（服务、状态、渲染、UI）
    ├─ services — 功能服务层（与 Zotero/Reader 交互、上下文、流程）
    │  ├─ conversation.ts — 会话发送管道：追加 user/可选 system 文档上下文，驱动 ChatFlow 流式请求，提供 abort 句柄与只读助手文本获取
    │  ├─ documentContext.ts — 收集当前条目/Reader 的 PDF 附件，读取全文并构建 System 上下文（Allowed Attachments + Document Context），提供缓存键
@@ -80,7 +80,7 @@ src
    │  │  │  ├─ markdown.ts — 轻量 Markdown + 数学 解析（段落/标题/列表/表格/代码/数学）
    │  │  │  └─ cite.ts — 统一 [-[cite: ...]-] 正则与 JSON 解析；产出 CiteToken/CitationTarget
    │  │  ├─ renderer.ts — 统一块级渲染器（段落/标题/列表/代码/数学），通过 Strategy 注入 chat/note 差异（h1–h3、空节点跳过、无表格）
-      │  │  ├─ inlineFormat.ts — Shared inline formatter（bold/italic/links + <br />；保留链接内强调）
+   │  │  ├─ inlineFormat.ts — Shared inline formatter（bold/italic/links + <br />；保留链接内强调）
    │  │  ├─ sanitizer.ts — 统一清洗器（协议/属性/类/样式白名单；强制 <a> rel+target）
    │  │  └─ mathKatex.ts — KaTeX 工具：renderMath（字符串）与 renderMathNode（生成已清洗 DOM 节点）
    │  ├─ chat — 聊天视图渲染（DOM 片段 + 严格清洗）

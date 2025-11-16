@@ -90,7 +90,7 @@
 
 .zorecto-message[data-role="user"] {
   align-self: flex-end;
-  background-color: var(--color-accent-soft);
+  background-color: var(--zorecto-accent-soft);
   border-color: var(--color-border-subtle);
 }
 
@@ -162,9 +162,9 @@
 }
 
 /* Send button: primary accent + hover background */
-.zorecto-send-button { color: var(--color-accent); }
+.zorecto-send-button { color: var(--zorecto-accent); }
 .zorecto-send-button:hover {
-  background: var(--color-accent);
+  background: var(--zorecto-accent);
   color: var(--color-text-onAccent);
 }
 
@@ -190,7 +190,7 @@
 
 /* Clear separation between conversation and controls */
 .zorecto-toolbar {
-  border-top: var(--border-width) solid var(--color-accent);
+  border-top: var(--border-width) solid var(--zorecto-accent);
   padding-top: var(--space-2);
 }
 

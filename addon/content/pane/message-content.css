@@ -143,13 +143,13 @@
   height: var(--chip-size);
   font-size: var(--font-size-xs);
   line-height: 1;
-  color: var(--color-accent);
+  color: var(--zorecto-accent);
   background-color: var(--color-bg-surface);
 }
 
 /* Cite: accent hover background */
 .zorecto-cite-ref:hover {
-  background-color: var(--color-accent);
+  background-color: var(--zorecto-accent);
   color: var(--color-text-onAccent);
   box-shadow: var(--shadow-accent-hover);
   border-radius: var(--radius-sm);
