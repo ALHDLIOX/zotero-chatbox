@@ -12,18 +12,18 @@ addon
 ├─ content — 在 Zotero 窗口中加载的 UI 资源
 │  ├─ global.css — 设计令牌与工具类（分层：tokens、utilities）
 │  ├─ component.css — 组件样式聚合器（@import component/*，保持引用路径不变）
+│  ├─ pane — 聊天窗视图样式（视图布局与消息内容）
+│  │  ├─ pane.css — 聊天窗布局/容器/工具栏/输入区/消息外壳（入口样式，@import message-content.css）
+│  │  └─ message-content.css — 消息内容中的 Markdown/代码/KaTeX/表格/引用徽章
+│  ├─ pref — 偏好设置 UI 资源
+│  │  ├─ preferences.xhtml — 偏好设置 UI；引入 global/component/pref/preferences.css
+│  │  └─ preferences.css — 偏好设置页面样式
 │  ├─ component — 按组件拆分的基类样式（分层：components）
 │  │  ├─ button.css — 中性文本按钮：尺寸/过渡/hover/active/disabled/focus-visible
 │  │  ├─ icon-button.css — 图标按钮：正方形触控区、图标尺寸、交互状态
 │  │  ├─ menu.css — Menu component: shared wrapper/button/list primitives for dropdowns (e.g., model preset selector)
 │  │  ├─ input.css — 输入区基类：提供 `.zorecto-input` wrapper 与 `.zorecto-input__field` textarea 样式
 │  │  └─ card.css — 卡片基类：宽度/排版/边框/焦点环，可供 Welcome 建议等复用
-│  ├─ zorecto.css — 视图样式聚合器（@import 引入子模块；为保持优先级不分层）
-│  ├─ views — 视图特定样式，按职责分组
-│  │  ├─ pane.css — 聊天窗布局/容器/工具栏/输入区/消息外壳
-│  │  └─ message-content.css — 消息内容中的 Markdown/代码/KaTeX/表格/引用徽章
-│  ├─ preferences.xhtml — 偏好设置 UI；引入 global/component/preferences.css
-│  ├─ preferences.css — 偏好设置页面样式
 │  ├─ icons — 图标资源（favicon.svg/png 等）
 │  └─ vendor — 第三方资源
 │     ├─ katex.min.css — KaTeX 样式（第三方，未分层）

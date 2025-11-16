@@ -19,10 +19,9 @@ import { resolveSessionAndScope } from "../../services/session/sessionScope";
  
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
-type SectionInitHookArgs =
-  _ZoteroTypes.ItemPaneManagerSection.SectionInitHookArgs;
+type SectionInitHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionInitHookArgs;
 
-const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/zorecto.css`;
+const CHAT_STYLESHEET_HREF = `chrome://${config.addonRef}/content/pane/pane.css`;
 const KATEX_STYLESHEET_HREF = `chrome://${config.addonRef}/content/vendor/katex.min.css`;
 
 /**

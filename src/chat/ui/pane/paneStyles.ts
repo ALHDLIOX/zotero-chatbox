@@ -37,7 +37,9 @@ export function ensurePaneStyles(
 
   // Inject global design tokens/styles shared across UI (derived from chat css path)
   try {
-    const globalHref = chatHref.replace(/zorecto\.css$/, "global.css");
+    const contentRootMatch = chatHref.match(/^(.*\/content\/)/);
+    const contentRoot = contentRootMatch ? contentRootMatch[1] : "";
+    const globalHref = contentRoot ? `${contentRoot}global.css` : chatHref.replace(/\/[^/]+\.css$/, "/global.css");
     if (globalHref && !scope.querySelector('link[data-zorecto-style="global"]')) {
       appendStyleLink("global", globalHref);
     }
@@ -45,7 +47,11 @@ export function ensurePaneStyles(
 
   // Inject component library (button primitives), before chat CSS for proper overrides
   try {
-    const componentHref = chatHref.replace(/zorecto\.css$/, "component.css");
+    const contentRootMatch = chatHref.match(/^(.*\/content\/)/);
+    const contentRoot = contentRootMatch ? contentRootMatch[1] : "";
+    const componentHref = contentRoot
+      ? `${contentRoot}component.css`
+      : chatHref.replace(/\/[^/]+\.css$/, "/component.css");
     if (componentHref && !scope.querySelector('link[data-zorecto-style="components"]')) {
       appendStyleLink("components", componentHref);
     }
@@ -60,4 +66,4 @@ export function ensurePaneStyles(
   }
 }
 
-// Water.css removed: base control transitions are now scoped in zorecto.css
+// Water.css removed: base control transitions are now scoped in pane.css

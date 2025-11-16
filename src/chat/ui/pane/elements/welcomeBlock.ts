@@ -67,16 +67,6 @@ export function buildWelcomeBlock(
   ) as HTMLDivElement;
   void titleEl; // unused
 
-  const subtitleEl = ztoolkit.UI.appendElement(
-    {
-      tag: "div",
-      classList: ["zorecto-welcome-subtitle"],
-      properties: { textContent: getString("zorecto-welcome-subtitle") },
-    },
-    wrap,
-  ) as HTMLDivElement;
-  void subtitleEl;
-
   const listEl = ztoolkit.UI.appendElement(
     { tag: "div", classList: ["zorecto-suggestions"] },
     wrap,

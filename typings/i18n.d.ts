@@ -88,5 +88,4 @@ export type FluentMessageId =
   | 'zorecto-suggest-cat3-4'
   | 'zorecto-suggest-cat3-5'
   | 'zorecto-suggest-cat3-title'
-  | 'zorecto-welcome-subtitle'
   | 'zorecto-welcome-title';

@@ -1,6 +1,0 @@
-/* Zorecto chat styles aggregator
-   Note: This sheet is intentionally unlayered in Phase 2 to preserve precedence
-   against vendor unlayered CSS (katex.css) which is injected after this file. */
-
-@import url("views/pane.css");
-@import url("views/message-content.css");
