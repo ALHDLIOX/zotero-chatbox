@@ -43,7 +43,7 @@
   background: var(--color-accent-soft);
   color: var(--color-accent);
   border-color: var(--color-accent);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 
@@ -67,7 +67,7 @@
 
 .pref-models-title {
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .pref-model-table {
@@ -106,7 +106,7 @@
 }
 
 .pref-model-header-cell {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   text-align: left;
 }
 

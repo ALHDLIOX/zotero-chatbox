@@ -58,7 +58,7 @@
 }
 
 .zorecto-status {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
   padding: var(--space-1) var(--space-1);
 }
@@ -130,7 +130,7 @@
 
 /* Welcome block shown when there are no messages */
 .zorecto-welcome { font-style: normal; color: var(--color-text-primary); }
-.zorecto-welcome-title { font-weight: 600; margin: 0 0 var(--space-1); }
+.zorecto-welcome-title { font-weight: var(--font-weight-semibold); margin: 0 0 var(--space-1); }
 .zorecto-welcome-subtitle { margin: 0 0 var(--space-2); color: var(--color-text-secondary); }
 .zorecto-suggestions { display: flex; flex-direction: column; gap: var(--space-2); }
 

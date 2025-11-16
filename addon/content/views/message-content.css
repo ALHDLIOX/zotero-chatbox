@@ -39,7 +39,7 @@
 .zorecto-message-content h2,
 .zorecto-message-content h3 {
   margin: var(--space-1) 0 var(--space-1);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .zorecto-message-content h1 {
@@ -88,7 +88,7 @@
   margin: var(--space-2) 0;
 }
 .zorecto-message-content thead th {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 .zorecto-message-content th,
 .zorecto-message-content td {

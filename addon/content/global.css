@@ -56,6 +56,10 @@
   --font-size-sm: 13px;
   --font-size-xs: 12px;
 
+  /* Font weights */
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
   /* Controls and sizes */
   --chip-size: 18px;            /* citation chip height/min-width */
   --icon-size: 16px;            /* default icon size */
