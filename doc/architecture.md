@@ -53,10 +53,10 @@ src
 │  ├─ errors.ts — Provider error types and HTTP/status mapping to localized messages
 │  ├─ i18nKeys.ts — Centralized Fluent message ID constants used by chat
 │  └─ abort.ts — AbortSignal utilities (timeout/any/polyfill/combine)
-├─ api — 后端请求支持：封装与模型服务商的 HTTP/SSE/abort 细节，供 chat/providers/chatClient 复用，同时包括被偏好面板复用的连接验证工具
+├─ api — 后端请求支持：封装与模型服务商的 HTTP/SSE/abort 细节，供 app/providers/chatClient 复用，同时包括被偏好面板复用的连接验证工具
 │  ├─ chatRequest.ts — 构造 chat/completions 请求、Stream 解析、Abort/timeout 管理与 ProviderError 映射
 │  └─ linkCheck.ts — 偏好面板“链接测试”请求封装：POST /v1/chat/completions 的最小 payload、fetch/Abort 处理，与 UI 响应共享
-└─ chat — 聊天功能域（服务、状态、渲染、UI）
+└─ app — 聊天功能域（服务、状态、渲染、UI）
    ├─ services — 功能服务层（与 Zotero/Reader 交互、上下文、流程）
    │  ├─ conversation.ts — 会话发送管道：追加 user/可选 system 文档上下文，驱动 ChatFlow 流式请求，提供 abort 句柄与只读助手文本获取
    │  ├─ documentContext.ts — 收集当前条目/Reader 的 PDF 附件，读取全文并构建 System 上下文（Allowed Attachments + Document Context），提供缓存键
@@ -142,7 +142,7 @@ src
 
 ## 添加模型服务商预设
 
-1. **声明预设** – 编辑 `src/chat/providers/providerPresets.ts`，追加一个 `ProviderPreset` 对象，描述其 `id`, `provider`, `labelKey`, `label`, `endpoint`, 和 `model`。
+1. **声明预设** – 编辑 `src/app/providers/providerPresets.ts`，追加一个 `ProviderPreset` 对象，描述其 `id`, `provider`, `labelKey`, `label`, `endpoint`, 和 `model`。
 2. **暴露本地化字符串** – 更新 `addon/locale/<locale>/preferences.ftl` 文件，为每种支持的语言添加一个 `zorecto-preset-...` 条目；此键必须与 `labelKey` 匹配。
 3. **同步 Fluent 类型定义** – 将新的 Fluent ID 添加到 `typings/i18n.d.ts` 中，以保持 `FluentMessageId` 类型的完整性。
 4. **偏好设置与工具栏的复用** – 新的预设会自动出现在偏好设置页面（下拉菜单/列表）和工具栏菜单中，因为它们都遍历 `PRESETS` 数组；通常不需要额外的配置。

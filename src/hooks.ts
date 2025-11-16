@@ -1,7 +1,7 @@
-import { registerPreferencesPane } from "./chat/ui/prefs/prefRegister";
-import { registerzoRectoReaderPane } from "./chat/ui/pane/paneRegistrar";
+import { registerPreferencesPane } from "./app/ui/prefs/prefRegister";
+import { registerzoRectoReaderPane } from "./app/ui/pane/paneRegistrar";
 import { getString, initLocale } from "./shared/locale";
-import { initPrefController } from "./chat/ui/prefs/prefController";
+import { initPrefController } from "./app/ui/prefs/prefController";
 import { createZToolkit } from "./shared/ztoolkit";
 
 async function onStartup() {

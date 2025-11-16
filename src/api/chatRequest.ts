@@ -13,7 +13,7 @@ import {
   createAbortError,
 } from "../shared/errors";
 import { startTimeout, combineSignals, collectSignals, getAbortReason } from "../shared/abort";
-import { REQUEST_TIMEOUT_MS } from "../chat/providers/constants";
+import { REQUEST_TIMEOUT_MS } from "../app/providers/constants";
 
 /** Simplified message payload sent to provider endpoints. */
 export interface ChatMessagePayload {

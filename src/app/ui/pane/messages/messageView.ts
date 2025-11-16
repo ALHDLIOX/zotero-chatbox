@@ -20,8 +20,7 @@ import { RafBatcher } from "../../utils/rafBatcher";
 
 export type { MessageDom } from "./types";
 
-// MessageDom is defined at src/chat/ui/pane/messages/types.ts
-
+// MessageDom is defined at src/app/ui/pane/messages/types.ts
 
 export class MessageView {
   private readonly doc: Document;
