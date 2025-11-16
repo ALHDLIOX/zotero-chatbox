@@ -14,6 +14,9 @@ zorecto-pref-nav-basic = 基础
 zorecto-pref-nav-model = 模型
 
 # Basic 页
+zorecto-pref-basic-title = 常规
+zorecto-pref-basic-col-setting = 设置
+zorecto-pref-basic-col-value = 值
 zorecto-pref-basic-default-model-label = 默认聊天模型
 
 # Model 页

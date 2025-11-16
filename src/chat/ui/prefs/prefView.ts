@@ -368,7 +368,6 @@ export function setActivePanel(
   refs.panelBasic.hidden = isModel;
   for (const btn of refs.navButtons) {
     const active = btn.getAttribute("data-panel") === panel;
-    btn.classList.toggle("pref-nav-button--active", active);
     btn.setAttribute("aria-selected", active ? "true" : "false");
   }
 }

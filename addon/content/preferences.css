@@ -17,35 +17,12 @@
   margin-bottom: var(--space-2);
 }
 
-.pref-nav-button {
-  height: var(--btn-height-md);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-surface);
-  border: var(--border-width) solid var(--color-border-subtle);
-  cursor: pointer;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-}
-
-.pref-nav-button:hover {
-  background: var(--color-hover-subtle);
-  border-color: var(--color-border-strong);
-}
-.pref-nav-button:active { border-color: var(--color-border-strong); }
-
-.pref-nav-button--active,
 .pref-nav-button[aria-selected="true"] {
   background: var(--color-accent-soft);
   color: var(--color-accent);
   border-color: var(--color-accent);
   font-weight: var(--font-weight-medium);
 }
-
 
 .pref-content {
   flex: 1 1 auto;
