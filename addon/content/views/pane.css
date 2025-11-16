@@ -67,33 +67,6 @@
   color: var(--zotero-error-color, #c71515);
 }
 
-.zorecto-input-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.zorecto-input {
-  resize: none;
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--space-1) var(--space-1);
-  border-radius: 6px;
-  border: none;
-  outline: none;
-  background: transparent;
-  overflow-y: auto;
-  display: flex;
-  align-items: center;
-  line-height: 1.5;
-}
-
-.zorecto-input:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  border: none !important;
-}
-
 .zorecto-messages {
   display: flex;
   flex-direction: column;
@@ -160,48 +133,7 @@
 .zorecto-welcome-title { font-weight: 600; margin: 0 0 var(--space-1); }
 .zorecto-welcome-subtitle { margin: 0 0 var(--space-2); color: var(--color-text-secondary); }
 .zorecto-suggestions { display: flex; flex-direction: column; gap: var(--space-2); }
-.zorecto-suggestion {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-border-subtle);
-  background: transparent;
-  color: var(--color-text-primary);
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
 
-/* Card hover/active: strengthen border only */
-.zorecto-suggestion:hover,
-.zorecto-suggestion:active {
-  border-color: var(--color-border-strong);
-}
-
-/* Header: title + action button */
-.zorecto-suggestion__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.zorecto-suggestion__title {
-  font-weight: 600;
-  font-size: var(--font-size-lg);
-}
-
-.zorecto-suggestion__text {
-  white-space: normal;
-  margin: var(--space-1) 0;
-}
-
-.zorecto-suggestion__action {
-  margin-left: var(--space-2);
-}
-/* 无阴影或悬浮态加深，保持安静外观 */
 
 .zorecto-message-actions {
   display: flex;
@@ -210,23 +142,7 @@
   margin-top: var(--space-1);
 }
 
-/* Input area */
-.zorecto-input-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-border-subtle);
-  background: transparent;
-  flex: 0 0 auto;
-}
-
-/* 强化：当文本域获得焦点时，高亮输入容器边框 */
-.zorecto-input-wrapper:focus-within {
-  border-color: var(--color-border-strong);
-}
-
+/* Input action row stays view-specific for button placement */
 .zorecto-button-row {
   display: flex;
   align-items: center;
@@ -275,4 +191,25 @@
 .zorecto-toolbar {
   border-top: var(--border-width) solid var(--color-accent);
   padding-top: var(--space-2);
+}
+
+/* View-specific specialization for model preset menu */
+.zorecto-menu--model {
+  min-width: calc(var(--space-4) * 10); /* 160px derived from 4px grid */
+}
+
+.zorecto-menu__button--model {
+  /* Model-specific button modifier (inherits base menu button styles). */
+}
+
+.zorecto-menu__list--model {
+  /* Model-specific list modifier (inherits base menu list styles). */
+}
+
+.zorecto-menu__option--model {
+  /* Model-specific option modifier (inherits base menu option styles). */
+}
+
+.zorecto-menu__option--model-selected {
+  /* Model-specific selected modifier (inherits base selected styles). */
 }

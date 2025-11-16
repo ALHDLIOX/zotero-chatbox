@@ -50,7 +50,7 @@ export function buildChatPane(doc: Document): ChatPaneRefs {
   ) as HTMLDivElement;
 
   const inputWrapper = ztoolkit.UI.appendElement(
-    { tag: "div", classList: ["zorecto-input-wrapper"] },
+    { tag: "div", classList: ["zorecto-input", "zorecto-pane-input"] },
     dialog,
   ) as HTMLDivElement;
 
@@ -70,4 +70,3 @@ export function buildChatPane(doc: Document): ChatPaneRefs {
     resizeHandle,
   };
 }
-

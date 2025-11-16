@@ -27,13 +27,13 @@ export function buildPresetMenu(
   onSelect: (id: string) => void,
 ): PresetMenuWidget {
   const wrapper = ztoolkit.UI.createElement(doc, "div", {
-    classList: ["zorecto-preset-wrapper"],
+    classList: ["zorecto-menu", "zorecto-menu--model"],
     enableElementRecord: true,
   }) as HTMLDivElement;
 
   const button = ztoolkit.UI.createElement(doc, "button", {
     namespace: "html",
-    classList: ["zorecto-preset-button"],
+    classList: ["zorecto-menu__button", "zorecto-menu__button--model"],
     properties: { type: "button" },
     attributes: { "aria-haspopup": "listbox", "aria-expanded": "false" },
     listeners: [
@@ -44,11 +44,11 @@ export function buildPresetMenu(
     ],
   }) as HTMLButtonElement;
   const labelSpan = ztoolkit.UI.appendElement(
-    { tag: "span", classList: ["zorecto-preset-button__label"] },
+    { tag: "span", classList: ["zorecto-menu__label"] },
     button,
   ) as HTMLSpanElement;
   const iconWrap = ztoolkit.UI.appendElement(
-    { tag: "span", classList: ["zorecto-preset-button__icon"] },
+    { tag: "span", classList: ["zorecto-menu__icon"] },
     button,
   ) as HTMLSpanElement;
   const chevron = createDownOutlinedIcon(doc);
@@ -73,7 +73,7 @@ export function buildPresetMenu(
 
   const onMenuKeyDown = (e: KeyboardEvent) => {
     const items = Array.from(
-      menu.querySelectorAll(".zorecto-preset-option"),
+      menu.querySelectorAll(".zorecto-menu__option"),
     ) as HTMLElement[];
     const active = doc.activeElement as HTMLElement | null;
     const idx = Math.max(0, items.indexOf(active || items[0]!));
@@ -101,7 +101,7 @@ export function buildPresetMenu(
   };
 
   menu = ztoolkit.UI.createElement(doc, "ul", {
-    classList: ["zorecto-preset-menu"],
+    classList: ["zorecto-menu__list", "zorecto-menu__list--model"],
     properties: { hidden: true },
     attributes: { role: "listbox" },
     enableElementRecord: true,
@@ -114,13 +114,20 @@ export function buildPresetMenu(
   }) as HTMLUListElement;
 
   for (const preset of PRESETS) {
+    const baseClasses = [
+      "zorecto-menu__option",
+      "zorecto-menu__option--model",
+    ];
+    const selectedClasses = preset.id === currentId
+      ? [
+          "zorecto-menu__option--selected",
+          "zorecto-menu__option--model-selected",
+        ]
+      : [];
     ztoolkit.UI.appendElement(
       {
         tag: "li",
-        classList: [
-          "zorecto-preset-option",
-          ...(preset.id === currentId ? ["zorecto-preset-option--selected"] : []),
-        ],
+        classList: [...baseClasses, ...selectedClasses],
         properties: { textContent: preset.label },
         attributes: { role: "option", "data-id": preset.id },
         listeners: [
@@ -146,17 +153,18 @@ export function buildPresetMenu(
 
   function setSelected(id: string) {
     const items = Array.from(
-      menu.querySelectorAll(".zorecto-preset-option"),
+      menu.querySelectorAll(".zorecto-menu__option"),
     ) as HTMLElement[];
     items.forEach((el) => {
       const match = el.getAttribute("data-id") === id;
-      el.classList.toggle("zorecto-preset-option--selected", match);
+      el.classList.toggle("zorecto-menu__option--selected", match);
+      el.classList.toggle("zorecto-menu__option--model-selected", match);
     });
     updateLabel(id);
   }
 
   function getValue(): string {
-    const selected = menu.querySelector<HTMLElement>(".zorecto-preset-option--selected");
+    const selected = menu.querySelector<HTMLElement>(".zorecto-menu__option--selected");
     return selected?.getAttribute("data-id") || currentId;
   }
 

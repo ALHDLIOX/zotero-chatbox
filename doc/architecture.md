@@ -11,12 +11,17 @@ addon
 ├─ prefs.js — 默认偏好设置（本插件的 about:config 键）
 ├─ content — 在 Zotero 窗口中加载的 UI 资源
 │  ├─ global.css — 设计令牌与工具类（分层：tokens、utilities）
-│  ├─ component.css — 可复用组件基类（分层：components）
+│  ├─ component.css — 组件样式聚合器（@import component/*，保持引用路径不变）
+│  ├─ component — 按组件拆分的基类样式（分层：components）
+│  │  ├─ button.css — 中性文本按钮：尺寸/过渡/hover/active/disabled/focus-visible
+│  │  ├─ icon-button.css — 图标按钮：正方形触控区、图标尺寸、交互状态
+│  │  ├─ menu.css — Menu component: shared wrapper/button/list primitives for dropdowns (e.g., model preset selector)
+│  │  ├─ input.css — 输入区基类：提供 `.zorecto-input` wrapper 与 `.zorecto-input__field` textarea 样式
+│  │  └─ card.css — 卡片基类：宽度/排版/边框/焦点环，可供 Welcome 建议等复用
 │  ├─ zorecto.css — 视图样式聚合器（@import 引入子模块；为保持优先级不分层）
 │  ├─ views — 视图特定样式，按职责分组
 │  │  ├─ pane.css — 聊天窗布局/容器/工具栏/输入区/消息外壳
-│  │  ├─ message-content.css — 消息内容中的 Markdown/代码/KaTeX/表格/引用徽章
-│  │  └─ preset-menu.css — 预设下拉菜单（视图组合；基础尺寸/动效在 component.css）
+│  │  └─ message-content.css — 消息内容中的 Markdown/代码/KaTeX/表格/引用徽章
 │  ├─ preferences.xhtml — 偏好设置 UI；引入 global/component/preferences.css
 │  ├─ preferences.css — 偏好设置页面样式
 │  ├─ icons — 图标资源（favicon.svg/png 等）
@@ -121,67 +126,6 @@ src
             ├─ messageRenderer.ts — 单条消息 DOM 结构与内容渲染、数学错误横幅
             └─ types.ts — 消息视图 DOM 句柄/渲染选项类型
 ```
-
-## UI 设计标记与按钮焦点
-
-- 焦点样式通过 `:focus-visible` 在所有可点击控件中保持统一。
-  - 适用于：`.pref-nav-button`, `.zorecto-clear-button`, `.zorecto-send-button`, `.zorecto-copy-button`, `.zorecto-note-button`, `.zorecto-preset-button`, `.zorecto-suggestion`。
-  - 必须使用 `addon/content/global.css` 中定义的轮廓标记（tokens）：
-    - `--outline-width` (默认为 `2px`)
-    - `--outline-offset` (默认为 `1px`)
-    - `--outline-color` (默认为 `--zotero-accent-color`)
-- 不要在可聚焦元素上使用 `outline: none` 来抑制轮廓。
-  - 避免为按钮或交互式芯片添加类似 `:focus { outline: none; }` 的规则。
-  - 为了可访问性和一致性，优先使用全局的 `:focus-visible` 링样式。
-- 局部的按钮焦点规则不应覆盖全局的轮廓环。
-  - 如果某个组件需要额外的焦点标识，可以添加不冲突的样式（例如，背景色），但应保留轮廓。
-  - 保持 `hover` 和 `active` 状态不变；`focus-visible` 是附加的样式。
-
-- Button disabled state (English): unified across `.zorecto-icon-button`, `.zorecto-clear-button`, `.zorecto-copy-button`, `.zorecto-note-button`, `.zorecto-send-button`, `.zorecto-preset-button`; avoid local overrides.
-
-### 样式注入与组件库
-
-- 注入顺序（chat pane）：`global.css` → `component.css` → `zorecto.css` → `katex.css`。
-  - 代码位置：`src/chat/ui/pane/paneStyles.ts` 会基于 `zorecto.css` 路径推导并注入上述样式。
-- 组件样式库：`addon/content/component.css`
-  - 定义按钮基类：`.zorecto-button`（普通按钮）、`.zorecto-icon-button`（图标按钮）。
-  - 采用 DOM 组合：所有图标按钮元素在保留现有类名的同时，额外添加 `.zorecto-icon-button`，以复用基础样式；特化规则（例如发送按钮强调、引用按钮尺寸/配色）保留在 `addon/content/zorecto.css` 中覆盖。
-    - 涉及位置：`src/chat/ui/pane/elements/actionButtons.ts`（Send/Clear）、`src/chat/ui/pane/messages/messageRenderer.ts`（Copy/Note）、`src/chat/render/chat/inline.ts`（Cite 引用徽章）。
-  - 偏好页同样加载 `component.css`（见 `addon/content/preferences.xhtml`）。
-
-### CSS Architecture (Authoring Guidelines)
-
-The CSS is structured for clarity and safe extensibility using cascade layers and clear responsibilities:
-
-- Layer order: declared once as `@layer tokens, base, components, utilities, overrides;`.
-- Injection order (chat pane): `global.css` → `component.css` → `zorecto.css` → `katex.css`.
-
-Phase 1 (completed)
-- `global.css`
-  - `@layer tokens`: design tokens under `:root` (colors, spacing, radii, shadows, typography, outline).
-  - `@layer utilities`: generic helpers such as `.hidden`, `.hidden-textarea`.
-- `component.css`
-  - `@layer components`: reusable primitives (buttons, icon buttons, base sizing/motion for preset button).
-- `zorecto.css`
-  - Unlayered for now to avoid precedence issues with vendor, unlayered `katex.css` (which is injected later).
-  - In Phase 2 it becomes an aggregator that `@import`s view modules from `addon/content/views/`.
-
-Guidelines
-- Add new tokens only in `global.css` under `@layer tokens`.
-- Add reusable component primitives in `component.css` under `@layer components` with low-specificity selectors (prefer `:where(...)`).
-- Add/adjust chat-view specifics in `zorecto.css`, scoped under `.zorecto-pane` or `.zorecto-message-content`.
-- Prefer variables and scoping; avoid `!important` unless interacting with third-party constraints.
-
-Phase 2 (current)
-- Files under `addon/content/views/` are imported by `addon/content/zorecto.css`:
-  - `views/pane.css` — chat pane layout, containers, toolbars, inputs, message shells.
-  - `views/message-content.css` — markdown/KaTeX/tables/citation chips inside `.zorecto-message-content`.
-  - `views/preset-menu.css` — preset dropdown view specifics; base size/motion still in `component.css`.
-- Rationale: keep `zorecto.css` unlayered and preserve the existing precedence against vendor `katex.css`, while making the codebase modular and easier to extend.
-
-Next steps (optional)
-- After validating with vendor CSS, consider layering view modules (`@layer components/overrides`) to stabilize cascade across all sheets.
-
 
 ## 取消（Cancellation）
 

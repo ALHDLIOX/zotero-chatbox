@@ -1,0 +1,60 @@
+/*
+  Zorecto Button Component
+  Purpose: Provide neutral text buttons used across the addon.
+  Dependencies: Relies on shared design tokens from global.css for size, border, and motion.
+*/
+
+@layer components {
+
+.zorecto-button {
+  height: var(--btn-height-sm);
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition:
+    background-color var(--anim-fast) linear,
+    border-color var(--anim-fast) linear,
+    color var(--anim-fast) linear,
+    box-shadow var(--anim-fast) linear,
+    transform var(--anim-fast) var(--ease);
+}
+
+.zorecto-button:hover {
+  background: var(--color-hover-subtle);
+  border-color: var(--color-border-strong);
+}
+
+.zorecto-button:active {
+  border-color: var(--color-border-strong);
+}
+
+.zorecto-button:focus-visible {
+  outline: var(--outline-width) solid var(--outline-color);
+  outline-offset: var(--outline-offset);
+}
+
+.zorecto-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.zorecto-button:disabled:hover {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+}

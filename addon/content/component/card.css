@@ -1,0 +1,54 @@
+/*
+  Zorecto Card Component
+  Purpose: Provides layout, spacing, and focus styles for generic cards reused across panes.
+  Dependencies: Consumes shared design tokens from global.css for radii, spacing, and outlines.
+*/
+
+@layer components {
+
+.zorecto-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-subtle);
+  background: transparent;
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.zorecto-card:focus-visible {
+  outline: var(--outline-width) solid var(--outline-color);
+  outline-offset: var(--outline-offset);
+}
+
+.zorecto-card:hover,
+.zorecto-card:active {
+  border-color: var(--color-border-strong);
+}
+
+.zorecto-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.zorecto-card__title {
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+}
+
+.zorecto-card__text {
+  white-space: normal;
+  margin: var(--space-1) 0;
+}
+
+.zorecto-card__action {
+  margin-left: var(--space-2);
+}
+
+}

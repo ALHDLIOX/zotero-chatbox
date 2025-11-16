@@ -48,7 +48,7 @@ export class InputController {
     this.inputEl = ztoolkit.UI.appendElement(
       {
         tag: "textarea",
-        classList: ["zorecto-input"],
+        classList: ["zorecto-input__field"],
         properties: {
           id: inputId,
           placeholder: getString("zorecto-input-placeholder"),

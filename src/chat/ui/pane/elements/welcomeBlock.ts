@@ -85,18 +85,21 @@ export function buildWelcomeBlock(
   // Build each card explicitly and append
   for (const cat of categories) {
     const cardEl = ztoolkit.UI.createElement(doc, "div", {
-      classList: ["zorecto-suggestion"],
+      classList: ["zorecto-card", "zorecto-suggestion"],
     }) as HTMLDivElement;
 
     const headerEl = ztoolkit.UI.appendElement(
-      { tag: "div", classList: ["zorecto-suggestion__header"] },
+      {
+        tag: "div",
+        classList: ["zorecto-card__header", "zorecto-suggestion__header"],
+      },
       cardEl,
     ) as HTMLDivElement;
 
     ztoolkit.UI.appendElement(
       {
         tag: "div",
-        classList: ["zorecto-suggestion__title"],
+        classList: ["zorecto-card__title", "zorecto-suggestion__title"],
         properties: { textContent: getString(cat.titleKey as any) },
       },
       headerEl,
@@ -107,7 +110,11 @@ export function buildWelcomeBlock(
       {
         tag: "button",
         namespace: "html",
-        classList: ["zorecto-icon-button", "zorecto-suggestion__action"],
+        classList: [
+          "zorecto-icon-button",
+          "zorecto-card__action",
+          "zorecto-suggestion__action",
+        ],
         properties: { type: "button", title: "Use this prompt" },
         listeners: [
           { type: "click", listener: () => onAsk(text) },
@@ -122,7 +129,7 @@ export function buildWelcomeBlock(
     ztoolkit.UI.appendElement(
       {
         tag: "div",
-        classList: ["zorecto-suggestion__text"],
+        classList: ["zorecto-card__text", "zorecto-suggestion__text"],
         properties: { textContent: text },
       },
       cardEl,

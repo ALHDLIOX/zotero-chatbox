@@ -1,0 +1,180 @@
+/*
+  Zorecto Menu Component
+  Purpose: Shared wrapper, button, and list primitives for dropdown menus (e.g., model preset selector).
+  Dependencies: Uses design tokens from global.css and participates in the components layer.
+*/
+
+@layer components {
+
+.zorecto-menu {
+  position: relative;
+  display: inline-block;
+  width: auto;
+}
+
+.zorecto-menu__button {
+  height: var(--btn-height-sm);
+  width: 100%;
+  min-width: 0;
+  padding: 0 var(--space-6) 0 var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  position: relative;
+  transition:
+    background-color var(--anim-fast) linear,
+    border-color var(--anim-fast) linear,
+    color var(--anim-fast) linear,
+    box-shadow var(--anim-fast) linear,
+    transform var(--anim-fast) var(--ease);
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.zorecto-menu__button:hover {
+  background: var(--color-hover-subtle);
+  border-color: var(--color-border-strong);
+}
+
+.zorecto-menu__button:active {
+  border-color: var(--color-border-strong);
+}
+
+.zorecto-menu__button:focus-visible {
+  outline: var(--outline-width) solid var(--outline-color);
+  outline-offset: var(--outline-offset);
+}
+
+.zorecto-menu__icon {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.zorecto-menu__icon svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+  transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.zorecto-menu__button[aria-expanded="true"] .zorecto-menu__icon svg {
+  transform: rotate(180deg);
+}
+
+.zorecto-menu__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zorecto-menu__button::-moz-focus-inner {
+  border: 0;
+  padding: 0;
+}
+
+.zorecto-menu__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.zorecto-menu__button:disabled:hover {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.zorecto-menu__list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: var(--color-bg-window);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  margin: 0;
+  list-style: none;
+  z-index: var(--z-menu);
+  max-height: var(--menu-max-height);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.zorecto-menu__list[hidden] {
+  display: none;
+}
+
+.zorecto-menu__option {
+  height: var(--btn-height-sm);
+  line-height: var(--btn-height-sm);
+  padding: 0 var(--space-3);
+  cursor: pointer;
+  transition:
+    background-color var(--anim-fast) var(--ease),
+    color var(--anim-fast) var(--ease),
+    box-shadow var(--anim-fast) var(--ease),
+    transform var(--anim-fast) var(--ease);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  user-select: none;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--space-1);
+}
+
+.zorecto-menu__option:last-child {
+  margin-bottom: 0;
+}
+
+.zorecto-menu__option:hover,
+.zorecto-menu__option:focus {
+  background: var(--color-accent-soft);
+  outline: none;
+}
+
+.zorecto-menu__option--selected {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.zorecto-menu__option--selected::after {
+  content: "\2713";
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+}

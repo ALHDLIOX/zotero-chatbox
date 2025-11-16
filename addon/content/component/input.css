@@ -1,0 +1,51 @@
+/*
+  Zorecto Input Component
+  Purpose: Shared input wrapper and textarea styling for pane-style composers.
+  Dependencies: Uses spacing, radius, and color tokens defined in global.css.
+*/
+
+@layer components {
+
+.zorecto-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-subtle);
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.zorecto-input:focus-within {
+  border-color: var(--color-border-strong);
+}
+
+.zorecto-input__label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.zorecto-input__field {
+  resize: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-1) var(--space-1);
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  background: transparent;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+}
+
+.zorecto-input__field:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+}
