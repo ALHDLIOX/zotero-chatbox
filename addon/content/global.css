@@ -57,7 +57,6 @@
   --font-size-xs: 12px;
 
   /* Controls and sizes */
-  --control-size-sm: 28px;      /* small control/button height */
   --chip-size: 18px;            /* citation chip height/min-width */
   --icon-size: 16px;            /* default icon size */
   --menu-max-height: 240px;     /* dropdown max height */

@@ -9,15 +9,23 @@
  */
 import { config } from "../../../../package.json";
 import type { ProviderId, ProviderPreset } from "../../providers";
+import { createDownOutlinedIcon } from "../utils/icons";
 import ApiOutlinedMod from "@ant-design/icons-svg/lib/asn/ApiOutlined";
 import CheckCircleFilledMod from "@ant-design/icons-svg/lib/asn/CheckCircleFilled";
 
 const ApiOutlinedIcon = (ApiOutlinedMod as any).default ?? ApiOutlinedMod;
 const CheckCircleFilledIcon = (CheckCircleFilledMod as any).default ?? CheckCircleFilledMod;
 
+interface PrefPresetMenuWidget {
+  wrapper: HTMLDivElement;
+  button: HTMLButtonElement;
+  label: HTMLSpanElement;
+  list: HTMLUListElement;
+}
+
 /** Element handles used by the preferences controller. */
 export interface PrefViewRefs {
-  preset: HTMLSelectElement;
+  preset: PrefPresetMenuWidget;
   navButtons: HTMLButtonElement[];
   panelBasic: HTMLElement;
   panelModel: HTMLElement;
@@ -26,7 +34,8 @@ export interface PrefViewRefs {
 }
 
 const ELEMENT_IDS = {
-  preset: `zotero-prefpane-${config.addonRef}-preset`,
+  presetRoot: `zotero-prefpane-${config.addonRef}-preset-root`,
+  presetButton: `zotero-prefpane-${config.addonRef}-preset-button`,
 };
 
 function getIconNode(def: any): any {
@@ -79,13 +88,70 @@ function getProviderDisplayName(provider: ProviderId | string): string {
   }
 }
 
+function buildPrefPresetMenu(doc: Document, root: HTMLElement): PrefPresetMenuWidget {
+  const wrapper = ztoolkit.UI.appendElement(
+    {
+      tag: "div",
+      classList: ["zorecto-menu"],
+    },
+    root,
+  ) as HTMLDivElement;
+
+  const button = ztoolkit.UI.appendElement(
+    {
+      tag: "button",
+      namespace: "html",
+      classList: ["zorecto-menu__button"],
+      attributes: {
+        type: "button",
+        id: ELEMENT_IDS.presetButton,
+        "aria-haspopup": "listbox",
+        "aria-expanded": "false",
+      },
+    },
+    wrapper,
+  ) as HTMLButtonElement;
+
+  const label = ztoolkit.UI.appendElement(
+    {
+      tag: "span",
+      classList: ["zorecto-menu__label"],
+    },
+    button,
+  ) as HTMLSpanElement;
+
+  const iconWrap = ztoolkit.UI.appendElement(
+    {
+      tag: "span",
+      classList: ["zorecto-menu__icon"],
+    },
+    button,
+  ) as HTMLSpanElement;
+  const chevron = createDownOutlinedIcon(doc);
+  if (chevron) {
+    iconWrap.appendChild(chevron);
+  }
+
+  const list = ztoolkit.UI.appendElement(
+    {
+      tag: "ul",
+      classList: ["zorecto-menu__list"],
+      attributes: { role: "listbox" },
+      properties: { hidden: true },
+    },
+    wrapper,
+  ) as HTMLUListElement;
+
+  return { wrapper, button, label, list };
+}
+
 /**
  * Query and return preferences view element references.
  * @param window Host window containing the preferences document.
  */
 export function buildPrefView(window: Window): PrefViewRefs {
   const doc = window.document;
-  const preset = doc.getElementById(ELEMENT_IDS.preset) as HTMLSelectElement | null;
+  const presetRoot = doc.getElementById(ELEMENT_IDS.presetRoot) as HTMLElement | null;
   const navButtons = Array.from(
     doc.querySelectorAll(".pref-nav-button"),
   ) as HTMLButtonElement[];
@@ -93,9 +159,11 @@ export function buildPrefView(window: Window): PrefViewRefs {
   const panelModel = doc.getElementById("pref-panel-model") as HTMLElement | null;
   const modelList = doc.getElementById("pref-model-list") as HTMLElement | null;
 
-  if (!preset || !panelBasic || !panelModel || !modelList) {
+  if (!presetRoot || !panelBasic || !panelModel || !modelList) {
     throw new Error("Missing preference UI elements");
   }
+
+  const preset = buildPrefPresetMenu(doc, presetRoot);
 
   return {
     preset,
@@ -107,27 +175,112 @@ export function buildPrefView(window: Window): PrefViewRefs {
   };
 }
 
-/** Populate the preset <select> options from provided presets. */
-export function renderPresetOptions(refs: PrefViewRefs, presets: ProviderPreset[]) {
+/** Populate the preset menu options from provided presets and wire selection callback. */
+export function renderPresetOptions(
+  refs: PrefViewRefs,
+  presets: ProviderPreset[],
+  onSelect: (id: string) => void,
+): void {
   const l10n = (refs.doc as any).l10n;
-  refs.preset.textContent = "";
+  const { doc } = refs;
+  const { wrapper, button, list } = refs.preset;
+
+  list.textContent = "";
+
+  const outsideClickHandler = (ev: Event) => {
+    try {
+      const path = (ev as any)?.composedPath?.();
+      const targetNode = ev.target as Node | null;
+      if (Array.isArray(path)) {
+        if (path.includes(wrapper)) return;
+      } else if (targetNode && wrapper.contains(targetNode)) {
+        return;
+      }
+    } catch {
+      // fall through to close
+    }
+    list.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    doc.removeEventListener("mousedown", outsideClickHandler, true);
+    doc.removeEventListener("pointerdown", outsideClickHandler, true);
+  };
+
+  const openMenu = () => {
+    if (!list.hidden) return;
+    list.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    doc.addEventListener("mousedown", outsideClickHandler, true);
+    doc.addEventListener("pointerdown", outsideClickHandler, true);
+  };
+
+  const closeMenu = () => {
+    if (list.hidden) return;
+    list.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    doc.removeEventListener("mousedown", outsideClickHandler, true);
+    doc.removeEventListener("pointerdown", outsideClickHandler, true);
+  };
+
+  button.addEventListener("click", () => {
+    if (list.hidden) {
+      openMenu();
+    } else {
+      closeMenu();
+    }
+  });
+
   for (const p of presets) {
     const opt = ztoolkit.UI.appendElement(
-      { tag: "option", properties: { value: p.id, textContent: p.label } as any },
-      refs.preset,
-    ) as HTMLOptionElement;
+      {
+        tag: "li",
+        classList: ["zorecto-menu__option"],
+        attributes: { role: "option", "data-id": p.id },
+        properties: { textContent: p.label } as any,
+        listeners: [
+          {
+            type: "click",
+            listener: () => {
+              onSelect(p.id);
+              closeMenu();
+              try {
+                button.focus();
+              } catch {
+                // ignore
+              }
+            },
+          },
+        ],
+      },
+      list,
+    ) as HTMLLIElement;
     try {
       l10n?.setAttributes?.(opt, p.labelKey);
     } catch {}
   }
 }
 
-/** Sync preset dropdown with the selected preset. */
+/** Sync preset menu with the selected preset. */
 export function fillForm(
   refs: PrefViewRefs,
   preset: ProviderPreset,
 ) {
-  refs.preset.value = preset.id;
+  const l10n = (refs.doc as any).l10n;
+  const { label, list } = refs.preset;
+  label.textContent = preset.label;
+  try {
+    l10n?.setAttributes?.(label as any, preset.labelKey);
+  } catch {}
+
+  const items = list.querySelectorAll<HTMLElement>(".zorecto-menu__option");
+  items.forEach((el: HTMLElement) => {
+    const isSelected = el.getAttribute("data-id") === preset.id;
+    el.classList.toggle("zorecto-menu__option--selected", isSelected);
+    if (isSelected) {
+      el.setAttribute("aria-selected", "true");
+    } else {
+      el.removeAttribute("aria-selected");
+    }
+  });
 }
 
 /** Render the model table rows for each preset (no listeners attached). */

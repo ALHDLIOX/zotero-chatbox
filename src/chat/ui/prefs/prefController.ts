@@ -39,11 +39,6 @@ interface PrefState {
   handleUnload: () => void;
 }
 
-/** Compute the current selected preset from the UI. */
-function getCurrentPresetFromUI(state: PrefState): ProviderPreset {
-  return getPresetById(state.refs.preset.value) ?? PRESETS[0];
-}
-
 /** Sync all visible API key inputs for a provider to the given value. */
 function syncProviderApiKeyInputs(
   refs: PrefViewRefs,
@@ -73,7 +68,16 @@ export async function initPrefController(window: Window): Promise<void> {
   addon.data.prefState = state;
 
   // Populate view
-  renderPresetOptions(refs, PRESETS);
+  const onPresetChange = (id: string) => {
+    const selected = getPresetById(id) ?? PRESETS[0];
+    const apiKey = getApiKeyForProvider(selected.provider);
+    fillForm(refs, selected);
+    setSelectedPresetId(selected.id);
+    setModelSelection(refs, selected.id);
+    syncProviderApiKeyInputs(refs, selected.provider, apiKey);
+  };
+
+  renderPresetOptions(refs, PRESETS, onPresetChange);
   renderModelList(refs, PRESETS);
 
   // Initialize API key inputs per provider
@@ -89,11 +93,14 @@ export async function initPrefController(window: Window): Promise<void> {
   setActivePanel(refs, "basic");
   setModelSelection(refs, initialPreset.id);
 
-  bindEvents(state);
+  bindEvents(state, onPresetChange);
   window.addEventListener("unload", state.handleUnload, { once: true });
 }
 
-function bindEvents(state: PrefState): void {
+function bindEvents(
+  state: PrefState,
+  onPresetChange: (id: string) => void,
+): void {
   const { refs } = state;
 
   // Navigation buttons → switch panel
@@ -105,16 +112,6 @@ function bindEvents(state: PrefState): void {
       }
     });
   }
-
-  // Preset dropdown change
-  refs.preset.addEventListener("change", () => {
-    const selected = getCurrentPresetFromUI(state);
-    const apiKey = getApiKeyForProvider(selected.provider);
-    fillForm(refs, selected);
-    setSelectedPresetId(selected.id);
-    setModelSelection(refs, selected.id);
-    syncProviderApiKeyInputs(refs, selected.provider, apiKey);
-  });
 
   // Inline API key edits in model rows (provider-scoped)
   refs.modelList.addEventListener("input", (ev) => {
@@ -149,9 +146,7 @@ function bindEvents(state: PrefState): void {
     const id = row.getAttribute("data-id");
     if (!id) return;
     if (!PRESETS.some((p) => p.id === id)) return;
-    refs.preset.value = id;
-    // Trigger change handler to reuse logic
-    refs.preset.dispatchEvent(new state.window.Event("change", { bubbles: true }));
+    onPresetChange(id);
   });
 }
 

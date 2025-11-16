@@ -204,6 +204,8 @@
 
 .zorecto-menu__list--model {
   /* Model-specific list modifier (inherits base menu list styles). */
+  bottom: calc(100% + var(--space-1));
+  top: auto;
 }
 
 .zorecto-menu__option--model {
