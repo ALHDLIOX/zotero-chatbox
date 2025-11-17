@@ -1,6 +1,11 @@
 /** Chat pane controller (Presenter) responsible for wiring UI and chat flow. */
 import { config } from "../../../../package.json";
-import { clearMessages, ensureSession, type SessionState } from "../../services/session/sessionStore";
+import {
+  clearSessionMessages,
+  ensureSessionExists,
+  resolveSessionForPane,
+  type SessionState,
+} from "../../services/session/sessionFacade";
 import { ensurePaneStyles } from "./paneStyles";
 import { buildChatPane } from "../pane/paneView";
 import { MessageListController } from "./controllers/messageListController";
@@ -15,8 +20,6 @@ import { SendController } from "./controllers/sendController";
 import { InputController } from "./controllers/inputController";
 import { copyAssistantMessageById, addAssistantMessageToNotesById } from "./controllers/messageActionsController";
 import { openReaderAndNavigate } from "../../services/readerNavigation";
-import { resolveSessionAndScope } from "../../services/session/sessionScope";
- 
 
 type SectionHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs;
 type SectionInitHookArgs = _ZoteroTypes.ItemPaneManagerSection.SectionInitHookArgs;
@@ -178,15 +181,20 @@ export class chatPaneController {
   /** Resolve session/scope for current pane body and ensure a live session */
   private assignSession(props: SectionHookArgs | SectionInitHookArgs): void {
     const doc = this.getDocument();
-    const { sessionId, scopeKey } = resolveSessionAndScope(props, doc);
+    const { sessionId, scopeKey } = resolveSessionForPane(
+      props,
+      doc,
+      this.sessionId,
+      this.currentScopeKey,
+    );
     this.sessionId = sessionId;
     this.currentScopeKey = scopeKey;
-    if (sessionId) ensureSession(sessionId);
+    if (sessionId) ensureSessionExists(sessionId);
   }
 
   /** Re-render message list (or welcome placeholder) and auto-scroll */
   private refreshMessages(): void {
-    const session = this.sessionId ? ensureSession(this.sessionId) : undefined;
+    const session = this.sessionId ? ensureSessionExists(this.sessionId) : undefined;
     if (!session) {
       // Use view adapter to reset to placeholder state
       try {
@@ -227,7 +235,7 @@ export class chatPaneController {
     try {
       await this.sendCtrl.submit(this.sessionId, content);
       this.setSendingState(false);
-      this.updateStatusDisplay(ensureSession(this.sessionId));
+      this.updateStatusDisplay(ensureSessionExists(this.sessionId));
     } catch (error) {
       this.setSendingState(false);
       try { this.statusCtrl.setMissing(); } catch {}
@@ -242,15 +250,15 @@ export class chatPaneController {
   private async handleAbort(): Promise<void> {
     try { this.sendCtrl.abort(); } catch {}
     this.setSendingState(false);
-    if (this.sessionId) this.updateStatusDisplay(ensureSession(this.sessionId));
+    if (this.sessionId) this.updateStatusDisplay(ensureSessionExists(this.sessionId));
   }
 
   /** Clear current session messages and restore placeholder */
   private handleClear(): void {
     if (!this.sessionId) return;
-    const session = ensureSession(this.sessionId);
+    const session = ensureSessionExists(this.sessionId);
     if (!session || session.messages.length === 0) return;
-    clearMessages(this.sessionId);
+    clearSessionMessages(this.sessionId);
     this.messageList.clear();
     try {
       // After clearing, show and refresh welcome cards with new randomized suggestions
@@ -292,7 +300,7 @@ export class chatPaneController {
   onRender(props: SectionHookArgs): void {
     this.assignSession(props);
     this.refreshMessages();
-    const session = this.sessionId ? ensureSession(this.sessionId) : undefined;
+    const session = this.sessionId ? ensureSessionExists(this.sessionId) : undefined;
     if (session) {
       this.updateStatusDisplay(session);
     }
@@ -311,7 +319,7 @@ export class chatPaneController {
         ztoolkit.log("[zorecto] 加载上下文失败", error);
       })
       .finally(() => {
-        if (this.sessionId) this.updateStatusDisplay(ensureSession(this.sessionId));
+        if (this.sessionId) this.updateStatusDisplay(ensureSessionExists(this.sessionId));
       });
     try {
       await this.contextLoadPromise;
@@ -332,7 +340,7 @@ export class chatPaneController {
         ztoolkit.log("[zorecto] 刷新上下文失败", error);
       })
       .finally(() => {
-        if (this.sessionId) this.updateStatusDisplay(ensureSession(this.sessionId));
+        if (this.sessionId) this.updateStatusDisplay(ensureSessionExists(this.sessionId));
       });
   }
 }

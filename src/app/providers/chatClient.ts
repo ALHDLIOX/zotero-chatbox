@@ -4,7 +4,7 @@ import { I18N_KEYS } from "../../shared/i18nKeys";
 import { ProviderError, isAbortLikeError } from "../../shared/errors";
 import { getSystemPrompt } from "./prompts";
 import { TOKEN_LIMIT } from "./constants";
-import type { SessionMessage } from "../services/session/sessionStore";
+import type { SessionMessage } from "../services/session/sessionFacade";
 import {
   getProviderSettings,
   type ProviderSettings,

@@ -64,8 +64,9 @@ src
    │  ├─ readerNavigation.ts — 打开 Reader、等待 PDF 就绪、翻页与查找高亮
    │  ├─ session — 会话作用域与状态
    │  │  ├─ sessionScope.ts — 计算会话 ID 与作用域 key（reader/attachment/item），作用域切换时重置会话
-   │  │  └─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离
-   │  ├─ chatFlow.ts — 对话流程控制：启动/中止、流式 token 回调、错误处理并更新 sessionStore
+   │  │  ├─ sessionStore.ts — 在内存中维护 {status, messages, context, lastResult}；提供增删改与作用域隔离（内部实现）
+   │  │  └─ sessionFacade.ts — 会话统一门面：集中导出 Session 类型与操作，供 services/ui 访问会话状态与作用域解析
+   │  ├─ chatFlow.ts — 对话流程控制：启动/中止、流式 token 回调、错误处理并通过 sessionFacade 更新会话状态
    │  ├─ createNotes.ts — 将助手回复渲染为 Zotero Note 兼容 HTML 并保存到关联条目；提供按消息ID创建笔记
    │  └─ copyMessage.ts — 复制消息文本到剪贴板（仅使用 Toolkit ClipboardHelper；提供按消息ID复制）
    ├─ providers — 模型服务商与请求客户端

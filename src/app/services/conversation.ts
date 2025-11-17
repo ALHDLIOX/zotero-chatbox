@@ -3,17 +3,17 @@
  *
  * Purpose: provide a single entry to send user content with optional document
  * context, stream assistant tokens via ChatFlow, and expose an abort handle.
- * Dependencies: sessionStore for state mutation, documentContext for building
- * system context, ChatFlow for streaming lifecycle.
- * Invariants: controllers do not touch sessionStore directly; all mutations go
- * through this service. Callers receive UI-ready callbacks for user/assistant.
+ * Dependencies: session facade for state mutation, documentContext for
+ * building system context, ChatFlow for streaming lifecycle.
+ * Invariants: controllers do not touch the underlying session store directly;
+ * all mutations go through this service. Callers receive UI-ready callbacks
+ * for user/assistant.
  */
 import {
-  appendMessage,
-  ensureSession,
-  getSession,
+  appendSessionMessage,
+  ensureSessionExists,
   type SessionMessage,
-} from "./session/sessionStore";
+} from "./session/sessionFacade";
 import { buildContextMessage } from "./documentContext";
 import { ChatFlow } from "./chatFlow";
 import type { ChatResponse } from "../providers";
@@ -57,13 +57,13 @@ export function sendWithContext(
     content: text,
     timestamp: Date.now(),
   };
-  appendMessage(sessionId, user);
+  appendSessionMessage(sessionId, user);
   try { callbacks.onUser?.(user); } catch {}
 
   // Optionally append system document context (not shown in chat UI).
   const context = buildContextMessage(sessionId);
   if (context) {
-    appendMessage(sessionId, context);
+    appendSessionMessage(sessionId, context);
   }
 
   // Start ChatFlow and proxy callbacks.
@@ -91,7 +91,7 @@ export function getAssistantMessageText(
   sessionId: string,
   messageId: string,
 ): string | undefined {
-  const session = ensureSession(sessionId) || getSession(sessionId);
+  const session = ensureSessionExists(sessionId);
   const m = session?.messages.find((x) => x.id === messageId && x.role === "assistant");
   const text = m?.content ?? "";
   return text || undefined;

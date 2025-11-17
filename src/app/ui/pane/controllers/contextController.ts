@@ -1,5 +1,5 @@
 /** Context controller: load and cache document context for current scope. */
-import type { SessionState } from "../../../services/session/sessionStore";
+import type { SessionState } from "../../../services/session/sessionFacade";
 import { createContextLoader } from "../../../services/documentContext";
 import { StatusController } from "./statusController";
 

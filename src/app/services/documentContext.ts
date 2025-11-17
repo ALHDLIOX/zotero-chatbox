@@ -1,8 +1,12 @@
 /** Gather PDF context and build system context messages for chat. */
-import { getSession, type SessionMessage } from "./session/sessionStore";
+import {
+  ensureSessionExists,
+  getSessionSnapshot,
+  updateSessionContext,
+  type SessionMessage,
+  type SessionState,
+} from "./session/sessionFacade";
 import { getActiveReader } from "./readerNavigation";
-import { ensureSession } from "./session/sessionStore";
-import { setSessionContext, type SessionState } from "./session/sessionStore";
 
 export async function collectRelevantAttachments(
   props: _ZoteroTypes.ItemPaneManagerSection.SectionHookArgs,
@@ -136,7 +140,7 @@ export async function readAttachmentsContext(attachments: Zotero.Item[]): Promis
 export function buildContextMessage(
   sessionId: string,
 ): SessionMessage | undefined {
-  const session = getSession(sessionId);
+  const session = getSessionSnapshot(sessionId);
   const documentText = session?.context.documentText?.trim();
   const attachmentIDs = (session?.context.attachmentIDs || []).slice();
 
@@ -216,13 +220,13 @@ export async function loadContextForProps(
   const attachmentIds = attachments.map((i) => i.id).sort((a, b) => a - b);
   const key = attachmentIds.join(",");
 
-  const session = ensureSession(sessionId);
+  const session = ensureSessionExists(sessionId);
   if (key && previousAttachmentKey === key && session.context.documentText) {
     return { updated: session, key };
   }
 
   if (attachments.length === 0) {
-    const updated = setSessionContext(sessionId, {
+    const updated = updateSessionContext(sessionId, {
       hasFulltext: false,
       hasPageMap: false,
       documentText: undefined,
@@ -232,7 +236,7 @@ export async function loadContextForProps(
   }
 
   const ctx = await readAttachmentsContext(attachments);
-  const updated = setSessionContext(sessionId, ctx);
+  const updated = updateSessionContext(sessionId, ctx);
   return { updated, key };
 }
 

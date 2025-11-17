@@ -4,7 +4,7 @@
  * Purpose: orchestrates a single chat run for a session: appends a placeholder
  * assistant message, streams tokens into it, and persists the final result.
  *
- * Dependencies: sessionStore for state updates; providers/sendChat for model
+ * Dependencies: session facade for state updates; providers/sendChat for model
  * request; shared/abort for consistent cancellation semantics across hosts.
  *
  * Invariants: a single internal AbortController exists per run; upstream
@@ -13,13 +13,13 @@
  */
 import { getString } from "../../shared/locale";
 import {
-  appendMessage,
-  ensureSession,
-  setLastResult,
-  updateMessage,
+  appendSessionMessage,
+  ensureSessionExists,
+  setSessionLastResult,
+  updateSessionMessage,
   type SessionMessage,
   type SessionState,
-} from "./session/sessionStore";
+} from "./session/sessionFacade";
 import { sendChat, ProviderError, type ChatResponse } from "../providers";
 import { combineSignals, getAbortReason, createAbortController } from "../../shared/abort";
 
@@ -76,7 +76,7 @@ export class ChatFlow {
    * @throws ProviderError when the request fails or is aborted.
    */
   async start(opts: StartOptions = {}): Promise<ChatResponse> {
-    const session = ensureSession(this.sessionId);
+    const session = ensureSessionExists(this.sessionId);
 
     const assistantMessage: SessionMessage = {
       id: `${Date.now()}-a`,
@@ -84,7 +84,7 @@ export class ChatFlow {
       content: "",
       timestamp: Date.now(),
     };
-    appendMessage(this.sessionId, assistantMessage);
+    appendSessionMessage(this.sessionId, assistantMessage);
     try { opts.onAssistant?.(assistantMessage); } catch {}
 
     // Single internal controller; upstream cancellation is merged via combineSignals
@@ -120,7 +120,7 @@ export class ChatFlow {
 
     const onToken = (token: string) => {
       assistantMessage.content += token;
-      updateMessage(this.sessionId, assistantMessage.id, () => ({ ...assistantMessage }));
+      updateSessionMessage(this.sessionId, assistantMessage.id, () => ({ ...assistantMessage }));
       try { opts.onToken?.(token); } catch {}
     };
 
@@ -136,13 +136,13 @@ export class ChatFlow {
       } catch {}
 
       const response = await sendChat({
-        messages: ensureSession(this.sessionId).messages,
+        messages: ensureSessionExists(this.sessionId).messages,
         signal: effectiveSignal,
         onToken,
       });
       assistantMessage.content = response.completion;
-      updateMessage(this.sessionId, assistantMessage.id, () => ({ ...assistantMessage }));
-      setLastResult(this.sessionId, { text: response.completion, usage: response.usage, raw: response.raw });
+      updateSessionMessage(this.sessionId, assistantMessage.id, () => ({ ...assistantMessage }));
+      setSessionLastResult(this.sessionId, { text: response.completion, usage: response.usage, raw: response.raw });
       return response;
     } catch (error) {
       const err = error as ProviderError;
@@ -161,7 +161,7 @@ export class ChatFlow {
       }
       const content = (err && err.message) || String(err || "error");
       assistantMessage.content = content;
-      updateMessage(this.sessionId, assistantMessage.id, () => ({ ...assistantMessage }));
+      updateSessionMessage(this.sessionId, assistantMessage.id, () => ({ ...assistantMessage }));
       throw err;
     } finally {
       this.controller = undefined;

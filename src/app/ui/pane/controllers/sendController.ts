@@ -5,7 +5,7 @@
  * services/conversation. Cancellation is owned by ChatFlow inside the service;
  * this controller only forwards abort() via the returned handle.
  */
-import type { SessionMessage } from "../../../services/session/sessionStore";
+import type { SessionMessage } from "../../../services/session/sessionFacade";
 import { sendWithContext } from "../../../services/conversation";
 import { MessageListController } from "./messageListController";
 import { createAbortError } from "../../../../shared/errors";

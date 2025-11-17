@@ -12,7 +12,7 @@
  * - Business logic for copying or note creation (handled in controllers)
  */
 import { getString } from "../../../../shared/locale";
-import type { SessionMessage } from "../../../services/session/sessionStore";
+import type { SessionMessage } from "../../../services/session/sessionFacade";
 import type { MessageDom, RenderOptions } from "./types";
 import { createCopyIcon, createNoteIcon } from "../../utils/icons";
 import { renderMessage } from "../../../render/chat/block";

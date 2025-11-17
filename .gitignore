@@ -20,3 +20,11 @@ logs
 
 # Python
 .venv/
+
+# AI assistant files
+.claude/
+.gemini/
+CLAUDE
+AGENT
+GEMINI
+doc/
